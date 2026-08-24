@@ -1,0 +1,79 @@
+name: Tests and Figma Contracts
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build -c Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test -c Release --no-build
+
+  contracts:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch the latest Figma API artifacts
+        run: |
+          mkdir -p /tmp/figma-latest && cd /tmp/figma-latest
+          npm pack @figma/rest-api-spec @figma/plugin-typings
+          for f in *.tgz; do d="${f%.tgz}"; mkdir "$d"; tar xzf "$f" -C "$d"; done
+          cp figma-rest-api-spec-*/package/openapi/openapi.yaml "$GITHUB_WORKSPACE/vendor/figma/openapi.yaml"
+          cp figma-plugin-typings-*/package/plugin-api.d.ts "$GITHUB_WORKSPACE/vendor/figma/plugin-api.d.ts"
+          ls -la figma-*/package | head -5
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build -c Release --no-restore
+
+      - name: Run contract guards against the latest artifacts
+        run: dotnet test -c Release --no-build --filter "FullyQualifiedName~Tests.Contracts"

@@ -1,0 +1,143 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Snail.MCP.Figma.Adapters.Editor;
+using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Ports;
+using Snail.MCP.Figma.Application.Snapshots;
+
+namespace Snail.MCP.Figma.Tests.Support;
+
+/// <summary>Fake plugin behaving like <c>ui.html</c>: introduces itself with FILE_INFO, answers commands by requestId and sends events.</summary>
+public sealed class FakeEditorExtension : IAsyncDisposable
+{
+    private readonly ClientWebSocket _socket = new();
+    private readonly List<JsonNode> _received = [];
+    private readonly object _gate = new();
+    private CancellationTokenSource? _loop;
+
+    public IReadOnlyList<JsonNode> Received
+    {
+        get { lock (_gate) { return _received.ToArray(); } }
+    }
+
+    /// <summary>How to answer a command: method name → result or error.</summary>
+    public Dictionary<string, Func<JsonNode?, JsonNode?>> Handlers { get; } = new(StringComparer.Ordinal);
+
+    public Dictionary<string, string> Errors { get; } = new(StringComparer.Ordinal);
+
+    public async Task ConnectAsync(int port, string fileKey, string fileName, string path = "/")
+    {
+        await _socket.ConnectAsync(new Uri($"ws://127.0.0.1:{port}{path}"), CancellationToken.None);
+
+        _loop = new CancellationTokenSource();
+        _ = Task.Run(() => ReceiveLoopAsync(_loop.Token));
+
+        await SendAsync(new JsonObject
+        {
+            ["type"] = "FILE_INFO",
+            ["data"] = new JsonObject
+            {
+                ["fileKey"] = fileKey,
+                ["fileName"] = fileName,
+                ["pluginVersion"] = "1.40.0",
+                ["editorType"] = "figma",
+                ["currentPage"] = "Page 1",
+            },
+        });
+    }
+
+    public Task SendEventAsync(string type, JsonObject data) =>
+        SendAsync(new JsonObject { ["type"] = type, ["data"] = data });
+
+    private async Task SendAsync(JsonNode message)
+    {
+        var bytes = Encoding.UTF8.GetBytes(message.ToJsonString());
+        await _socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
+    }
+
+    private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
+    {
+        var buffer = new byte[32 * 1024];
+
+        try
+        {
+            while (_socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+            {
+                var result = await _socket.ReceiveAsync(buffer, cancellationToken);
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return;
+                }
+
+                var message = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count));
+
+                if (message is null)
+                {
+                    continue;
+                }
+
+                lock (_gate)
+                {
+                    _received.Add(message);
+                }
+
+                var id = message["id"]?.GetValue<string>();
+                var method = message["method"]?.GetValue<string>();
+
+                if (id is null || method is null)
+                {
+                    continue;
+                }
+
+                if (Errors.TryGetValue(method, out var error))
+                {
+                    await SendAsync(new JsonObject { ["id"] = id, ["error"] = error });
+                    continue;
+                }
+
+                var payload = Handlers.TryGetValue(method, out var handler)
+                    ? handler(message["params"])
+                    : new JsonObject { ["success"] = true };
+
+                await SendAsync(new JsonObject { ["id"] = id, ["result"] = payload });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (WebSocketException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _loop?.Cancel();
+
+        if (_socket.State == WebSocketState.Open)
+        {
+            try
+            {
+                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            }
+            catch (WebSocketException)
+            {
+            }
+        }
+
+        _socket.Dispose();
+        _loop?.Dispose();
+    }
+}

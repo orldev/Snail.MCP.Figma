@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "csharp-tools-figma": {
+      "command": "dotnet",
+      "args": [
+        "src/bin/Debug/net10.0/Snail.MCP.Figma.dll"
+      ],
+      "env": {
+        "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "${SNAIL_MCP_FIGMA_ACCESS_TOKEN:-}",
+        "SNAIL_MCP_FIGMA_DATA_DIRECTORY": "~/.csharp-tools-figma"
+      }
+    }
+  }
+}

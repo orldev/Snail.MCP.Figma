@@ -1,0 +1,45 @@
+using Microsoft.Extensions.Hosting;
+
+namespace Snail.MCP.Figma.Hosting;
+
+/// <summary>Stops the host when no MCP tool has been called for longer than the idle timeout and no plugin is connected.</summary>
+public sealed class IdleShutdownWatcher(
+    IActivityTracker activity,
+    IOpenDocuments documents,
+    IdleShutdownOptions options,
+    IHostApplicationLifetime appLifetime,
+    TimeProvider timeProvider,
+    ILogger<IdleShutdownWatcher> logger)
+    : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(options.PollInterval, timeProvider);
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                
+                if (documents.HasConnection)
+                {
+                    activity.Touch();
+
+                    continue;
+                }
+
+                var idleFor = timeProvider.GetUtcNow().UtcDateTime - activity.LastActivityUtc;
+
+                if (idleFor < options.IdleTimeout) continue;
+
+                logger.LogWarning("No MCP tool has been called for {IdleFor}; the process looks orphaned, shutting down", idleFor);
+                appLifetime.StopApplication();
+
+                return;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+}

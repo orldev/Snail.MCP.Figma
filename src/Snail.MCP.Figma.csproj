@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <RollForward>LatestMajor</RollForward>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>snail-mcp-figma</ToolCommandName>
+        <PackageType>McpServer</PackageType>
+        <PackageId>Snail.MCP.Figma</PackageId>
+        <PackageVersion>0.1.0</PackageVersion>
+        <Authors>orldev</Authors>
+        <Description>Local MCP server that gives AI agents 139 tools for reading and editing Figma. Reads go through the live Figma Desktop plugin — no REST quota spent and unsaved edits visible — or through the REST API behind a LiteDB snapshot cache and a sanitizer that keeps the raw Figma JSON out of the model context; writes go through the plugin: nodes, variables, components, FigJam and Slides. Also design tokens in 11 formats, version diffs and Markdown changelogs, and design system extraction from a codebase.</Description>
+        <PackageTags>mcp;mcp-server;modelcontextprotocol;ai;claude;figma;figjam;design-tokens;design-system;dotnet-tool</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/orldev/Snail.MCP.Figma</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/orldev/Snail.MCP.Figma</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="/" Visible="false"/>
+        <None Include="..\.mcp\server.json" Pack="true" PackagePath="/.mcp/" Visible="false"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+        <PackageReference Include="LiteDB" Version="5.0.21" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\plugin\**\*"
+                 Link="plugin\%(RecursiveDir)%(Filename)%(Extension)"
+                 CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Adapters/Editor/Scripts/*.js" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Snail.MCP.Figma.Tests" />
+    </ItemGroup>
+
+</Project>

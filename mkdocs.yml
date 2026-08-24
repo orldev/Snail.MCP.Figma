@@ -1,0 +1,72 @@
+site_name: Snail.MCP.Figma
+site_description: Local MCP server for Figma — 139 tools for reading and editing designs
+site_url: https://orldev.github.io/Snail.MCP.Figma/
+repo_url: https://github.com/orldev/Snail.MCP.Figma
+repo_name: orldev/Snail.MCP.Figma
+edit_uri: ""
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Architecture: architecture.md
+  - Configuration: configuration.md
+  - Plugin setup: plugin-setup.md
+  - Troubleshooting: troubleshooting.md
+  - Tools:
+      - Overview: tools/index.md
+      - Reading: tools/reading.md
+      - Writing: tools/writing.md
+      - Nodes: tools/nodes.md
+      - Components: tools/components.md
+      - Variables: tools/variables.md
+      - Design tokens: tools/design-tokens.md
+      - Design to code: tools/design-to-code.md
+      - Design system kit: tools/design-system-kit.md
+      - Design system from code: tools/design-system-from-code.md
+      - Version history: tools/version-history.md
+      - Comments: tools/comments.md
+      - Libraries: tools/libraries.md
+      - FigJam: tools/figjam.md
+      - Slides: tools/slides.md
+      - Slots: tools/slots.md
+      - Quality and annotations: tools/quality.md
+      - Session and console: tools/session.md
+      - Diagnostics: tools/diagnostics.md
