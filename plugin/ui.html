@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <!-- ==========================================================================
   FILE MAP — search a banner name to jump to its section
-  CSS:    BLACK SNAIL palette · Row 1 (status + CTA + icons) ·
-          Status meta line · Toggled rows · sub-toolbar · update banner · log panel
+  CSS:    ТИХАЯ ЗЕМЛЯ palette · field (the whole inner area) · wave ·
+          orb (expand button and agents in this file) · to-row (addressee) ·
+          detail · log · banner
   Script: GLOBAL STATE · COMMAND INFRASTRUCTURE · VARIABLE OPERATIONS ·
           COMPONENT OPERATIONS · COMPONENT PROPERTY MANAGEMENT ·
           SLOT OPERATIONS · NODE MANIPULATION · SCREENSHOT & INSTANCE
           PROPERTIES · WEBSOCKET BRIDGE CLIENT · HTTP /health DISCOVERY LOOP ·
-          3-STAGE UI TOGGLES · LOG PANEL & CLIPBOARD EXPORT · MESSAGE HANDLER
+          ОКНО И ДВА СОСТОЯНИЯ · LOG PANEL & CLIPBOARD EXPORT · MESSAGE HANDLER
 =========================================================================== -->
 <html>
 <head>
@@ -19,315 +20,378 @@
       padding: 0;
     }
 
-    /* ===== BLACK SNAIL palette — the single committed look ===== */
-    /* Glossy black shell with an amber accent; the panel no longer follows
-       the editor theme (themeColors:false in code.js). */
+    /* ===== ТИХАЯ ЗЕМЛЯ — светлая палитра панели =====
+       Одно полотно: поле занимает всю внутреннюю область окна, и его бортик
+       и есть бортик панели. Вложенных поверхностей здесь нет — пространство
+       делят волосяные линии, действия набраны текстом, вес шрифта везде один. */
     :root {
-      --snail-bg:             #121213;
-      --snail-well:           #0c0c0d;
-      --snail-shell:          #1c1d1f;
-      --snail-border:         #2e2f33;
-      --snail-text:           #e8e5de;
-      --snail-text-dim:       #96938c;
-      --snail-accent:         #d9a648;
-      --color-connected:      #3fd977;
-      --color-connected-glow: rgba(63, 217, 119, 0.45);
-      --color-waiting:        #ffb700;
-      --color-error:          #ff455b;
-      --color-idle:           #6c6a64;
-      --log-info:             #6cf;
-      --log-success:          #6f6;
-      --log-error:            #ff8080;
-      --log-warn:             #fc0;
+      --panel-bg:    #f7f7f8;
+      --panel-line:  #e3e3e7;
+      --panel-aim:   #a9acb2;
+      --panel-hair:  #ededf0;
+      --text:        #1d1e20;
+      --text-dim:    #86868c;
+      --text-hint:   #9a9aa0;
+      --wait-bg:     #f3f3f4;
+      --wait-line:   #e8e8ea;
+      --wait-hint:   #a4a4aa;
+      --wave-wait:   #e1e1e6;
+      --wave-queued: #cfe0f5;
+      --queued-ink:  #35557e;
+      --wave-build:  #f4e9d2;
+      --orb-bg:      #dee7da;
+      --orb-line:    #c7d5c2;
+      --orb-ink:     #4e6b4a;
+      --orb-hover:   #cfdeca;
+      --orb-press:   #bcd0b6;
+      --orb-ring:    #c2c2c8;
+      --loud:        #b0574b;
+      --ochre:       #8a6a28;
+      --sage:        #4e6b4a;
     }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 11px;
-      background: var(--snail-bg);
-      color: var(--snail-text);
-      padding: 4px 12px;
+      background: var(--panel-bg);
+      color: var(--text);
       user-select: none;
     }
 
-    /* Visible keyboard focus for all interactive elements (WCAG 2.4.7) */
+    /* Focus ring sits inside the panel: the window has no room outside it. */
     button:focus-visible,
     input:focus-visible {
-      outline: 2px solid var(--snail-accent);
-      outline-offset: 1px;
-      border-radius: 3px;
+      outline: 1px solid var(--panel-aim);
+      outline-offset: -3px;
     }
-    /* Hide outline when mouse-clicking but keep it for keyboard nav */
+
     button:focus:not(:focus-visible),
     input:focus:not(:focus-visible) {
       outline: none;
     }
 
-    .wrap {
+    .panel {
       display: flex;
       flex-direction: column;
-      gap: 4px;
       width: 100%;
     }
 
-    /* ===== Row 1 — status + CTA + icons (always visible) ===== */
-    .row-top {
+    /* ===== Поле — вся внутренняя область окна ===== */
+    .field {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-      padding-left: 4px; /* visual offset to align with Figma title bar icon */
+      height: 40px;
+      padding: 0 12px 0 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-line);
+      overflow: hidden;
     }
 
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      margin-right: 3px;
-      /* Take the free space so long status sentences ellipsize gracefully
-         instead of pushing the CTA/icons off the 240px canvas. */
+    /* Ждём приложение: поле не принимает ввод, а подсказка работает строкой состояния. */
+    .field.waiting {
+      background: var(--wait-bg);
+      border-color: var(--wait-line);
+    }
+
+    body.state-full .field {
+      border-bottom-color: var(--panel-hair);
+    }
+
+    .field-input {
+      position: relative;
       flex: 1;
       min-width: 0;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      line-height: 1;
     }
 
-    .status-indicator {
-      width: 8px;
-      height: 8px;
+    .field-input:focus {
+      outline: none;
+    }
+
+    .field-input::placeholder {
+      color: var(--text-hint);
+    }
+
+    .field-input:disabled {
+      -webkit-text-fill-color: var(--wait-hint);
+      opacity: 1;
+    }
+
+    .field.waiting .field-input::placeholder {
+      color: var(--wait-hint);
+    }
+
+    /* ===== Единственное движение в панели: волна по полю =====
+       Меняются только цвет и темп — серая и медленная значит «ищем приложение»,
+       охряная и быстрая значит «идёт сборка». Кнопка не двигается никогда. */
+    .wave {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 120px;
+      opacity: 0;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--wave-wait), transparent);
+    }
+
+    .field.waiting .wave {
+      opacity: 1;
+      animation: sweep 1.8s linear infinite;
+    }
+
+    /* Замечание отправлено и ещё не прочитано. Единственный холодный тон в
+       панели: всё остальное тёплое, поэтому «ждёт» не спутать со сборкой.
+       Темп самый медленный — это не работа, а ожидание. */
+    .field.queued .wave {
+      opacity: 1;
+      background: linear-gradient(90deg, transparent, var(--wave-queued), transparent);
+      animation: sweep 2.4s linear infinite;
+    }
+
+    .field.queued .field-input::placeholder {
+      color: var(--queued-ink);
+    }
+
+    /* Выделили слой — тот же самый проход волны, но ОДИН раз: состояния
+       волнуются без конца, а выделение это событие. */
+    .field.aiming .wave {
+      opacity: 1;
+      animation: sweep 0.7s ease-out 1;
+    }
+
+    .field.building .wave {
+      opacity: 1;
+      background: linear-gradient(90deg, transparent, var(--wave-build), transparent);
+      animation: sweep 1s linear infinite;
+    }
+
+    /* Доля известна только серверу: плагин видит каждый шаг отдельной командой
+       и не может отличить второй из десяти от последнего. Пока доля приходит,
+       поле показывает её заливкой, а волна гаснет — движение уступает факту. */
+    .done {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      background: var(--wave-build);
+      transition: width 180ms linear;
+      pointer-events: none;
+    }
+
+    .field.progress .wave {
+      opacity: 0;
+      animation: none;
+    }
+
+    @keyframes sweep {
+      from { transform: translateX(-140px); }
+      to   { transform: translateX(100vw); }
+    }
+
+    /* ===== Кнопка раскрытия — она же счётчик подключений ===== */
+    .field-link {
+      flex: none;
+      margin-left: 8px;
+    }
+
+    .orb {
+      position: relative;
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      margin-left: 10px;
+      padding: 0;
+      border: 1px solid var(--orb-line);
       border-radius: 50%;
-      flex-shrink: 0;
-      background: var(--color-idle);
+      background: var(--orb-bg);
+      color: var(--orb-ink);
+      font-family: inherit;
+      font-size: 10px;
+      line-height: 1;
+      cursor: pointer;
     }
 
-    .status-indicator.loading {
-      background: var(--color-waiting);
-      animation: pulse 1.5s ease-in-out infinite;
+    .orb:hover  { background: var(--orb-hover); }
+    .orb:active { background: var(--orb-press); }
+
+    /* Ждём: кольцо без цифры. Кнопка обязана оставаться нажимаемой всегда. */
+    .orb.waiting {
+      background: transparent;
+      border-color: var(--orb-ring);
+      border-width: 1.5px;
+      color: var(--text-dim);
     }
 
-    .status-indicator.active {
-      background: var(--color-connected);
-      box-shadow: 0 0 6px var(--color-connected-glow);
+    .orb.waiting .orb-count {
+      visibility: hidden;
     }
 
-    .status-indicator.error {
-      background: var(--color-error);
+    /* Ошибка — единственный громкий цвет во всей панели. */
+    .orb.failed {
+      background: var(--loud);
+      border-color: var(--loud);
+      color: #ffffff;
     }
 
-    /* Deliberate user pause — static grey dot, NOT the pulsing loading
-       animation, so a pause never reads as "trying to connect". */
-    .status-indicator.paused {
-      background: var(--color-idle);
+    .orb-chevron {
+      display: none;
+      width: 8px;
+      height: 5px;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 1; }
+    .orb:hover .orb-count   { display: none; }
+    .orb:hover .orb-chevron { display: block; }
+
+    body.state-full .orb-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* ===== Кому уйдёт замечание =====
+       Строка появляется только когда в этом файле работают два агента и
+       больше — одному адресат не нужен. Запятые вместо переключателя,
+       выбранный подчёркнут. */
+    .to-row {
+      display: block;
+      padding: 5px 12px 6px 14px;
+      line-height: 1.5;
+      border: 1px solid var(--panel-line);
+      border-top: 0;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .to-row[hidden] { display: none; }
+
+    .field.has-to,
+    body.state-full .to-row {
+      border-bottom-color: var(--panel-hair);
+    }
+
+    .to-link {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-dim);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .to-link:hover { color: var(--text); }
+
+    .to-link.chosen {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* «Некому»: единственный громкий цвет в панели, и только на три секунды.
+       Набранный текст остаётся в поле — терять слова человека нельзя. */
+    .field-note {
+      position: absolute;
+      right: 44px;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      background: var(--panel-bg);
+      color: var(--loud);
+      font-size: 10px;
+      pointer-events: none;
+    }
+
+    .field-note[hidden] { display: none; }
+
+    /* ===== Раскрытое — то же полотно под волосяной чертой ===== */
+    .detail {
+      display: none;
+      flex-direction: column;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-line);
+      border-top: 0;
+    }
+
+    body.state-full .detail {
+      display: flex;
+    }
+
+    .detail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px 8px 14px;
+      font-size: 10px;
+      color: var(--text-dim);
+      white-space: nowrap;
     }
 
     #status-state {
-      font-weight: 600;
-      font-size: 10px;
-      letter-spacing: -0.2px;
-      font-stretch: 75%;
-      color: var(--snail-text-dim);
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
       min-width: 0;
     }
 
-    .status-indicator.active + #status-state {
-      color: var(--color-connected);
+    .actions {
+      display: flex;
+      flex: none;
+      gap: 10px;
     }
 
-    .status-indicator.error + #status-state {
-      color: var(--color-error);
-    }
-
-    .cta-btn {
-      background: transparent;
-      color: var(--snail-text);
-      border: 1px solid var(--snail-border);
-      border-radius: 3px;
+    /* Действия — текст, а не кнопки: коробка внутри полотна была бы второй поверхностью. */
+    .link {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-hint);
       font-family: inherit;
       font-size: 10px;
-      font-weight: 500;
-      padding: 4px;
+      text-transform: lowercase;
       cursor: pointer;
-      line-height: 1.4;
     }
 
-    .cta-btn:disabled {
+    .link:hover { color: var(--text); }
+
+    .link:disabled {
+      color: var(--text-hint);
       opacity: 0.6;
       cursor: default;
     }
 
-    .cta-btn:hover {
-      background: var(--snail-shell);
-    }
-
-    /* ===== Status meta line — connection count + proof of life ===== */
-    .status-meta {
-      display: none; /* toggled to flex from JS when there's something to show */
-      align-items: center;
-      gap: 8px;
-      padding-left: 17px; /* aligns with the pill text (4px row offset + 8px dot + 5px gap) */
-      font-size: 9px;
-      color: var(--snail-text-dim);
-      white-space: nowrap;
-    }
-
-    /* Visible recovery instruction for the ERROR state */
-    .status-error-hint {
-      display: none; /* shown from JS while in the error state */
-      padding-left: 17px;
-      font-size: 10px;
-      line-height: 1.4;
-      color: var(--color-error);
-    }
-
-    .icon-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      color: var(--snail-text-dim);
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    .icon-btn:hover {
-      color: var(--snail-text);
-      border-color: var(--snail-border);
-    }
-
-    /* Borderless icon variant — hover/active change colour only, never border.
-       Applied via .icon-btn--borderless modifier class. */
-    .icon-btn--borderless,
-    .icon-btn--borderless:hover,
-    .icon-btn--borderless.active {
-      border-color: transparent !important;
-    }
-
-    /* Expand [+] / [−] glyph is text, not SVG. Bump to match visual weight of SVG siblings. */
-    #expand-btn {
-      font-size: 18px;
-      font-weight: 400;
-      line-height: 1;
-    }
-
-    .icon-btn.active,
-    .icon-btn.active:hover {
-      color: var(--snail-accent);
-      border-color: var(--snail-accent);
-    }
-
-    .icon-btn svg {
-      width: 14px;
-      height: 14px;
-    }
-
-    /* ===== Toggled rows (sub-toolbar, log panel, update banner) ===== */
-    .row {
-      display: none;
-      width: 100%;
-    }
-
-    .row.visible {
-      display: flex;
-    }
-
-    /* ===== Row: sub-toolbar (when [+] on) ===== */
-    .sub-toolbar {
-      align-items: center;
-      gap: 8px;
-      flex-wrap: nowrap;
-      padding-left: 4px; /* match row-top alignment with Figma title bar icon */
-    }
-
-    .sub-btn {
-      background: transparent;
-      border: none;
-      padding: 2px 0;
-      color: var(--snail-text-dim);
-      font-family: inherit;
-      font-size: 10px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      white-space: nowrap;
-    }
-
-    .sub-btn:hover {
-      color: var(--snail-text);
-    }
-
-    .sub-btn.active {
-      color: var(--snail-accent);
-    }
-
-    .sub-btn svg {
-      width: 11px;
-      height: 11px;
-    }
-
-    /* ===== Row: plugin update banner ===== */
-    .update-banner {
-      align-items: center;
-      gap: 6px;
-      padding: 4px 6px;
-      background: var(--snail-shell);
-      border: 1px solid var(--snail-border);
-      border-radius: 3px;
-      font-size: 10px;
-      line-height: 1.4;
-      color: var(--snail-text);
-    }
-
-    .update-banner span {
-      flex: 1;
-      min-width: 0;
-    }
-
-    /* ===== Row: log panel ===== */
-    .log-panel {
-      flex-direction: column;
-      gap: 0;
-      border: 1px solid var(--snail-border);
-      border-radius: 3px;
-      overflow: hidden;
-      background: var(--snail-well);
-    }
+    .link[hidden] { display: none; }
 
     .log-entries {
-      max-height: 160px;
+      max-height: 150px;
       overflow-y: auto;
-      padding: 4px 6px;
-      font-family: 'SF Mono', 'Menlo', Consolas, monospace;
-      font-size: 10px;
-      line-height: 1.4;
+      padding: 0 12px 10px 14px;
+      font-size: 9px;
+      line-height: 1.7;
     }
 
     .log-entry {
       display: flex;
-      align-items: baseline;
-      gap: 5px;
-      color: var(--snail-text);
-      line-height: 1.5;
+      gap: 8px;
+      color: var(--text-dim);
     }
+
     .log-ts {
-      flex-shrink: 0;
-      opacity: 0.45;
-      font-size: 9px;
+      flex: none;
+      opacity: 0.55;
       user-select: none;
     }
+
     .log-msg {
       flex: 1;
       min-width: 0;
@@ -335,72 +399,76 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .log-dur {
-      display: none;
-    }
+
     .log-count {
-      flex-shrink: 0;
+      flex: none;
       opacity: 0.5;
-      font-size: 9px;
-      min-width: 18px;
-      text-align: right;
     }
 
-    .log-entry.info   { color: var(--log-info); }
-    .log-entry.success{ color: var(--log-success); }
-    .log-entry.error  { color: var(--log-error); }
-    .log-entry.warn   { color: var(--log-warn); }
+    .log-dur { display: none; }
 
+    .log-entry.success { color: var(--sage); }
+    .log-entry.warn    { color: var(--ochre); }
+    .log-entry.error   { color: var(--loud); }
+
+    .update-banner {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px 10px 14px;
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--ochre);
+    }
+
+    .update-banner.visible { display: flex; }
+
+    .update-banner span {
+      flex: 1;
+      min-width: 0;
+    }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <!-- Row 1 — always visible -->
-    <div class="row-top">
-      <div class="status-pill">
-        <div class="status-indicator loading" id="status-dot" aria-hidden="true"></div>
-        <span id="status-state" role="status" aria-live="polite">Looking for your AI app…</span>
+<body class="state-rest">
+  <!-- Панель это одно полотно. Поле занимает всю внутреннюю область окна,
+       справа сидит единственный элемент — кнопка раскрытия, она же счётчик
+       агентов, работающих В ЭТОМ файле (подключённых серверов может быть
+       больше — панель цепляется ко всем). -->
+  <div class="panel" id="panel">
+    <div class="field waiting" id="field">
+      <div class="done" id="done" aria-hidden="true"></div>
+      <div class="wave" id="wave" aria-hidden="true"></div>
+      <input class="field-input" id="remark-input" type="text" placeholder="Looking for your app…" disabled onkeydown="remarkKeyDown(event)" aria-label="Remark to the running build">
+      <span class="field-note" id="field-note" hidden>no agent is working in this file</span>
+      <button class="link field-link" id="cancel-queue" onclick="cancelQueue()" title="Take the waiting remarks back" hidden>cancel</button>
+      <button class="orb waiting" id="orb" onclick="togglePanelDetail()" title="Show what the bridge is doing" aria-label="Show what the bridge is doing" aria-expanded="false">
+        <span class="orb-count" id="orb-count"></span>
+        <svg class="orb-chevron" viewBox="0 0 10 6" aria-hidden="true" focusable="false">
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Адресат: только когда в файле два агента и больше -->
+    <div class="to-row" id="to-row" hidden></div>
+
+    <!-- Раскрытое: то же полотно под волосяной чертой — состояние, действия, лог -->
+    <div class="detail" id="detail">
+      <div class="detail-head">
+        <span id="status-state" role="status" aria-live="polite">looking for your app…</span>
+        <span class="actions">
+          <button class="link" id="stop-link" onclick="stopBuild()" title="Stop the running build after the current step" hidden>stop</button>
+          <button class="link" id="copy-log-btn" onclick="copyLogToClipboard()" title="Copy activity to clipboard">copy</button>
+          <button class="link" id="cta-btn" onclick="toggleLocalConnection()">Pause</button>
+        </span>
       </div>
-      <!-- CTA starts hidden; the first state reconcile shows it with an honest label -->
-      <button class="cta-btn" id="cta-btn" onclick="toggleLocalConnection()" style="display:none">Pause</button>
-      <button class="icon-btn" id="expand-btn" onclick="toggleSubToolbar()" title="Show options" aria-label="Show options" aria-expanded="false">+</button>
-    </div>
 
-    <!-- Status meta — connection count + proof of life (shown when connected) -->
-    <div class="status-meta" id="status-meta">
-      <span id="status-conn-count"></span>
-      <span id="status-last-action"></span>
-    </div>
-
-    <!-- Visible recovery instruction, shown only in the error state -->
-    <div class="status-error-hint" id="status-error-hint">Close this window and reopen the plugin.</div>
-
-    <!-- Plugin update banner (shown when the server reports a newer plugin) -->
-    <div class="row update-banner" id="update-banner">
-      <span>Plugin update available — re-import it in Figma (Plugins → Development → Import from manifest).</span>
-      <button class="icon-btn icon-btn--borderless" onclick="dismissUpdateBanner()" title="Dismiss" aria-label="Dismiss update notice">×</button>
-    </div>
-
-    <!-- Sub-toolbar (shown when [+] active) -->
-    <div class="row sub-toolbar" id="sub-toolbar">
-      <button class="sub-btn" id="log-toggle" onclick="toggleLog()" aria-expanded="false" aria-controls="log-panel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Activity
-      </button>
-      <button class="icon-btn" id="copy-log-btn" onclick="copyLogToClipboard()" title="Copy activity to clipboard" aria-label="Copy activity to clipboard" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Activity panel (shown when Activity active) -->
-    <div class="row log-panel" id="log-panel">
       <div class="log-entries" id="log-entries"></div>
+
+      <div class="update-banner" id="update-banner">
+        <span>Plugin update available — re-import it in Figma.</span>
+        <button class="link" onclick="dismissUpdateBanner()" title="Dismiss" aria-label="Dismiss update notice">×</button>
+      </div>
     </div>
   </div>
 
@@ -421,84 +489,83 @@
     // VARIABLES_DATA clears it (the plugin recovered).
     var bridgeError = false;
 
-    // Single source of truth for the status pill. Derives the rendered state
-    // from actual facts instead of trusting one-off events:
+    // Single source of truth for what the panel shows. Derives the rendered
+    // state from actual facts instead of trusting one-off events:
     //   - live WS connections from the connection pool
     //   - userPaused (pool exposes __wsIsPaused)
-    //   - scanning/discovery activity (__wsIsScanning / __wsIsDiscoveryActive)
     //   - bridgeError (ERROR message from code.js)
-    // window.__figmaVariablesReady is also an input (set by VARIABLES_DATA);
-    // it no longer drives the pill green on its own — a Figma-side data event
-    // says nothing about whether an AI app is actually connected.
+    // Три состояния, больше нет: ждём · N приложений · ошибка. «Ищем сервер» и
+    // «подключений ноль» слиты в одно — пока приложения нет, замечание всё
+    // равно некуда отправлять.
     function deriveAndRenderStatus() {
-      var dot = document.getElementById('status-dot');
+      var field = document.getElementById('field');
+      var input = document.getElementById('remark-input');
+      var orb = document.getElementById('orb');
+      var count = document.getElementById('orb-count');
       var stateText = document.getElementById('status-state');
-      if (!dot || !stateText) return;
+      if (!field || !input || !orb || !count || !stateText) return;
 
       var conns = (typeof window.__wsGetActiveConnections === 'function') ? (window.__wsGetActiveConnections() || []) : [];
       var live = 0;
+      var here = 0;
       for (var i = 0; i < conns.length; i++) {
-        if (conns[i] && conns[i].ws && conns[i].ws.readyState === 1) live++;
+        if (conns[i] && conns[i].ws && conns[i].ws.readyState === 1) {
+          live++;
+          if (conns[i].bound) here++;
+        }
       }
       var paused = (typeof window.__wsIsPaused === 'function') ? window.__wsIsPaused() : false;
-      var scanning = (typeof window.__wsIsScanning === 'function' && window.__wsIsScanning()) ||
-                     (typeof window.__wsIsDiscoveryActive === 'function' && window.__wsIsDiscoveryActive());
 
-      var dotClass, text;
+      var mode, text, hint;
       if (bridgeError) {
-        dotClass = 'error';
-        text = 'Something broke';
+        mode = 'failed';
+        text = 'something broke — close this window and reopen the plugin';
+        hint = 'Bridge is down';
       } else if (paused) {
-        dotClass = 'paused';
-        text = 'Paused — AI can\'t make changes';
+        mode = 'idle';
+        text = 'paused — AI can\'t make changes';
+        hint = 'Paused';
       } else if (live >= 1) {
-        dotClass = 'active';
-        text = 'Connected — AI can work in this file';
-      } else if (scanning) {
-        dotClass = 'loading';
-        text = 'Looking for your AI app…';
+        mode = 'live';
+        text = 'live · ' + whoWorksHere(here, live) + lastActionSuffix();
+        hint = '';
       } else {
-        // Defensive fallback: discovery is always on unless paused, so this
-        // only renders if the discovery loop is somehow disabled.
-        dotClass = '';
-        text = 'Not connected';
+        mode = 'idle';
+        text = 'looking for your app…';
+        hint = 'Looking for your app…';
       }
-      dot.className = 'status-indicator' + (dotClass ? ' ' + dotClass : '');
+
+      orb.classList.toggle('waiting', mode === 'idle');
+      orb.classList.toggle('failed', mode === 'failed');
+      count.textContent = here > 0 ? String(here) : '';
+      orb.title = text;
+
+      var offline = mode !== 'live';
+      field.classList.toggle('waiting', offline);
+      input.disabled = offline;
+      if (offline) {
+        // Нечего замечать, пока некому слать: поле молчит, а подсказка
+        // работает строкой состояния.
+        input.placeholder = hint;
+      } else {
+        renderAim();
+      }
+
       stateText.textContent = text;
-      stateText.title = text; // full sentence survives ellipsis truncation
-
-      var hint = document.getElementById('status-error-hint');
-      if (hint) hint.style.display = bridgeError ? 'block' : 'none';
-
-      renderStatusMeta(live);
+      stateText.title = text;
     }
 
-    // Small always-visible line under the pill: "Connected to N AI app(s)"
-    // plus proof of life ("Last action: Xs ago"). Hidden entirely when there
-    // is nothing to show (zero connections).
-    function renderStatusMeta(liveCount) {
-      var meta = document.getElementById('status-meta');
-      var countEl = document.getElementById('status-conn-count');
-      var lastEl = document.getElementById('status-last-action');
-      if (!meta || !countEl || !lastEl) return;
-      var anything = false;
-      if (liveCount >= 1) {
-        countEl.textContent = 'Connected to ' + liveCount + ' AI app' + (liveCount === 1 ? '' : 's');
-        countEl.style.display = '';
-        anything = true;
-      } else {
-        countEl.textContent = '';
-        countEl.style.display = 'none';
-      }
-      if (liveCount >= 1 && _lastActionAt) {
-        lastEl.textContent = 'Last action: ' + formatAgo(Date.now() - _lastActionAt);
-        lastEl.style.display = '';
-        anything = true;
-      } else {
-        lastEl.textContent = '';
-        lastEl.style.display = 'none';
-      }
-      meta.style.display = anything ? 'flex' : 'none';
+    // Панель подключена ко всем серверам, а работает в этом файле обычно один.
+    // Строка называет оба числа, чтобы «3 apps» не читалось как «три агента тут».
+    function whoWorksHere(here, live) {
+      if (here === live) return live + ' app' + (live === 1 ? ' works here' : 's work here');
+      if (here === 0) return 'none of ' + live + ' apps works here';
+      return here + ' of ' + live + ' apps work' + (here === 1 ? 's' : '') + ' here';
+    }
+
+    // Proof of life for the expanded head — the "· 12s ago" after the state.
+    function lastActionSuffix() {
+      return _lastActionAt ? ' · ' + formatAgo(Date.now() - _lastActionAt) : '';
     }
 
     function formatAgo(ms) {
@@ -1119,7 +1186,9 @@
        */
       function removeConnection(port) {
         activeConnections = activeConnections.filter(function(c) { return c.port !== port; });
+        if (addressee && addressee.port === port) addressee = null;
         updateCompatState();
+        onAgentsChanged();
         // Re-pace the health discovery loop: dropping to zero connections
         // restarts the fast probe window immediately.
         resetDiscoveryPace();
@@ -1261,7 +1330,38 @@
               if (conn) {
                 conn.serverInfo = message.data;
                 if (message.data.serverVersion) conn.serverVersion = message.data.serverVersion;
+                conn.agent = message.data.agent || ('' + message.data.port);
+                onAgentsChanged();
               }
+              return;
+            }
+
+            // Сервер сказал, работает ли его агент в ЭТОМ файле. Только по этому
+            // флагу панель решает, кому уйдёт замечание и сколько агентов тут.
+            if (message.type === 'TARGET_BOUND' && message.data) {
+              var claimed = activeConnections.find(function(c) { return c.ws === activeWs; });
+              if (claimed) {
+                claimed.bound = !!message.data.bound;
+                if (!claimed.bound && addressee === claimed) addressee = null;
+                onAgentsChanged();
+              }
+              return;
+            }
+
+            // Сколько замечаний ещё ждёт чтения. Очередь живёт на сервере, и это
+            // единственный способ узнать, что агент их забрал.
+            // Какой шаг сборки идёт. Ноль означает, что сборка кончилась.
+            if (message.type === 'BUILD_PROGRESS' && message.data) {
+              if (typeof window.renderProgress === 'function') {
+                window.renderProgress(message.data.step || 0, message.data.total || 0);
+              }
+              return;
+            }
+
+            if (message.type === 'REMARKS_WAITING' && message.data) {
+              var owner = activeConnections.find(function(c) { return c.ws === activeWs; });
+              if (owner) owner.remarksWaiting = message.data.waiting || 0;
+              if (typeof window.renderQueue === 'function') window.renderQueue();
               return;
             }
 
@@ -1285,6 +1385,12 @@
               console.log('[MCP Bridge] WS:' + port + ': Ignoring malformed message');
               return;
             }
+
+            // Команда не делает сервер адресатом — это говорит TARGET_BOUND.
+            // Но среди двух агентов, работающих тут, по умолчанию отвечает тот,
+            // кто командовал последним.
+            var commander = activeConnections.find(function(c) { return c.ws === activeWs; });
+            if (commander) commander.lastCommandAt = Date.now();
 
             var handler = methodMap[message.method];
             if (!handler) {
@@ -1336,11 +1442,84 @@
         };
       }
 
+      // Кто работает в этом файле — только те серверы, что сказали об этом сами.
+      function boundConnections() {
+        return activeConnections.filter(function(c) { return c.bound && c.ws.readyState === 1; });
+      }
+
+      function agentName(conn) {
+        return conn.agent || ('' + conn.port);
+      }
+
+      // Явный выбор человека: подключение или 'all'. Пусто — по умолчанию.
+      var addressee = null;
+
+      // По умолчанию отвечает тот из работающих тут, кто командовал последним;
+      // пока никто не командовал — первый.
+      function defaultAddressee(bound) {
+        var latest = bound[0];
+        for (var i = 1; i < bound.length; i++) {
+          if ((bound[i].lastCommandAt || 0) > (latest.lastCommandAt || 0)) latest = bound[i];
+        }
+        return latest;
+      }
+
+      function currentAddressee(bound) {
+        if (bound.length <= 1) return bound[0] || null;
+        if (addressee === 'all') return 'all';
+        if (addressee && bound.indexOf(addressee) >= 0) return addressee;
+        return defaultAddressee(bound);
+      }
+
       /**
-       * Broadcast a message to ALL active WebSocket connections.
-       * Events like variable changes, selections, document changes need to
-       * reach every MCP server instance so they all have current state.
+       * Send to the agents working in this file: the chosen one, or all of
+       * them when the human said so. An empty answer means there is nobody.
        */
+      function sendToAgents(message) {
+        var bound = boundConnections();
+        var current = currentAddressee(bound);
+        var targets = current === 'all' ? bound : (current ? [current] : []);
+        var json = JSON.stringify(message);
+        targets.forEach(function(conn) {
+          try { conn.ws.send(json); } catch (e) { /* the close handler will drop it */ }
+        });
+        return targets;
+      }
+
+      function namesOf(targets) {
+        return targets.map(agentName).join(', ');
+      }
+
+      // Серверы друг друга не видят; кто ещё работает в файле, знает только
+      // панель. Каждому — имена остальных, чтобы агент держался своей страницы.
+      function announcePeers() {
+        var bound = boundConnections();
+        activeConnections.forEach(function(conn) {
+          if (conn.ws.readyState !== 1) return;
+          var others = bound.filter(function(c) { return c !== conn; }).map(agentName);
+          try { conn.ws.send(JSON.stringify({ type: 'PEERS', data: { agents: others } })); } catch (e) { /* ignore */ }
+        });
+      }
+
+      function onAgentsChanged() {
+        announcePeers();
+        if (typeof window.renderAgents === 'function') window.renderAgents();
+        if (typeof window.renderQueue === 'function') window.renderQueue();
+        if (typeof deriveAndRenderStatus === 'function') deriveAndRenderStatus();
+      }
+
+      window.__wsBoundConnections = boundConnections;
+      window.__wsAgentName = agentName;
+      window.__wsCurrentAddressee = function() { return currentAddressee(boundConnections()); };
+      window.__wsChooseAgent = function(portOrAll) {
+        if (portOrAll === 'all') {
+          addressee = 'all';
+        } else {
+          addressee = activeConnections.find(function(c) { return c.port === portOrAll; }) || null;
+        }
+        if (typeof window.renderAgents === 'function') window.renderAgents();
+      };
+
       function broadcastToAll(message) {
         var json = JSON.stringify(message);
         activeConnections.forEach(function(conn) {
@@ -1349,6 +1528,60 @@
           }
         });
       }
+
+      // Stop a running build: the server checks this between steps, so the
+      // canvas is left at a whole step rather than half a node.
+      // Забрать очередь обратно, пока её никто не прочитал. Очередь есть только
+      // у работающих тут серверов — остальные замечание и не принимали.
+      window.cancelQueue = function() {
+        var json = JSON.stringify({ type: 'REMARKS_CLEAR' });
+        boundConnections().forEach(function(conn) {
+          try { conn.ws.send(json); } catch (e) { /* ignore */ }
+        });
+        logWithHistory('Queue cleared — the remarks were taken back', 'warn');
+      };
+
+      window.stopBuild = function() {
+        var targets = sendToAgents({ type: 'BUILD_STOP' });
+        if (targets.length === 0) {
+          showFieldNote();
+          logWithHistory('Stop requested, but no agent is working in this file', 'warn');
+          return;
+        }
+        logWithHistory('Stop requested from ' + namesOf(targets) + ' — the build ends after the current step', 'warn');
+      };
+
+      // What is selected right now, sent along with a remark so it points at a
+      // part of a big frame instead of at the build as a whole.
+      var lastSelection = [];
+
+      function updateRemarkTarget() {
+        window.__aim = lastSelection;
+        if (typeof window.renderAim === 'function') window.renderAim();
+      }
+
+      window.remarkKeyDown = function(event) {
+        if (event.key === 'Escape') {
+          event.target.value = '';
+          return;
+        }
+        if (event.key !== 'Enter') return;
+        var remark = event.target.value.trim();
+        if (!remark) return;
+        var targets = sendToAgents({ type: 'BUILD_STOP', data: { remark: remark, nodes: lastSelection } });
+        if (targets.length === 0) {
+          // Слова остаются в поле: человек их набрал, терять их нельзя.
+          showFieldNote();
+          logWithHistory('Remark not sent — no agent is working in this file', 'warn');
+          return;
+        }
+        var canvas = document.getElementById('field');
+        var running = canvas && canvas.classList.contains('building');
+        logWithHistory('Remark sent to ' + namesOf(targets) + (running
+          ? ' — the build ends after the current step'
+          : ' — waiting for the agent to read it'), 'warn');
+        event.target.value = '';
+      };
 
       // Forward VARIABLES_DATA to all connected MCP servers
       window.__wsForwardVariables = function(data) {
@@ -1381,6 +1614,8 @@
 
       // Forward SELECTION_CHANGE events to all servers for selection tracking
       window.__wsForwardSelectionChange = function(data) {
+        lastSelection = (data && data.nodes) ? data.nodes : [];
+        updateRemarkTarget();
         if (wsConnected) {
           broadcastToAll({ type: 'SELECTION_CHANGE', data: data });
         }
@@ -1523,31 +1758,217 @@
     })();
 
     // ============================================================================
-    // 3-STAGE UI TOGGLES
-    // Stage 1: row-top (always visible)
-    // Stage 2: sub-toolbar (revealed by [+])
-    // Stage 3: log panel (revealed by Show log)
+    // ОКНО И ДВА СОСТОЯНИЯ ПАНЕЛИ
+    // rest — только поле, окно 300×40;
+    // full — то же полотно плюс состояние, действия и лог, высота по содержимому.
     // ============================================================================
 
-    // Fixed 240px width matches Figma right-side nav min.
-    // Height grows freely with content. If the plugin extends past Figma's
-    // visible UI, the user drags the plugin window to reveal what's clipped.
-    var PLUGIN_WIDTH = 240;
+    // 300 px — ширина, на которой поле остаётся полем, а не строкой в две буквы.
+    // Меньше 70×20 Figma окно всё равно не отдаёт.
+    var PLUGIN_WIDTH = 300;
+
+    // While locked, the panel stops asking Figma for its own size. The sandbox
+    // sets it to measure the real window limits; otherwise the ResizeObserver
+    // below restores the height on the next log line and fights whoever
+    // shrank the window.
+    var sizeLocked = false;
 
     function sendResize() {
-      // Force a layout pass so measurements reflect the current visible rows.
+      if (sizeLocked) return;
+      // Force a layout pass so the measurement reflects the current state.
       void document.body.offsetHeight;
-      // Measure the inner content element + body padding. Avoids stale
-      // scrollHeight values when the iframe was previously larger.
-      var wrap = document.querySelector('.wrap');
-      if (!wrap) return;
-      var bs = window.getComputedStyle(document.body);
-      var h = wrap.offsetHeight
-            + (parseFloat(bs.paddingTop) || 0)
-            + (parseFloat(bs.paddingBottom) || 0);
+      var panel = document.querySelector('.panel');
+      if (!panel) return;
       parent.postMessage({
-        pluginMessage: { type: 'RESIZE_UI', width: PLUGIN_WIDTH, height: Math.ceil(h) }
+        pluginMessage: { type: 'RESIZE_UI', width: PLUGIN_WIDTH, height: Math.ceil(panel.offsetHeight) }
       }, '*');
+    }
+
+    var panelState = 'rest';
+
+    function setPanelState(next) {
+      if (next === panelState) return;
+      panelState = next;
+      document.body.classList.remove('state-rest', 'state-full');
+      document.body.classList.add('state-' + next);
+      var orb = document.getElementById('orb');
+      if (orb) orb.setAttribute('aria-expanded', next === 'full' ? 'true' : 'false');
+      autoResize();
+    }
+
+    window.togglePanelDetail = function() {
+      setPanelState(panelState === 'full' ? 'rest' : 'full');
+    };
+
+    // Прицел: имя выделенного слоя встаёт в подсказку, и по полю один раз
+    // проходит волна. Бортик в это не вмешивается — он всегда нейтральный.
+    var _aimSignature = '';
+    var _aimTimer = null;
+
+    window.renderAim = function() {
+      var field = document.getElementById('field');
+      var input = document.getElementById('remark-input');
+      if (!field || !input || input.disabled) return;
+      var nodes = window.__aim || [];
+      input.placeholder = aimPlaceholder(nodes);
+
+      // deriveAndRenderStatus зовёт этот код каждые две секунды, поэтому волна
+      // трогается только когда выделение действительно сменилось.
+      var signature = nodes.map(function(node) { return node.id || node.name || ''; }).join(',');
+      if (signature === _aimSignature) return;
+      _aimSignature = signature;
+      if (nodes.length > 0) pulseAim(field);
+    };
+
+    // Одиночный проход волны — «заметил, целюсь сюда». Во время сборки молчит:
+    // там та же волна уже идёт по кругу, и второй смысл ей не нужен.
+    function pulseAim(field) {
+      if (field.classList.contains('building')) return;
+      field.classList.remove('aiming');
+      void field.offsetWidth;
+      field.classList.add('aiming');
+      if (_aimTimer) clearTimeout(_aimTimer);
+      _aimTimer = setTimeout(function() {
+        _aimTimer = null;
+        field.classList.remove('aiming');
+      }, 700);
+    }
+
+    var _remarksWaiting = 0;
+
+    // Ждущие замечания важнее прицела: пока их не прочитали, поле говорит об
+    // очереди, а не о том, куда уйдёт следующее.
+    window.renderQueue = function() {
+      var field = document.getElementById('field');
+      var cancel = document.getElementById('cancel-queue');
+      if (!field) return;
+      var waiting = 0;
+      var conns = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
+      for (var i = 0; i < conns.length; i++) {
+        if (conns[i] && conns[i].remarksWaiting > waiting) waiting = conns[i].remarksWaiting;
+      }
+      _remarksWaiting = waiting;
+      field.classList.toggle('queued', waiting > 0 && !field.classList.contains('waiting'));
+      if (cancel) cancel.hidden = waiting === 0;
+      renderAim();
+    };
+
+    // Шаг сборки, пока он известен. Ноль означает, что сборки нет.
+    var _buildStep = 0;
+    var _buildTotal = 0;
+
+    window.renderProgress = function(step, total) {
+      var field = document.getElementById('field');
+      var done = document.getElementById('done');
+      if (!field || !done) return;
+
+      _buildStep = step;
+      _buildTotal = total;
+
+      if (!step || !total) {
+        field.classList.remove('progress');
+        done.style.width = '0';
+        renderAim();
+        return;
+      }
+
+      field.classList.add('progress');
+      done.style.width = Math.round((step / total) * 100) + '%';
+      renderAim();
+    };
+
+    function aimPlaceholder(nodes) {
+      if (_buildTotal > 0 && _buildStep > 0) return 'step ' + _buildStep + ' of ' + _buildTotal + '…';
+      if (_remarksWaiting === 1) return 'queued';
+      if (_remarksWaiting > 1) return _remarksWaiting + ' queued';
+      var bound = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
+      if (bound.length === 0) return 'No agent is working in this file';
+      var to = bound.length > 1 ? addresseeLabel() : '';
+      if (!nodes || nodes.length === 0) return 'Remark to ' + (to || 'the build') + '…';
+      if (nodes.length > 1) return 'Remark to ' + (to ? to + ' · ' : '') + nodes.length + ' layers…';
+      var name = nodes[0].name || 'selected layer';
+      if (name.length > 22) name = name.slice(0, 21) + '…';
+      return 'Remark to ' + (to ? to + ' · ' : '') + '«' + name + '»…';
+    }
+
+    function addresseeLabel() {
+      var current = (typeof window.__wsCurrentAddressee === 'function') ? window.__wsCurrentAddressee() : null;
+      if (current === 'all') return 'all';
+      return current ? window.__wsAgentName(current) : '';
+    }
+
+    // Строка адресатов — раскрытие под полем, только при двух агентах и больше.
+    window.renderAgents = function() {
+      var row = document.getElementById('to-row');
+      var field = document.getElementById('field');
+      if (!row || !field) return;
+      var bound = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
+      if (bound.length < 2) {
+        row.hidden = true;
+        row.textContent = '';
+        field.classList.remove('has-to');
+        renderAim();
+        autoResize();
+        return;
+      }
+      var current = window.__wsCurrentAddressee();
+      row.textContent = '';
+      row.appendChild(document.createTextNode('to '));
+      var choices = bound.map(function(conn) { return { key: conn.port, name: window.__wsAgentName(conn), chosen: current === conn }; });
+      choices.push({ key: 'all', name: 'all', chosen: current === 'all' });
+      choices.forEach(function(choice, index) {
+        if (index > 0) row.appendChild(document.createTextNode(', '));
+        var link = document.createElement('button');
+        link.className = 'to-link' + (choice.chosen ? ' chosen' : '');
+        link.textContent = choice.name;
+        link.title = choice.key === 'all' ? 'Send the remark to every agent in this file' : 'Send the remark to ' + choice.name;
+        link.onclick = function() { window.__wsChooseAgent(choice.key); };
+        row.appendChild(link);
+      });
+      row.hidden = false;
+      field.classList.add('has-to');
+      renderAim();
+      autoResize();
+    };
+
+    // «Некому»: три секунды громким цветом, текст в поле не трогаем.
+    var _noteTimer = null;
+
+    function showFieldNote() {
+      var note = document.getElementById('field-note');
+      if (!note) return;
+      note.hidden = false;
+      if (_noteTimer) clearTimeout(_noteTimer);
+      _noteTimer = setTimeout(function() {
+        _noteTimer = null;
+        note.hidden = true;
+      }, 3000);
+    }
+
+    // Единственное движение в панели — волна по полю. Шаги сборки приходят
+    // отдельными командами, поэтому панель видит их сама и гасит волну по
+    // тишине. Долю «шаг i из N» знает только сервер: когда мост научится её
+    // присылать, волна сменится заливкой поля.
+    var _buildTimer = null;
+
+    function markBuildActivity() {
+      var field = document.getElementById('field');
+      if (!field) return;
+      field.classList.add('building');
+      renderStopLink(true);
+      if (_buildTimer) clearTimeout(_buildTimer);
+      _buildTimer = setTimeout(function() {
+        _buildTimer = null;
+        var quiet = document.getElementById('field');
+        if (quiet) quiet.classList.remove('building');
+        renderStopLink(false);
+      }, 1500);
+    }
+
+    // Остановить сборку можно только пока она идёт — в покое ссылки нет.
+    function renderStopLink(building) {
+      var stop = document.getElementById('stop-link');
+      if (stop) stop.hidden = !building;
     }
 
     function autoResize() {
@@ -1558,14 +1979,14 @@
       });
     }
 
-    // Observe the wrap (actual content), not body, so size changes from any
-    // row toggle fire a resize whether the rows grew or shrank.
+    // Observe the panel itself, so any row toggle fires a resize whether the
+    // content grew or shrank.
     if (typeof ResizeObserver !== 'undefined') {
-      var _wrapObserve = function() {
-        var wrap = document.querySelector('.wrap');
-        if (wrap) { var ro = new ResizeObserver(sendResize); ro.observe(wrap); }
+      var _panelObserve = function() {
+        var panel = document.querySelector('.panel');
+        if (panel) { var ro = new ResizeObserver(sendResize); ro.observe(panel); }
       };
-      _wrapObserve();
+      _panelObserve();
     }
 
     // Initial tighten — multiple attempts at different times to defeat any
@@ -1578,43 +1999,6 @@
       setTimeout(sendResize, 200);
       setTimeout(sendResize, 600);
     });
-
-    function toggleRow(id, buttonId) {
-      var row = document.getElementById(id);
-      var btn = buttonId ? document.getElementById(buttonId) : null;
-      var opening = !row.classList.contains('visible');
-      row.classList.toggle('visible', opening);
-      if (btn) {
-        btn.classList.toggle('active', opening);
-        // Keep aria-expanded in sync for screen readers.
-        if (btn.hasAttribute('aria-expanded')) {
-          btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
-        }
-      }
-      autoResize();
-      return opening;
-    }
-
-    function toggleSubToolbar() {
-      var nowOpen = toggleRow('sub-toolbar', 'expand-btn');
-      document.getElementById('expand-btn').textContent = nowOpen ? '−' : '+';
-      if (!nowOpen) {
-        // Collapse the Activity panel if sub-toolbar closes
-        var log = document.getElementById('log-panel');
-        if (log.classList.contains('visible')) toggleLog();
-      }
-    }
-
-    function toggleLog() {
-      var logVisible = document.getElementById('log-panel').classList.contains('visible');
-      var opening = !logVisible;
-      toggleRow('log-panel', 'log-toggle');
-      // Reveal the Copy button only when the Activity panel is open
-      document.getElementById('copy-log-btn').style.display = opening ? '' : 'none';
-      autoResize();
-    }
-
-
 
     // ============================================================================
     // STAGE 2 — LOG PANEL, INFO PANEL, CONNECTION, CLIPBOARD EXPORT
@@ -1790,6 +2174,7 @@
     var _origSendPluginCommand = window.sendPluginCommand;
     window.sendPluginCommand = function(type, params, timeoutMs) {
       var summary = summariseCommand(type, params);
+      if (type === 'EXECUTE_CODE') markBuildActivity();
       var durEntry = null;
       var histIdx = -1;
       if (summary) {
@@ -1924,11 +2309,11 @@
     }
 
     // Periodic reconcile of CTA + status pill/meta (cheap, <1ms). Also
-    // refreshes "Last action: Xs ago" via renderStatusMeta inside
-    // deriveAndRenderStatus.
+    // refreshes the "· 12s ago" tail inside deriveAndRenderStatus.
     setInterval(function() {
       reconcileCta();
       deriveAndRenderStatus();
+      renderQueue();
     }, 2000);
 
     // One-shot on first ready: render honest initial state and capture the
@@ -1950,6 +2335,13 @@
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       if (!msg) return;
+
+      if (msg.type === 'UI_SIZE_LOCK') {
+        sizeLocked = !!msg.locked;
+        logWithHistory(sizeLocked ? 'Auto-resize off — the window keeps whatever size it is given' : 'Auto-resize on', 'info');
+        if (!sizeLocked) sendResize();
+        return;
+      }
 
       // Generic result handler
       const handleResult = (resultType, dataKey) => {
