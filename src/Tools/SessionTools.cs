@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -21,34 +22,44 @@ public sealed class SessionTools(
     public Task<string> ListOpenFilesAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(_ => Task.FromResult(ToolResponse.Ok(new JsonObject
         {
-            ["files"] = new JsonArray(Plugin.Documents.Sessions.Select(s => (JsonNode)s.Describe()).ToArray()),
+            ["files"] = DescribeFiles(),
             ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
-            ["targetLocked"] = Plugin.Documents.IsLocked,
         })), cancellationToken);
 
     [McpServerTool(Name = "figma_navigate")]
     [Description(ToolDescriptions.Session.Navigate)]
     public Task<string> NavigateAsync(
         [Description("Link to the Figma file or its key.")] string fileUrlOrKey,
-        [Description("Pin the target to the agent.")] bool lockTarget = false,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync(_ =>
+        ExecuteAsync(async ct =>
         {
             var fileKey = DocumentLocator.Parse(fileUrlOrKey)?.EffectiveKey ?? fileUrlOrKey.Trim();
             activeFile.Remember(fileKey);
 
-            var switched = Plugin.Documents.SetActiveFile(fileKey, lockTarget);
+            var bound = await Plugin.Documents.ClaimAsync(fileKey, ct).ConfigureAwait(false);
+            var others = bound ? OthersInTarget() : [];
 
-            return Task.FromResult(ToolResponse.Ok(new JsonObject
+            return ToolResponse.Ok(new JsonObject
             {
                 ["fileKey"] = fileKey,
-                ["pluginConnected"] = switched,
-                ["targetLocked"] = Plugin.Documents.IsLocked,
-                ["note"] = switched
-                    ? "The file is selected, both reading and writing are available."
-                    : "The plugin is not running in this file: reading through REST works, writing does not.",
-            }));
+                ["pluginConnected"] = bound,
+                ["othersHere"] = new JsonArray([.. others.Select(agent => (JsonNode)agent)]),
+                ["note"] = TargetNote(bound, others),
+            });
         }, cancellationToken);
+
+    /// <summary>What the agent should know about the file it just took: that it stays, and who else is in it.</summary>
+    private static string TargetNote(bool bound, IReadOnlyList<string> others)
+    {
+        if (!bound)
+        {
+            return "The plugin is not running in this file: reading through REST works, writing does not.";
+        }
+
+        return others.Count == 0
+            ? "The file is the target: commands go here until you navigate elsewhere, and the human's clicks do not move it."
+            : $"The file is the target, and {string.Join(", ", others)} also works here: keep to your own page or section.";
+    }
 
     [McpServerTool(Name = "figma_execute_across_files")]
     [Description(ToolDescriptions.Session.ExecuteAcrossFiles)]
@@ -56,7 +67,7 @@ public sealed class SessionTools(
         [Description("JavaScript code, the same as in figma_execute. Example: return figma.root.children.length;")]
         string code,
         [Description("Comma-separated keys of the target files. They come from figma_list_open_files.")] string? fileKeys = null,
-        [Description("Run it over EVERY connected file. Requires explicit consent: the code will reach the pinned file too.")]
+        [Description("Run it over EVERY connected file. Requires explicit consent: the code will reach the target file too.")]
         bool allFiles = false,
         [Description("Per-file timeout in milliseconds, at most 30000. A slow file does not hold the others back.")]
         int timeoutMs = 10000,
@@ -131,7 +142,6 @@ public sealed class SessionTools(
                     ["failed"] = targets.Count - succeeded,
                 },
                 ["active_file_key"] = Plugin.Documents.ActiveFileKey,
-                ["target_locked"] = Plugin.Documents.IsLocked,
             };
 
             if (missing.Count > 0)
@@ -204,17 +214,12 @@ public sealed class SessionTools(
     [McpServerTool(Name = "figma_reconnect")]
     [Description(ToolDescriptions.Session.Reconnect)]
     public Task<string> ReconnectAsync(CancellationToken cancellationToken = default) =>
-        ExecuteAsync(_ =>
+        ExecuteAsync(_ => Task.FromResult(ToolResponse.Ok(new JsonObject
         {
-            Plugin.Documents.Unlock();
-
-            return Task.FromResult(ToolResponse.Ok(new JsonObject
-            {
-                ["connected"] = Plugin.IsConnected,
-                ["files"] = new JsonArray(Plugin.Documents.Sessions.Select(s => (JsonNode)s.Describe()).ToArray()),
-                ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
-            }));
-        }, cancellationToken);
+            ["connected"] = Plugin.IsConnected,
+            ["files"] = DescribeFiles(),
+            ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
+        })), cancellationToken);
 
     [McpServerTool(Name = "figma_reload_plugin")]
     [Description(ToolDescriptions.Session.ReloadPlugin)]
@@ -256,6 +261,55 @@ public sealed class SessionTools(
                 ["buffered"] = session.ConsoleLogs.Count,
             }));
         }, cancellationToken);
+
+    [McpServerTool(Name = "figma_get_remarks")]
+    [Description(ToolDescriptions.Session.GetRemarks)]
+    public Task<string> GetRemarksAsync(
+        [Description("How long to hold the call open when nothing is waiting yet, in milliseconds, up to 60000. 0 answers straight away; waiting is how the agent hears the human within a second instead of at its next turn.")]
+        int waitMs = 0,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(async ct =>
+        {
+            var session = Plugin.Documents.Resolve();
+
+            if (session is null)
+            {
+                return NotConnected();
+            }
+
+            if (waitMs is < 0 or > ToolLimits.MaxRemarkWaitMs)
+            {
+                return ToolResponse.Error($"waitMs must be between 0 and {ToolLimits.MaxRemarkWaitMs}.");
+            }
+
+            if (waitMs > 0)
+            {
+                await session.Remarks.WaitAsync(TimeSpan.FromMilliseconds(waitMs), ct).ConfigureAwait(false);
+            }
+
+            var taken = session.Remarks.TakeAll();
+
+            await session.PublishRemarksWaitingAsync(ct).ConfigureAwait(false);
+
+            return ToolResponse.Ok(new JsonObject
+            {
+                ["remarks"] = new JsonArray([.. taken.Select(Describe)]),
+                ["returned"] = taken.Count,
+                ["note"] = taken.Count == 0
+                    ? waitMs > 0
+                        ? $"Nobody wrote anything in {waitMs} ms. The panel is connected and the wait is over, not broken."
+                        : "The panel is connected and nobody has left a remark since the last read."
+                    : "These remarks are taken: they will not come back, so act on them in this turn.",
+            });
+        }, cancellationToken);
+
+    /// <summary>One remark as the agent reads it: the words, what they point at, and when they were left.</summary>
+    private static JsonNode Describe(BuildInterruption remark) => new JsonObject
+    {
+        ["at"] = remark.At.ToString("O"),
+        ["remark"] = remark.Remark,
+        ["selection"] = new JsonArray([.. remark.Nodes.Select(node => node.DeepClone())]),
+    };
 
     [McpServerTool(Name = "figma_clear_console")]
     [Description(ToolDescriptions.Session.ClearConsole)]
@@ -319,18 +373,24 @@ public sealed class SessionTools(
 
     [McpServerTool(Name = "figma_export_node")]
     [Description(ToolDescriptions.Session.ExportNode)]
-    public Task<string> ExportNodeAsync(
+    public Task<CallToolResult> ExportNodeAsync(
         [Description("Node id; a page id works too.")] string nodeId,
         [Description("Format: SVG, PDF, PNG or JPG.")] string format = "SVG",
         [Description("Render scale for PNG and JPG.")] double scale = 1,
+        [Description(ToolDescriptions.Parameters.Deliver)] string deliver = PictureDelivery.PathOnly,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync(async ct =>
+        ExecutePicturedAsync(async ct =>
         {
+            if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
+            {
+                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+            }
+
             var normalized = format.Trim().ToUpperInvariant();
 
             if (normalized is not ("SVG" or "PDF" or "PNG" or "JPG"))
             {
-                return ToolResponse.Error($"Unknown format '{format}'.", "Expected SVG, PDF, PNG or JPG.");
+                return ToolResponse.Textual(ToolResponse.Error($"Unknown format '{format}'.", "Expected SVG, PDF, PNG or JPG."));
             }
 
             var script = $$"""
@@ -360,15 +420,17 @@ public sealed class SessionTools(
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolResponse.Textual(ToolResponse.Error(error));
             }
 
             if (payload is JsonObject binary && binary["base64"] is not null)
             {
-                return ToolResponse.Ok(screenshots.SaveAndReplace(binary));
+                var picture = PictureDelivery.From(binary, inline);
+
+                return ToolResponse.Pictured(ToolResponse.Ok(screenshots.SaveAndReplace(binary)), picture);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject());
+            return ToolResponse.Textual(ToolResponse.Ok(payload ?? new JsonObject()));
         }, cancellationToken);
 
     [McpServerTool(Name = "figma_get_active_users")]
@@ -502,13 +564,19 @@ public sealed class SessionTools(
 
     [McpServerTool(Name = "figma_take_screenshot")]
     [Description(ToolDescriptions.Session.TakeScreenshot)]
-    public Task<string> TakeScreenshotAsync(
+    public Task<CallToolResult> TakeScreenshotAsync(
         [Description("Node id. Empty captures the current page.")] string? nodeId = null,
         [Description("Format: PNG (the default), JPG, SVG.")] string format = "PNG",
         [Description("Render scale.")] double scale = 1,
+        [Description(ToolDescriptions.Parameters.Deliver)] string deliver = PictureDelivery.PathOnly,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync(async ct =>
+        ExecutePicturedAsync(async ct =>
         {
+            if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
+            {
+                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+            }
+
             var result = await Plugin.ReadAsync(
                 EditorCommands.CaptureScreenshot,
                 new JsonObject
@@ -522,12 +590,14 @@ public sealed class SessionTools(
 
             if (result?["image"] is not JsonObject image)
             {
-                return ToolResponse.Ok(result ?? new JsonObject());
+                return ToolResponse.Textual(ToolResponse.Ok(result ?? new JsonObject()));
             }
+
+            var picture = PictureDelivery.From(image, inline);
 
             result["image"] = screenshots.SaveAndReplace(image);
 
-            return ToolResponse.Ok(result);
+            return ToolResponse.Pictured(ToolResponse.Ok(result), picture);
         }, cancellationToken);
 
     [McpServerTool(Name = "figma_get_text_styles")]

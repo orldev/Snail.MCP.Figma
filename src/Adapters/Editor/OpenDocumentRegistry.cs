@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using Snail.MCP.Figma.Application.Documents;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 
-/// <summary>Registry of connected files; the active file follows user selection unless a target is pinned.</summary>
+/// <summary>Registry of connected files and the one the agent works in.</summary>
+/// <remarks>The target moves only on the agent's word: a navigate, the only file there is, or the file the agent last named. Human clicks stamp the session and nothing else — with several agents open, a click in another file was meant for one of them, and the server cannot tell which.</remarks>
 public sealed class OpenDocumentRegistry(
     ActiveDocumentTracker activeFile,
     ILogger<OpenDocumentRegistry> logger)
@@ -11,8 +13,7 @@ public sealed class OpenDocumentRegistry(
 {
     private readonly ConcurrentDictionary<string, EditorSession> _byFileKey = new(StringComparer.Ordinal);
 
-    private string? _activeFileKey;
-    private bool _locked;
+    private string? _targetFileKey;
 
     public IReadOnlyCollection<EditorSession> Sessions => _byFileKey.Values.ToArray();
 
@@ -20,97 +21,153 @@ public sealed class OpenDocumentRegistry(
 
     IOpenDocument? IOpenDocuments.Resolve(string? fileKey) => Resolve(fileKey);
 
+    IOpenDocument? IOpenDocuments.LastTouched => LastTouched;
+
     public bool HasConnection => _byFileKey.Values.Any(session => session.IsOpen);
 
-    public string? ActiveFileKey => _activeFileKey;
+    public string? ActiveFileKey => _targetFileKey;
 
-    /// <summary>Target is pinned: user events no longer switch the active file.</summary>
-    public bool IsLocked => _locked;
+    /// <summary>The open session the human interacted with most recently.</summary>
+    public EditorSession? LastTouched =>
+        _byFileKey.Values.Where(session => session.IsOpen).MaxBy(session => session.LastInteractionAt);
 
-    /// <summary>Binds a session to a file after <c>FILE_INFO</c>.</summary>
-    public void Register(EditorSession session, string fileKey, string? fileName)
+    /// <summary>Binds a session to a file after <c>FILE_INFO</c>; the only connected file becomes the target by itself.</summary>
+    /// <remarks>A target file whose plugin reconnected is told again that the agent is here: the panel starts empty on every reload.</remarks>
+    public async Task RegisterAsync(EditorSession session, string fileKey, string? fileName, CancellationToken cancellationToken)
     {
         session.FileKey = fileKey;
         session.FileName = fileName;
         _byFileKey[fileKey] = session;
 
-        if (_activeFileKey is null && !_locked)
-        {
-            SetActive(fileKey);
-        }
-
         logger.LogInformation(
             "Plugin connected: file {FileName} ({FileKey}), {Count} sessions total",
             fileName, fileKey, _byFileKey.Count);
+
+        if (_targetFileKey is null && _byFileKey.Count == 1)
+        {
+            await ClaimAsync(fileKey, cancellationToken).ConfigureAwait(false);
+
+            return;
+        }
+
+        if (_targetFileKey == fileKey)
+        {
+            await session.PublishTargetBoundAsync(true, cancellationToken).ConfigureAwait(false);
+        }
     }
 
-    public void Remove(EditorSession session)
+    /// <summary>Forgets a closed session; a target whose plugin is gone falls to the only file left, or to nobody.</summary>
+    public async Task RemoveAsync(EditorSession session, CancellationToken cancellationToken)
     {
-        if (session.FileKey is not { } fileKey)
+        if (session.FileKey is not { } fileKey ||
+            !_byFileKey.TryRemove(new KeyValuePair<string, EditorSession>(fileKey, session)))
         {
             return;
         }
 
-        _byFileKey.TryRemove(new KeyValuePair<string, EditorSession>(fileKey, session));
-
-        if (_activeFileKey == fileKey)
-        {
-            _locked = false;
-            _activeFileKey = _byFileKey.Keys.FirstOrDefault();
-        }
-
         logger.LogInformation("Plugin disconnected: {FileKey}, {Count} sessions left", fileKey, _byFileKey.Count);
-    }
 
-    /// <summary>The file became active through user interaction; a pinned target is left alone.</summary>
-    public void TouchByUserInteraction(EditorSession session)
-    {
-        session.LastActivityAt = DateTimeOffset.UtcNow;
-
-        if (!_locked && session.FileKey is { } fileKey)
+        if (_targetFileKey != fileKey)
         {
-            SetActive(fileKey);
+            return;
+        }
+
+        _targetFileKey = null;
+
+        if (_byFileKey.Keys.ToArray() is [var only])
+        {
+            await ClaimAsync(only, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    /// <summary>Explicitly selects the active file and optionally pins it to the agent.</summary>
-    public bool SetActiveFile(string fileKey, bool @lock = false)
+    /// <summary>Claims the file as the target and tells both panels: the new one that the agent is here, the old one that it left.</summary>
+    public async Task<bool> ClaimAsync(string fileKey, CancellationToken cancellationToken = default)
     {
-        if (!_byFileKey.ContainsKey(fileKey))
+        if (!_byFileKey.TryGetValue(fileKey, out var session))
         {
             return false;
         }
 
-        SetActive(fileKey);
-        _locked = @lock;
+        var previous = _targetFileKey;
+        Claim(session);
+
+        if (previous is not null && previous != fileKey && _byFileKey.TryGetValue(previous, out var left) && left.IsOpen)
+        {
+            await left.PublishTargetBoundAsync(false, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (session.IsOpen)
+        {
+            await session.PublishTargetBoundAsync(true, cancellationToken).ConfigureAwait(false);
+        }
 
         return true;
     }
 
-    public void Unlock() => _locked = false;
-
-    /// <summary>Session for the file, or the active one when no key is given; <c>null</c> when no plugin is connected.</summary>
+    /// <summary>Session for the file, or the target when no key is given; <c>null</c> when no plugin is connected.</summary>
+    /// <remarks>Without a target the only open file, or the file the agent last named in any tool, is adopted on the spot; several files with no such hint throw, because a guess would write into somebody else's file.</remarks>
     public EditorSession? Resolve(string? fileKey = null)
     {
-        var key = fileKey ?? _activeFileKey;
+        if (fileKey is not null)
+        {
+            return Open(fileKey);
+        }
 
-        if (key is null)
+        if (_targetFileKey is { } target)
+        {
+            return Open(target);
+        }
+
+        var open = _byFileKey.Values.Where(session => session.IsOpen).ToArray();
+
+        if (open.Length == 0)
         {
             return null;
         }
 
-        return _byFileKey.TryGetValue(key, out var session) && session.IsOpen ? session : null;
+        var chosen = open.Length == 1
+            ? open[0]
+            : open.FirstOrDefault(session => session.FileKey == activeFile.FileKey);
+
+        if (chosen is null)
+        {
+            throw new EditorTargetAmbiguousException(Choices(open));
+        }
+
+        Claim(chosen);
+        _ = AnnounceAsync(chosen);
+
+        return chosen;
     }
 
-    private void SetActive(string fileKey)
+    private EditorSession? Open(string fileKey) =>
+        _byFileKey.TryGetValue(fileKey, out var session) && session.IsOpen ? session : null;
+
+    private void Claim(EditorSession session)
     {
-        if (_activeFileKey == fileKey)
+        if (_targetFileKey == session.FileKey)
         {
             return;
         }
 
-        _activeFileKey = fileKey;
-        activeFile.Remember(fileKey, _byFileKey.TryGetValue(fileKey, out var session) ? session.FileName : null);
-        logger.LogInformation("Active file: {FileKey}", fileKey);
+        _targetFileKey = session.FileKey;
+        activeFile.Remember(session.FileKey!, session.FileName);
+        logger.LogInformation("Target file: {FileName} ({FileKey})", session.FileName, session.FileKey);
     }
+
+    /// <summary>Tells the panel of a file adopted inside a synchronous resolve; a lost notice only delays the panel until the first command arrives.</summary>
+    private async Task AnnounceAsync(EditorSession session)
+    {
+        try
+        {
+            await session.PublishTargetBoundAsync(true, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is WebSocketException or ObjectDisposedException or InvalidOperationException)
+        {
+            logger.LogDebug(ex, "The panel of {FileKey} could not be told the agent is here", session.FileKey);
+        }
+    }
+
+    private static string Choices(IEnumerable<EditorSession> open) =>
+        $"Several files are connected and none is the target: {string.Join(", ", open.Select(session => $"{session.FileName ?? "unnamed"} ({session.FileKey})"))}.";
 }

@@ -40,6 +40,9 @@ public sealed class BridgeHostFixture : IAsyncLifetime
 
     public EditorSocketHub Hub { get; private set; } = null!;
 
+    /// <summary>The file the agent last named in any tool; the registry adopts it as the target when nothing else says.</summary>
+    public ActiveDocumentTracker ActiveFile { get; private set; } = null!;
+
     public async Task InitializeAsync()
     {
         var builder = WebApplication.CreateBuilder();
@@ -49,7 +52,7 @@ public sealed class BridgeHostFixture : IAsyncLifetime
         {
             DataDirectory = Path.Combine(Path.GetTempPath(), "snail-bridge-tests", Guid.NewGuid().ToString("N")),
             Cache = { Enabled = false },
-            Bridge = { RequestTimeoutSeconds = 5, PortRangeStart = SafePortRangeStart, PortRangeEnd = SafePortRangeEnd },
+            Bridge = { RequestTimeoutSeconds = 5, PortRangeStart = SafePortRangeStart, PortRangeEnd = SafePortRangeEnd, AgentName = "test-agent" },
         };
 
         Port = PortDiscovery.FindAvailablePort(config.Bridge)
@@ -89,6 +92,7 @@ public sealed class BridgeHostFixture : IAsyncLifetime
         Hub = _app.Services.GetRequiredService<EditorSocketHub>();
         Registry = _app.Services.GetRequiredService<OpenDocumentRegistry>();
         Cache = _app.Services.GetRequiredService<LiteDbNodeSnapshotStore>();
+        ActiveFile = _app.Services.GetRequiredService<ActiveDocumentTracker>();
     }
 
     public async Task DisposeAsync()

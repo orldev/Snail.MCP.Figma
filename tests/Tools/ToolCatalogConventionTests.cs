@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ModelContextProtocol.Server;
+using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -134,6 +135,79 @@ public class ToolCatalogConventionTests
             var description = DescriptionOf(parameter) ?? string.Empty;
             Assert.All(expected, value => Assert.Contains(value, description, StringComparison.OrdinalIgnoreCase));
         });
+    }
+
+    [Fact]
+    public void DeliverParameterNamesBothModesAndTheInlineCeiling()
+    {
+        var parameters = ToolMethods()
+            .SelectMany(method => method.GetParameters().Where(parameter => parameter.Name == "deliver"))
+            .ToList();
+
+        Assert.NotEmpty(parameters);
+        Assert.All(parameters, parameter =>
+        {
+            var description = DescriptionOf(parameter) ?? string.Empty;
+
+            Assert.Contains("path", description, StringComparison.Ordinal);
+            Assert.Contains("both", description, StringComparison.Ordinal);
+            Assert.Contains($"{ImageLimits.MaxInlineMegabytes} MB", description, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void PictureFileCapIsStatedInTheDescription()
+    {
+        var parameters = ToolMethods()
+            .SelectMany(method => method.GetParameters().Where(parameter => parameter.Name == "filePath"))
+            .ToList();
+
+        Assert.NotEmpty(parameters);
+        Assert.All(parameters, parameter => Assert.Contains(
+            $"{ImageLimits.MaxFileMegabytes} MB",
+            DescriptionOf(parameter) ?? string.Empty,
+            StringComparison.Ordinal));
+
+        var placement = Assert.Single(ToolMethods(), method => ToolName(method) == "figma_place_image");
+
+        Assert.Contains(
+            $"{ImageLimits.MaxPixelSide}x{ImageLimits.MaxPixelSide}",
+            DescriptionOf(placement) ?? string.Empty,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StepCapAndPauseCeilingAreStatedInTheDescriptions()
+    {
+        var method = Assert.Single(ToolMethods(), m => ToolName(m) == "figma_execute_steps");
+        var pause = Assert.Single(method.GetParameters(), parameter => parameter.Name == "delayMs");
+
+        Assert.Contains(
+            $"{ToolLimits.MaxSteps}",
+            DescriptionOf(method) ?? string.Empty,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            $"{ToolLimits.MaxStepDelayMs}",
+            DescriptionOf(pause) ?? string.Empty,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RemarkWaitCeilingIsStatedInTheDescription()
+    {
+        var method = Assert.Single(ToolMethods(), m => ToolName(m) == "figma_get_remarks");
+        var wait = Assert.Single(method.GetParameters(), parameter => parameter.Name == "waitMs");
+
+        Assert.Contains(
+            ToolLimits.MaxRemarkWaitMs.ToString(),
+            DescriptionOf(wait) ?? string.Empty,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            ToolLimits.MaxRemarkWaitMs.ToString(),
+            DescriptionOf(method) ?? string.Empty,
+            StringComparison.Ordinal);
     }
 
     [Fact]

@@ -17,6 +17,7 @@ public sealed class EditorSession : IOpenDocument
         ConnectionId = connectionId;
         ConnectedAt = DateTimeOffset.UtcNow;
         LastActivityAt = ConnectedAt;
+        LastInteractionAt = DateTimeOffset.MinValue;
     }
 
     public string ConnectionId { get; }
@@ -38,6 +39,11 @@ public sealed class EditorSession : IOpenDocument
 
     public DateTimeOffset LastActivityAt { get; set; }
 
+    /// <summary>When the human last selected, switched a page or wrote a remark; the minimum until they do.</summary>
+    public DateTimeOffset LastInteractionAt { get; set; }
+
+    public IReadOnlyList<string> Peers { get; set; } = [];
+
     /// <summary>Last known selection — the source of coordinates for mutations.</summary>
     public JsonNode? Selection { get; set; }
 
@@ -52,6 +58,19 @@ public sealed class EditorSession : IOpenDocument
 
     /// <summary>Ring buffer of description and annotation edits, which REST version snapshots never expose.</summary>
     public RingBuffer<JsonNode> MetadataChanges { get; } = new(200);
+
+    /// <summary>Remarks typed in the plugin panel, waiting to be read.</summary>
+    public Remarks Remarks { get; } = new(20);
+
+    /// <summary>Tells the panel how many remarks are still waiting.</summary>
+    public Task PublishRemarksWaitingAsync(CancellationToken cancellationToken) =>
+        SendAsync(EditorWireProtocol.RemarksWaiting(Remarks.Count), cancellationToken);
+
+    public Task PublishBuildProgressAsync(int step, int total, CancellationToken cancellationToken) =>
+        SendAsync(EditorWireProtocol.BuildProgress(step, total), cancellationToken);
+
+    public Task PublishTargetBoundAsync(bool bound, CancellationToken cancellationToken) =>
+        SendAsync(EditorWireProtocol.TargetBound(bound), cancellationToken);
 
     public bool IsOpen => _socket.State == WebSocketState.Open;
 

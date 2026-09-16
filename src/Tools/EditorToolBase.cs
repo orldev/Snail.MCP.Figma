@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
 
@@ -67,6 +68,20 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
     protected static string NotConnected() =>
         ToolResponse.Error(Messages.PluginNotConnected, Messages.HowToConnectPlugin);
 
+    /// <summary>Every connected file, marked with whether it is the target and who else works in it.</summary>
+    protected JsonArray DescribeFiles() => new([.. Plugin.Documents.Sessions.Select(session =>
+    {
+        var described = session.Describe();
+        described["target"] = session.FileKey == Plugin.Documents.ActiveFileKey;
+        described["othersHere"] = new JsonArray([.. session.Peers.Select(agent => (JsonNode)agent)]);
+
+        return (JsonNode)described;
+    })]);
+
+    /// <summary>Names of the other agents working in the target file; empty without a target.</summary>
+    protected IReadOnlyList<string> OthersInTarget() =>
+        Plugin.Documents.ActiveFileKey is { } target ? Plugin.Documents.Resolve(target)?.Peers ?? [] : [];
+
     /// <summary>Peels the EXECUTE_CODE envelope; the clone detaches the payload so callers can embed it into their own response, and a bridge failure comes back as an <c>__error</c> field.</summary>
     protected static JsonNode? Unwrap(JsonNode? raw)
     {
@@ -82,7 +97,21 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
     }
 
     /// <summary>Bridge errors come back as data so the model can read the cause and fix the call.</summary>
-    protected async Task<string> ExecuteAsync(Func<CancellationToken, Task<string>> action, CancellationToken cancellationToken)
+    protected Task<string> ExecuteAsync(Func<CancellationToken, Task<string>> action, CancellationToken cancellationToken) =>
+        GuardAsync(action, static (message, hint) => ToolResponse.Error(message, hint), cancellationToken);
+
+    /// <summary>The same guard for a tool that may answer with a picture.</summary>
+    /// <remarks>The failure shape is identical, only wrapped as content.</remarks>
+    protected Task<CallToolResult> ExecutePicturedAsync(
+        Func<CancellationToken, Task<CallToolResult>> action,
+        CancellationToken cancellationToken) =>
+        GuardAsync(action, static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)), cancellationToken);
+
+    /// <summary>One error ladder for both result shapes: what differs is only how the message and the hint are packed.</summary>
+    private async Task<T> GuardAsync<T>(
+        Func<CancellationToken, Task<T>> action,
+        Func<string, string?, T> fail,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -92,23 +121,27 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         {
             Logger.LogWarning("Bridge unavailable: {Message}", ex.Message);
 
-            return NotConnected();
+            return fail(Messages.PluginNotConnected, Messages.HowToConnectPlugin);
         }
         catch (EditorCommandException ex)
         {
-            return ToolResponse.Error(ex.Message, Messages.CheckNodeIdHint);
+            return fail(ex.Message, Messages.CheckNodeIdHint);
+        }
+        catch (EditorTargetAmbiguousException ex)
+        {
+            return fail(ex.Message, Messages.HowToChooseTarget);
         }
         catch (TimeoutException ex)
         {
-            return ToolResponse.Error(ex.Message, Messages.PluginWindowHint);
+            return fail(ex.Message, Messages.PluginWindowHint);
         }
         catch (PublishedSourceException ex)
         {
-            return ToolResponse.Error(ex.Message, ex.Hint);
+            return fail(ex.Message, ex.Hint);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            return ToolResponse.Error(ex.Message);
+            return fail(ex.Message, null);
         }
     }
 }

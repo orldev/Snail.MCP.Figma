@@ -16,7 +16,10 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
     public Task<string> GetSelectionAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(_ =>
         {
-            var session = Plugin.Documents.Resolve();
+            var target = Plugin.Documents.ActiveFileKey;
+            var session = target is null
+                ? Plugin.Documents.LastTouched ?? Plugin.Documents.Resolve()
+                : Plugin.Documents.Resolve();
 
             if (session is null)
             {
@@ -30,6 +33,11 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                     envelope["fileKey"] = session.FileKey;
                     envelope["fileName"] = session.FileName;
                     envelope["currentPage"] = session.CurrentPage;
+
+                    if (target is null)
+                    {
+                        envelope["note"] = "No target is chosen yet, so this is the file the human touched last; figma_navigate makes it the target.";
+                    }
                 }));
         }, cancellationToken);
 
@@ -121,6 +129,136 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             }
 
             return ToolResponse.Ok(result ?? new JsonObject());
+        }, cancellationToken);
+
+    [McpServerTool(Name = "figma_execute_steps")]
+    [Description(ToolDescriptions.Write.ExecuteSteps)]
+    public Task<string> ExecuteStepsAsync(
+        [Description("""JSON array of code strings, run in order: ["globalThis.card = figma.createFrame();", "globalThis.card.resize(320, 180);"].""")]
+        string steps,
+        [Description("Pause between steps in milliseconds, up to 2000. 0 runs as fast as the bridge allows; 100 to 200 reads as a build a human can follow.")]
+        int delayMs = 0,
+        [Description("Stop at the first failing step, which is the default, or run the rest and report every failure.")]
+        bool stopOnError = true,
+        [Description("Execution timeout of a single step in milliseconds.")]
+        int timeoutMs = 15000,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(async ct =>
+        {
+            if (!TryParseSteps(steps, out var scripts, out var stepsError))
+            {
+                return ToolResponse.Error(stepsError!, """Expected ["first step", "second step"].""");
+            }
+
+            if (scripts.Count > ToolLimits.MaxSteps)
+            {
+                return ToolResponse.Error(
+                    $"{scripts.Count} steps were passed and one call runs up to {ToolLimits.MaxSteps}.",
+                    "Send the rest in the next call — globals survive between calls.");
+            }
+
+            if (delayMs is < 0 or > ToolLimits.MaxStepDelayMs)
+            {
+                return ToolResponse.Error($"delayMs must be between 0 and {ToolLimits.MaxStepDelayMs}.");
+            }
+
+            var startedAt = DateTimeOffset.UtcNow;
+            var outcomes = new JsonArray();
+            var completed = 0;
+            var failedStep = 0;
+            var stoppedAt = 0;
+            string? failure = null;
+            BuildInterruption? interruption = null;
+
+            for (var index = 0; index < scripts.Count; index++)
+            {
+                var panel = Plugin.Documents.Resolve();
+
+                if (panel is not null && panel.Remarks.TakeSince(startedAt) is { } stepIn)
+                {
+                    interruption = stepIn;
+                    stoppedAt = index;
+
+                    await panel.PublishRemarksWaitingAsync(ct).ConfigureAwait(false);
+
+                    break;
+                }
+
+                if (panel is not null)
+                {
+                    await panel.PublishBuildProgressAsync(index + 1, scripts.Count, ct).ConfigureAwait(false);
+                }
+
+                if (index > 0 && delayMs > 0)
+                {
+                    await Task.Delay(delayMs, ct).ConfigureAwait(false);
+                }
+
+                var raw = await Plugin.ApplyAsync(
+                    EditorCommands.ExecuteCode,
+                    new JsonObject { ["code"] = scripts[index], ["timeout"] = timeoutMs },
+                    timeout: TimeSpan.FromMilliseconds(timeoutMs + 5000),
+                    cancellationToken: ct).ConfigureAwait(false);
+
+                var payload = Unwrap(raw);
+                var error = payload is JsonObject answered ? answered["__error"]?.GetValue<string>() : null;
+
+                outcomes.Add(new JsonObject
+                {
+                    ["step"] = index + 1,
+                    ["ok"] = error is null,
+                    ["error"] = error,
+                    ["result"] = error is null ? payload?.DeepClone() : null,
+                });
+
+                if (error is null)
+                {
+                    completed++;
+
+                    continue;
+                }
+
+                failure ??= error;
+                failedStep = failedStep == 0 ? index + 1 : failedStep;
+
+                if (stopOnError)
+                {
+                    break;
+                }
+            }
+
+            if (Plugin.Documents.Resolve() is { } finished)
+            {
+                await finished.PublishBuildProgressAsync(0, scripts.Count, ct).ConfigureAwait(false);
+
+                if (finished.FileKey is { } fileKey)
+                {
+                    await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
+                }
+            }
+
+            var data = new JsonObject
+            {
+                ["completed"] = completed,
+                ["total"] = scripts.Count,
+                ["steps"] = outcomes,
+            };
+
+            if (interruption is not null)
+            {
+                data["stopped"] = true;
+                data["remark"] = interruption.Remark;
+                data["selection"] = new JsonArray([.. interruption.Nodes.Select(node => node.DeepClone())]);
+                data["note"] =
+                    $"The human stepped in after step {stoppedAt} of {scripts.Count}. The remaining steps were not run; globals are still alive, so send them once the remark is dealt with.";
+            }
+
+            return failure is null
+                ? ToolResponse.Ok(data)
+                : ToolResponse.Error(
+                    $"Step {failedStep} of {scripts.Count} failed: {failure}",
+                    "Everything before it is already on the canvas: fix that step and send the remaining ones.",
+                    data);
         }, cancellationToken);
 
     [McpServerTool(Name = "figma_get_selection_colors")]
@@ -321,14 +459,47 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
     public Task<string> GetStatusAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(_ =>
         {
-            var sessions = new JsonArray(Plugin.Documents.Sessions.Select(s => (JsonNode)s.Describe()).ToArray());
-
             return Task.FromResult(ToolResponse.Ok(new JsonObject
             {
                 ["connected"] = Plugin.IsConnected,
                 ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
-                ["targetLocked"] = Plugin.Documents.IsLocked,
-                ["files"] = sessions,
+                ["othersHere"] = new JsonArray([.. OthersInTarget().Select(agent => (JsonNode)agent)]),
+                ["files"] = DescribeFiles(),
             }));
         }, cancellationToken);
+
+    /// <summary>Reads the steps argument into the scripts to run.</summary>
+    /// <remarks>A step that is not a string is refused by itself: silently skipping it would build half a layout and report success.</remarks>
+    private static bool TryParseSteps(string steps, out List<string> scripts, out string? error)
+    {
+        scripts = [];
+
+        if (!TryParseJson(steps, out var parsed, out var parseError) || parsed is not JsonArray array)
+        {
+            error = $"steps did not parse as a JSON array: {parseError ?? "it is empty"}.";
+
+            return false;
+        }
+
+        foreach (var step in array)
+        {
+            if (step is not JsonValue value || value.GetValueKind() != JsonValueKind.String)
+            {
+                error = "Every step must be a string of code.";
+
+                return false;
+            }
+
+            var code = value.GetValue<string>();
+
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                scripts.Add(code);
+            }
+        }
+
+        error = scripts.Count == 0 ? "steps holds no code to run." : null;
+
+        return error is null;
+    }
 }

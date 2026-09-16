@@ -75,6 +75,10 @@ public sealed class EditorLinkOptions
 
     /// <summary>Read through the plugin while it is connected: no quota and unsaved edits visible; REST stays the fallback and the only path for history, comments, libraries and svg/pdf.</summary>
     public bool PreferPluginForReads { get; set; } = true;
+
+    /// <summary>How the panel names this server when several agents share a file.</summary>
+    /// <remarks>The MCP host starts the server in the agent's project folder, so that folder's name is the agent's name; <c>SNAIL_MCP_FIGMA_BRIDGE__AGENT_NAME</c> overrides it.</remarks>
+    public string AgentName { get; set; } = System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(Environment.CurrentDirectory));
 }
 
 /// <summary>Settings of the sanitized-node cache in LiteDB.</summary>

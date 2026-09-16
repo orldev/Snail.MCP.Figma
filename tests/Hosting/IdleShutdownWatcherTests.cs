@@ -106,13 +106,9 @@ public class IdleShutdownWatcherTests
 
         public string? ActiveFileKey => null;
 
-        public bool IsLocked => false;
+        public IOpenDocument? LastTouched => null;
 
-        public bool SetActiveFile(string fileKey, bool @lock = false) => false;
-
-        public void Unlock()
-        {
-        }
+        public Task<bool> ClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public IOpenDocument? Resolve(string? fileKey = null) => null;
     }
