@@ -341,8 +341,8 @@ public static partial class DesignSystemScaffolder
         return $"""
         # {options.PackageName}
 
-        Design system extracted from production applications by the `figma_ds_*` process of the snail-figma server
-        (a port of [figma-console-mcp](https://github.com/southleft/figma-console-mcp), MIT, Southleft).
+        Design system extracted from production applications by the `figma_ds_*` process of
+        [Snail.MCP.Figma](https://github.com/orldev/Snail.MCP.Figma).
 
         ## Source applications
 
