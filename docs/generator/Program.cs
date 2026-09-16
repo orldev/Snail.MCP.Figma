@@ -1,6 +1,6 @@
 using Snail.MCP.Figma.Documentation;
 
-var output = args.Length > 0 ? args[0] : "docs";
+var output = args.Length > 0 ? args[0] : Path.Combine("docs", "content");
 
 var families = ToolCatalog.Read();
 

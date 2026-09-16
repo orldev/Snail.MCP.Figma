@@ -87,7 +87,7 @@ jobs:
           dotnet-version: 10.x
 
       - name: Generate the tool reference
-        run: dotnet run -c Release --project gen -- docs
+        run: dotnet run -c Release --project docs/generator -- docs/content
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -98,7 +98,7 @@ jobs:
         run: pip install mkdocs==1.6.1 pymdown-extensions==10.21.3
 
       - name: Build the site
-        run: mkdocs build --strict
+        run: mkdocs build --strict -f docs/mkdocs.yml
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -106,7 +106,7 @@ jobs:
       - name: Upload the site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
+          path: ./docs/site
 
       - name: Deploy to GitHub Pages
         id: deployment

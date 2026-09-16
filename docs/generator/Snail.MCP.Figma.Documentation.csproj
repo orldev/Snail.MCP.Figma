@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\src\Snail.MCP.Figma.csproj" />
-        <ProjectReference Include="..\tests\Snail.MCP.Figma.Tests.csproj" />
+        <ProjectReference Include="..\..\src\Snail.MCP.Figma.csproj" />
+        <ProjectReference Include="..\..\tests\Snail.MCP.Figma.Tests.csproj" />
     </ItemGroup>
 
 </Project>

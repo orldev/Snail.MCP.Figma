@@ -307,10 +307,23 @@ dotnet test
 - Code, documentation and every string the model reads are in English. The layer boundary, the prompt
   catalog, the stdio contract and the code style are all guarded by tests.
 - `.mcp.json` in the repository root registers a local debug build for Claude Code.
-- Docs: `dotnet run --project gen -- docs` regenerates the tool reference from the catalog,
-  `mkdocs serve` previews the site (`pip install mkdocs pymdown-extensions`); the theme is our own and lives in `theme/`.
+- Docs: `dotnet run --project docs/generator -- docs/content` regenerates the tool reference from the
+  catalog, `mkdocs serve -f docs/mkdocs.yml` previews the site (`pip install mkdocs pymdown-extensions`);
+  the theme is our own and lives in `docs/theme/`.
 - Release: a `v*` tag runs the tests, syncs the version in `.mcp/server.json`, pushes the package to NuGet
   and deploys the documentation.
+
+Repository layout:
+
+- `src/` — the server, one folder per layer: `Domain`, `Application` (with `Ports`), `Adapters`, `Tools`,
+  `Extensions`, `Hosting`, `Configuration`.
+- `tests/` — xUnit, mirroring `src/`; `tests/Contracts/` holds the guard tests together with the vendored
+  Figma API contracts they compare against (`Figma/openapi.yaml`, `Figma/plugin-api.d.ts`).
+- `plugin/` — the Figma extension bundle the server installs for import.
+- `docs/` — the documentation site: `content/` (the pages; `tools/` and `schemas/` inside it are
+  generated), `theme/`, `generator/` and `mkdocs.yml`.
+- `.mcp/server.json` — the MCP registry manifest packed into the NuGet package; `.mcp.json` registers
+  the local debug build for Claude Code.
 
 The bundled Figma extension in `plugin/` carries third-party code; see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
