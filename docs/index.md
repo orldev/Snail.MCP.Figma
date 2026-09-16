@@ -1,6 +1,6 @@
 # Snail.MCP.Figma
 
-A local MCP server that gives an AI agent 139 tools for reading and editing Figma.
+A local MCP server that gives an AI agent 141 tools for reading and editing Figma.
 
 Reads go through the **live Figma Desktop plugin** — no REST quota spent and unsaved edits visible — or
 through the **REST API** behind a LiteDB snapshot cache and a sanitizer that keeps the raw Figma JSON out of
@@ -53,7 +53,7 @@ Step-by-step instructions for every client, the token scopes, updating and unins
 ## Where to go next
 
 - [Installation](installation.md) — prerequisites, the three ways to install, client-by-client registration, verification.
-- [Tools](tools/index.md) — all 139 tools with parameters and JSON schemas, generated from the server itself.
+- [Tools](tools/index.md) — all 141 tools with parameters and JSON schemas, generated from the server itself.
 - [Architecture](architecture.md) — the two channels, snapshots, the quota circuit breaker.
 - [Configuration](configuration.md) — environment variables and the optional settings file.
 - [Plugin setup](plugin-setup.md) — installing the Figma Desktop bridge.
@@ -61,5 +61,5 @@ Step-by-step instructions for every client, the token scopes, updating and unins
 
 ## Licences
 
-The server is MIT. The bundled `plugin/` is MIT, Figma Console MCP Contributors (Southleft) — this project
-started as a C# port of [figma-console-mcp](https://github.com/southleft/figma-console-mcp).
+The server is MIT. The bundled Figma extension in `plugin/` carries third-party code under the same
+licence — the notices travel with it in `THIRD-PARTY-NOTICES.md`.

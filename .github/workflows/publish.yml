@@ -94,8 +94,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install MkDocs
-        run: pip install mkdocs==1.6.1 mkdocs-material==9.7.7
+      - name: Install MkDocs and the markdown extensions
+        run: pip install mkdocs==1.6.1 pymdown-extensions==10.21.3
 
       - name: Build the site
         run: mkdocs build --strict

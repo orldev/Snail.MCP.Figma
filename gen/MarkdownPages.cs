@@ -39,7 +39,7 @@ public static class MarkdownPages
 
         foreach (var tool in family.Tools)
         {
-            page.AppendLine($"## `{tool.Name}`")
+            page.AppendLine($"## <code>{Seams(tool.Name)}</code>")
                 .AppendLine()
                 .AppendLine(tool.Description)
                 .AppendLine();
@@ -126,6 +126,10 @@ public static class MarkdownPages
 
         return sentence.Length <= 160 ? sentence : $"{sentence[..157]}…";
     }
+
+    /// <summary>The name with a line-break opportunity after every underscore: the heading sits in a 152-pixel margin and would otherwise break mid-word.
+    /// A &lt;wbr&gt; carries no character, so the anchor, the search index and a copied name all stay the plain name.</summary>
+    private static string Seams(string name) => name.Replace("_", "_<wbr>", StringComparison.Ordinal);
 
     private static string Cell(string text) =>
         text.Replace("|", "\\|").ReplaceLineEndings(" ").Trim();
