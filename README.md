@@ -5,7 +5,7 @@
 [![Release](https://github.com/orldev/Snail.MCP.Figma/actions/workflows/publish.yml/badge.svg)](https://github.com/orldev/Snail.MCP.Figma/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/orldev/Snail.MCP.Figma/blob/master/LICENSE)
 
-A local MCP server that gives your AI assistant **139 tools for reading and editing Figma**. It runs on your
+A local MCP server that gives your AI assistant **141 tools for reading and editing Figma**. It runs on your
 machine, talks to your client over stdio, and reaches Figma two ways: through the **Figma Desktop app**
 (a bundled plugin — it sees unsaved edits and spends no API quota) and through the **Figma REST API**
 (behind a snapshot cache and a sanitizer that keeps raw Figma JSON out of the model's context).
@@ -194,10 +194,10 @@ remembers it. Typical requests:
 
 ## Tools
 
-139 tools in 18 families. Each name below links to the reference page with parameters and JSON schemas.
+141 tools in 18 families. Each name below links to the reference page with parameters and JSON schemas.
 
 - **[Reading](https://orldev.github.io/Snail.MCP.Figma/tools/reading/)** (7) — `figma_get_file_data`, `figma_get_component`, `figma_get_variables`, `figma_get_file_meta`, `figma_get_styles`, `figma_get_component_image`, `figma_get_file_for_plugin`
-- **[Writing](https://orldev.github.io/Snail.MCP.Figma/tools/writing/)** (11) — `figma_get_selection`, `figma_move_node`, `figma_resize_node`, `figma_set_fills`, `figma_set_text`, `figma_execute`, `figma_get_selection_colors`, `figma_sort_styles`, `figma_commit_undo`, `figma_create_style`, `figma_get_status`
+- **[Writing](https://orldev.github.io/Snail.MCP.Figma/tools/writing/)** (12) — `figma_get_selection`, `figma_move_node`, `figma_resize_node`, `figma_set_fills`, `figma_set_text`, `figma_execute`, `figma_execute_steps`, `figma_get_selection_colors`, `figma_sort_styles`, `figma_commit_undo`, `figma_create_style`, `figma_get_status`
 - **[Nodes](https://orldev.github.io/Snail.MCP.Figma/tools/nodes/)** (15) — `figma_clone_node`, `figma_delete_node`, `figma_rename_node`, `figma_set_strokes`, `figma_set_image_fill`, `figma_create_child`, `figma_set_description`, `figma_set_instance_properties`, `figma_create_page`, `figma_create_node_from_svg`, `figma_place_image`, `figma_create_node_from_jsx`, `figma_boolean_operation`, `figma_group_nodes`, `figma_ungroup_node`
 - **[Components](https://orldev.github.io/Snail.MCP.Figma/tools/components/)** (9) — `figma_search_components`, `figma_instantiate_component`, `figma_create_component_set`, `figma_analyze_component_set`, `figma_arrange_component_set`, `figma_add_component_property`, `figma_edit_component_property`, `figma_delete_component_property`, `figma_get_component_details`
 - **[Variables](https://orldev.github.io/Snail.MCP.Figma/tools/variables/)** (13) — `figma_create_variable_collection`, `figma_delete_variable_collection`, `figma_create_variable`, `figma_update_variable`, `figma_delete_variable`, `figma_rename_variable`, `figma_set_variable_description`, `figma_add_mode`, `figma_rename_mode`, `figma_get_token_values`, `figma_batch_create_variables`, `figma_batch_update_variables`, `figma_setup_design_tokens`
@@ -212,7 +212,7 @@ remembers it. Typical requests:
 - **[Slides](https://orldev.github.io/Snail.MCP.Figma/tools/slides/)** (16) — `figma_list_slides`, `figma_get_slide_content`, `figma_get_slide_grid`, `figma_get_slide_transition`, `figma_get_focused_slide`, `figma_create_slide`, `figma_delete_slide`, `figma_duplicate_slide`, `figma_reorder_slides`, `figma_set_slide_transition`, `figma_skip_slide`, `figma_add_text_to_slide`, `figma_add_shape_to_slide`, `figma_set_slide_background`, `figma_set_slides_view_mode`, `figma_focus_slide`
 - **[Slots](https://orldev.github.io/Snail.MCP.Figma/tools/slots/)** (5) — `figma_create_slot`, `figma_get_slots`, `figma_append_to_slot`, `figma_reset_slot`, `figma_add_slot_property`
 - **[Quality and annotations](https://orldev.github.io/Snail.MCP.Figma/tools/quality/)** (6) — `figma_lint_design`, `figma_audit_component_accessibility`, `figma_get_annotations`, `figma_set_annotations`, `figma_get_annotation_categories`, `figma_add_annotation_category`
-- **[Session and console](https://orldev.github.io/Snail.MCP.Figma/tools/session/)** (15) — `figma_list_open_files`, `figma_navigate`, `figma_execute_across_files`, `figma_reconnect`, `figma_reload_plugin`, `figma_get_console_logs`, `figma_clear_console`, `figma_watch_console`, `figma_export_node`, `figma_get_active_users`, `figma_notify`, `figma_scroll_to_node`, `figma_set_file_thumbnail`, `figma_take_screenshot`, `figma_get_text_styles`
+- **[Session and console](https://orldev.github.io/Snail.MCP.Figma/tools/session/)** (16) — `figma_list_open_files`, `figma_navigate`, `figma_execute_across_files`, `figma_reconnect`, `figma_reload_plugin`, `figma_get_console_logs`, `figma_get_remarks`, `figma_clear_console`, `figma_watch_console`, `figma_export_node`, `figma_get_active_users`, `figma_notify`, `figma_scroll_to_node`, `figma_set_file_thumbnail`, `figma_take_screenshot`, `figma_get_text_styles`
 - **[Diagnostics](https://orldev.github.io/Snail.MCP.Figma/tools/diagnostics/)** (1) — `csharp_diagnose`
 
 Which tools need what:
@@ -280,6 +280,13 @@ Claude ── stdio ─┤
   so a refusal already known costs no network round trip. State: `csharp_diagnose → rateLimit`.
 - **Writes are confirmed by the plugin's answer**, never assumed; the node and its ancestors are invalidated after each one.
 - **Watchdog.** An hour without a tool call and the process exits on its own, so orphaned servers do not pile up.
+- **One target per agent.** Commands go to the file the agent named with `figma_navigate`, and a human clicking
+  in another file does not move it: with several files and several agents open, the click was meant for one of
+  them. The panel sends a remark only to the agents working in its file, and names them when there are two.
+- **The panel talks back.** Type into the plugin window and the words reach the agent with the layer you had
+  selected: during `figma_execute_steps` the remark stops the build after the current step, in the quiet it
+  waits for `figma_get_remarks` — which is when a human actually reviews a result. The server tells the panel
+  how many remarks are unread and which step of a build is running, so the window never has to guess.
 
 The internals — the hexagonal layout, the snapshot policy, the sanitizer — are described in
 [Architecture](https://orldev.github.io/Snail.MCP.Figma/architecture/).
@@ -300,13 +307,26 @@ dotnet test
 - Code, documentation and every string the model reads are in English. The layer boundary, the prompt
   catalog, the stdio contract and the code style are all guarded by tests.
 - `.mcp.json` in the repository root registers a local debug build for Claude Code.
-- Docs: `dotnet run --project gen -- docs` regenerates the tool reference from the catalog,
-  `mkdocs serve` previews the site (`pip install mkdocs-material`).
+- Docs: `dotnet run --project docs/generator -- docs/content` regenerates the tool reference from the
+  catalog, `mkdocs serve -f docs/mkdocs.yml` previews the site (`pip install mkdocs pymdown-extensions`);
+  the theme is our own and lives in `docs/theme/`.
 - Release: a `v*` tag runs the tests, syncs the version in `.mcp/server.json`, pushes the package to NuGet
   and deploys the documentation.
 
-The project grew out of [figma-console-mcp](https://github.com/southleft/figma-console-mcp) (MIT, Southleft);
-what remains of the donor is the JS plugin in `plugin/`.
+Repository layout:
+
+- `src/` — the server, one folder per layer: `Domain`, `Application` (with `Ports`), `Adapters`, `Tools`,
+  `Extensions`, `Hosting`, `Configuration`.
+- `tests/` — xUnit, mirroring `src/`; `tests/Contracts/` holds the guard tests together with the vendored
+  Figma API contracts they compare against (`Figma/openapi.yaml`, `Figma/plugin-api.d.ts`).
+- `plugin/` — the Figma extension bundle the server installs for import.
+- `docs/` — the documentation site: `content/` (the pages; `tools/` and `schemas/` inside it are
+  generated), `theme/`, `generator/` and `mkdocs.yml`.
+- `.mcp/server.json` — the MCP registry manifest packed into the NuGet package; `.mcp.json` registers
+  the local debug build for Claude Code.
+
+The bundled Figma extension in `plugin/` carries third-party code; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Licences
 

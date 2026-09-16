@@ -11,7 +11,7 @@ ports only. Folder = layer = namespace.
 | `Adapters/Rest` | `RestDocumentGateway`, `QuotaGate` — the only place that speaks HTTP |
 | `Adapters/Editor` | the WebSocket hub, command router, session registry, server-side sibling discovery, embedded read scripts, capture store |
 | `Adapters/Persistence/LiteDb` | the three snapshot stores and the lazily opened database |
-| `Tools` | the MCP driving adapter: 139 tools and the prompt catalog |
+| `Tools` | the MCP driving adapter: 141 tools and the prompt catalog |
 | `Extensions` / `Hosting` | the composition root and the process lifetime |
 
 ## Two channels
@@ -30,6 +30,43 @@ the edit. Coordinates always come from the plugin (`node.x` / `node.y`, relative
 
 REST stays the only path for what the plugin cannot do: version history and blame, comments, other teams'
 libraries, `svg`/`pdf` rendering, and files that are not open in the desktop app.
+
+## One target per agent
+
+Commands without a file key go to the agent's target. It moves only on the agent's word, `figma_navigate` or
+the file it last named in any tool, and never on the human's clicks: with the plugin open in several files and
+several agents around, a click in another file was meant for one of them and the server cannot tell which.
+The only connected file is the target by itself; several with none named make the write tools refuse and list
+them. When the target's plugin disconnects, the only file left takes over; otherwise there is no target until
+the agent names one.
+
+## The third channel: the panel
+
+The two channels above carry the agent's intent. A third one carries the human's, and it runs the other way.
+
+MCP is pull-only — a server cannot wake an agent — so the panel cannot deliver a remark by itself. What it
+can do is leave one where the agent will look. Typing into the panel field sends `BUILD_STOP` with the words
+and the current selection; the server puts it in a queue of twenty (`Domain/Remarks`).
+
+What happens next depends on whether anything is running:
+
+- **During `figma_execute_steps`** the loop checks the queue between steps and stops at a whole step rather
+  than half a node. Only remarks left *after* the build began count — one written about the previous result
+  must not kill the build that just started, so it stays in the queue instead.
+- **In the quiet** the remark waits for `figma_get_remarks`, which is when a human actually reviews a result.
+  Reading takes: the same remark never comes back twice. `waitMs` holds the call open for up to a minute, so
+  an agent can hear the human within a second instead of at its next turn.
+
+The server answers back over the same socket so the panel never has to guess: `REMARKS_WAITING` carries how
+many remarks are still unread, and `BUILD_PROGRESS` carries `step` and `total` — the plugin receives every
+step as its own command and cannot count them, so the share can only come from the server. A step of zero
+means the build is over.
+
+A remark is addressed, not broadcast. Every server is connected to every panel, so each server tells each
+panel whether its agent works in that file (`TARGET_BOUND`), and the panel sends a remark only to the servers
+that said yes; the server, in turn, queues a remark only for its target file. With two agents in one file the
+panel lets the human pick the addressee by name. The panel also tells every server who else has claimed the
+file (`PEERS`), which is how `figma_navigate` can name the other agents: servers never see each other.
 
 ## One read, at most one request
 

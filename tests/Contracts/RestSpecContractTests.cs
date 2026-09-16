@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Snail.MCP.Figma.Tests.Contracts;
 
-/// <summary>Every REST route the gateway calls must exist in the vendored Figma OpenAPI spec; a red run after refreshing vendor/figma means Figma changed something we use.</summary>
+/// <summary>Every REST route the gateway calls must exist in the vendored Figma OpenAPI spec; a red run after refreshing tests/Contracts/Figma means Figma changed something we use.</summary>
 public class RestSpecContractTests
 {
     /// <summary>Operations the gateway is expected to construct; bump when an endpoint is added or removed.</summary>
@@ -18,7 +18,7 @@ public class RestSpecContractTests
 
         Assert.True(missing.Count == 0,
             $"routes the gateway calls but the vendored spec does not know: {string.Join(", ", missing.Select(m => $"{m.Verb} {m.Path}"))}. " +
-            "Either the route is wrong, or Figma removed it — diff vendor/figma/openapi.yaml against the latest @figma/rest-api-spec.");
+            "Either the route is wrong, or Figma removed it — diff tests/Contracts/Figma/openapi.yaml against the latest @figma/rest-api-spec.");
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class RestSpecContractTests
 
     private static HashSet<(string Verb, string Path)> SpecOperations()
     {
-        var lines = File.ReadAllLines(Path.Combine(FindRepositoryRoot(), "vendor", "figma", "openapi.yaml"));
+        var lines = File.ReadAllLines(Path.Combine(FindRepositoryRoot(), "tests", "Contracts", "Figma", "openapi.yaml"));
         var operations = new HashSet<(string, string)>();
         var inPaths = false;
         string? currentPath = null;
@@ -125,7 +125,7 @@ public class RestSpecContractTests
             }
         }
 
-        Assert.True(operations.Count > 30, "the vendored openapi.yaml parsed suspiciously small — check vendor/figma/openapi.yaml");
+        Assert.True(operations.Count > 30, "the vendored openapi.yaml parsed suspiciously small — check tests/Contracts/Figma/openapi.yaml");
 
         return operations;
     }
@@ -136,7 +136,7 @@ public class RestSpecContractTests
 
         while (directory is not null)
         {
-            if (Directory.Exists(Path.Combine(directory.FullName, "vendor", "figma")))
+            if (Directory.Exists(Path.Combine(directory.FullName, "tests", "Contracts", "Figma")))
             {
                 return directory.FullName;
             }
@@ -144,6 +144,6 @@ public class RestSpecContractTests
             directory = directory.Parent!;
         }
 
-        throw new InvalidOperationException("vendor/figma was not found above the test binaries");
+        throw new InvalidOperationException("tests/Contracts/Figma was not found above the test binaries");
     }
 }

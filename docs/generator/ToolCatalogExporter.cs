@@ -25,7 +25,20 @@ public static class ToolCatalogExporter
 
         written.Add(Write(Path.Combine(schemas, "tools.json"), Schemas(families)));
 
+        RemoveStale(tools, written);
+
         return written;
+    }
+
+    /// <summary>Deletes the pages of families that no longer exist: a page left behind would still be built and found by the search, with tools the server no longer has.</summary>
+    private static void RemoveStale(string tools, IReadOnlyCollection<string> written)
+    {
+        var current = written.Select(Path.GetFullPath).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var page in Directory.EnumerateFiles(tools, "*.md").Where(page => !current.Contains(Path.GetFullPath(page))).ToList())
+        {
+            File.Delete(page);
+        }
     }
 
     private static string Schemas(IReadOnlyList<ToolFamily> families)

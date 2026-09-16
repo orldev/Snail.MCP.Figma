@@ -65,8 +65,8 @@ jobs:
           mkdir -p /tmp/figma-latest && cd /tmp/figma-latest
           npm pack @figma/rest-api-spec @figma/plugin-typings
           for f in *.tgz; do d="${f%.tgz}"; mkdir "$d"; tar xzf "$f" -C "$d"; done
-          cp figma-rest-api-spec-*/package/openapi/openapi.yaml "$GITHUB_WORKSPACE/vendor/figma/openapi.yaml"
-          cp figma-plugin-typings-*/package/plugin-api.d.ts "$GITHUB_WORKSPACE/vendor/figma/plugin-api.d.ts"
+          cp figma-rest-api-spec-*/package/openapi/openapi.yaml "$GITHUB_WORKSPACE/tests/Contracts/Figma/openapi.yaml"
+          cp figma-plugin-typings-*/package/plugin-api.d.ts "$GITHUB_WORKSPACE/tests/Contracts/Figma/plugin-api.d.ts"
           ls -la figma-*/package | head -5
 
       - name: Restore dependencies

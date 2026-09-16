@@ -426,6 +426,6 @@ ASALocalRun/
 .donor/
 
 # MkDocs: build output and the generated tool reference
-site/
-docs/tools/
-docs/schemas/
+docs/site/
+docs/content/tools/
+docs/content/schemas/

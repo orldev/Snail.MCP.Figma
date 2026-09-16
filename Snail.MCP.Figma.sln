@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snail.MCP.Figma", "src\Snai
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snail.MCP.Figma.Tests", "tests\Snail.MCP.Figma.Tests.csproj", "{CF8A6253-7868-40A1-9611-9F26FE7F292B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snail.MCP.Figma.Documentation", "gen\Snail.MCP.Figma.Documentation.csproj", "{D0A3FA54-D406-4F6E-9C28-EA45AAE0A556}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snail.MCP.Figma.Documentation", "docs\generator\Snail.MCP.Figma.Documentation.csproj", "{D0A3FA54-D406-4F6E-9C28-EA45AAE0A556}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

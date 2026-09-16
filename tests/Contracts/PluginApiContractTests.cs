@@ -23,7 +23,7 @@ public class PluginApiContractTests
 
         Assert.True(missing.Count == 0,
             $"methods our JS calls but @figma/plugin-typings does not declare: {string.Join(", ", missing)}. " +
-            "Either a typo, or Figma removed the API — diff vendor/figma/plugin-api.d.ts against the latest typings.");
+            "Either a typo, or Figma removed the API — diff tests/Contracts/Figma/plugin-api.d.ts against the latest typings.");
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class PluginApiContractTests
     /// <summary>Member name → still alive; a name is dead only when every declaration of it carries @deprecated.</summary>
     private static Dictionary<string, bool> Declarations()
     {
-        var lines = File.ReadAllLines(Path.Combine(FindRepositoryRoot(), "vendor", "figma", "plugin-api.d.ts"));
+        var lines = File.ReadAllLines(Path.Combine(FindRepositoryRoot(), "tests", "Contracts", "Figma", "plugin-api.d.ts"));
         var declaration = new Regex(@"^\s*(?:readonly\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*[(<:?]", RegexOptions.Compiled);
         var members = new Dictionary<string, bool>(StringComparer.Ordinal);
         var pendingDeprecated = false;
@@ -97,7 +97,7 @@ public class PluginApiContractTests
             pendingDeprecated = false;
         }
 
-        Assert.True(members.Count > 500, "the vendored plugin-api.d.ts parsed suspiciously small — check vendor/figma/plugin-api.d.ts");
+        Assert.True(members.Count > 500, "the vendored plugin-api.d.ts parsed suspiciously small — check tests/Contracts/Figma/plugin-api.d.ts");
 
         return members;
     }
@@ -108,7 +108,7 @@ public class PluginApiContractTests
 
         while (directory is not null)
         {
-            if (Directory.Exists(Path.Combine(directory.FullName, "vendor", "figma")))
+            if (Directory.Exists(Path.Combine(directory.FullName, "tests", "Contracts", "Figma")))
             {
                 return directory.FullName;
             }
@@ -116,6 +116,6 @@ public class PluginApiContractTests
             directory = directory.Parent!;
         }
 
-        throw new InvalidOperationException("vendor/figma was not found above the test binaries");
+        throw new InvalidOperationException("tests/Contracts/Figma was not found above the test binaries");
     }
 }
