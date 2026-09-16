@@ -8,9 +8,18 @@ namespace Snail.MCP.Figma.Tools;
 
 /// <summary>Node operations: clone, delete, rename, strokes, images, child creation.</summary>
 [McpServerToolType]
-public sealed class NodeTools(ILiveEditor plugin, ILogger<NodeTools> logger)
+public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<NodeTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Ceiling for a picture crossing the bridge.</summary>
+    /// <remarks>Base64 is rebuilt into a byte array inside the plugin window, and megabytes take far longer there than the icons the old minute was measured on.</remarks>
+    private static readonly TimeSpan ImageTransferTimeout = TimeSpan.FromMinutes(2);
+
+    /// <summary>What Figma itself refuses, which is what the plugin's own message is usually about.</summary>
+    /// <remarks>The ceiling in pixels lives in <see cref="ImageLimits.MaxPixelSide"/> and is kept out of this prose, so the two cannot drift apart.</remarks>
+    private const string ImageRefusalHint =
+        "A picture wider or taller than Figma's own ceiling fails inside the plugin as 'Image is too large' — crop it or export it smaller.";
+
     [McpServerTool(Name = "figma_clone_node")]
     [Description(ToolDescriptions.Node.CloneNode)]
     public Task<string> CloneNodeAsync(
@@ -68,18 +77,33 @@ public sealed class NodeTools(ILiveEditor plugin, ILogger<NodeTools> logger)
     [Description(ToolDescriptions.Node.SetImageFill)]
     public Task<string> SetImageFillAsync(
         [Description("Node id, or several separated by commas.")] string nodeId,
-        [Description("Image as base64.")] string imageData,
+        [Description("Image as base64. Pass either imageData or filePath.")] string? imageData = null,
+        [Description(ToolDescriptions.Parameters.ImageFilePath)] string? filePath = null,
         [Description("Scale mode: FILL, FIT, CROP, TILE.")] string scaleMode = "FILL",
         CancellationToken cancellationToken = default) =>
-        ApplyAsync(EditorCommands.SetImageFill, new JsonObject
+        ExecuteAsync(async ct =>
         {
-            ["nodeIds"] = new JsonArray(nodeId
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(id => (JsonNode)JsonValue.Create(NodeId.Normalize(id))!)
-                .ToArray()),
-            ["imageData"] = imageData,
-            ["scaleMode"] = scaleMode.ToUpperInvariant(),
-        }, cancellationToken, TimeSpan.FromSeconds(60));
+            if (string.IsNullOrWhiteSpace(imageData) == string.IsNullOrWhiteSpace(filePath))
+            {
+                return ToolResponse.Error("Pass exactly one of imageData or filePath.");
+            }
+
+            var bytes = filePath is { Length: > 0 } ? images.ReadAsBase64(filePath) : imageData!;
+
+            var result = await Plugin.ApplyAsync(EditorCommands.SetImageFill, new JsonObject
+            {
+                ["nodeIds"] = new JsonArray(nodeId
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(id => (JsonNode)JsonValue.Create(NodeId.Normalize(id))!)
+                    .ToArray()),
+                ["imageData"] = bytes,
+                ["scaleMode"] = scaleMode.ToUpperInvariant(),
+            }, timeout: ImageTransferTimeout, cancellationToken: ct).ConfigureAwait(false);
+
+            return BridgeRefusal(result) is { } refusal
+                ? ToolResponse.Error(refusal, ImageRefusalHint)
+                : ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+        }, cancellationToken);
 
     [McpServerTool(Name = "figma_create_child")]
     [Description(ToolDescriptions.Node.CreateChild)]
@@ -239,8 +263,9 @@ public sealed class NodeTools(ILiveEditor plugin, ILogger<NodeTools> logger)
     [McpServerTool(Name = "figma_place_image")]
     [Description(ToolDescriptions.Node.PlaceImage)]
     public Task<string> PlaceImageAsync(
-        [Description("URL of the image; Figma downloads it itself. Pass either url or base64.")] string? url = null,
-        [Description("Raw image bytes as base64 — for local files.")] string? base64 = null,
+        [Description("URL of the image; Figma downloads it itself, and only from hosts the plugin manifest allows.")] string? url = null,
+        [Description("Raw image bytes as base64; it travels through the context, so use it for icons and filePath for photographs.")] string? base64 = null,
+        [Description(ToolDescriptions.Parameters.ImageFilePath)] string? filePath = null,
         [Description("Id of the parent frame or page; empty appends to the current page.")] string? parentId = null,
         [Description("Name of the created rectangle.")] string? name = null,
         [Description("X relative to the parent.")] double? x = null,
@@ -248,15 +273,22 @@ public sealed class NodeTools(ILiveEditor plugin, ILogger<NodeTools> logger)
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(async ct =>
         {
-            if (string.IsNullOrWhiteSpace(url) == string.IsNullOrWhiteSpace(base64))
+            var sources = new[] { url, base64, filePath }.Count(value => !string.IsNullOrWhiteSpace(value));
+
+            if (sources != 1)
             {
-                return ToolResponse.Error("Pass exactly one of url or base64.");
+                return ToolResponse.Error("Pass exactly one of url, base64 or filePath.");
+            }
+
+            if (filePath is { Length: > 0 })
+            {
+                return await PlaceFromFileAsync(filePath, parentId, name, x, y, ct).ConfigureAwait(false);
             }
 
             var script = $$"""
                 let image;
                 try {
-                  image = {{(url is not null
+                  image = {{(url is { Length: > 0 }
                     ? $"await figma.createImageAsync({JsonSerializer.Serialize(url)})"
                     : $"figma.createImage(figma.base64Decode({JsonSerializer.Serialize(base64)}))")}};
                 } catch (e) {
@@ -540,4 +572,141 @@ public sealed class NodeTools(ILiveEditor plugin, ILogger<NodeTools> logger)
 
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
+
+    /// <summary>Places a picture read from disk in three hops: the rectangle first, then the bytes as a command parameter, then the natural size.</summary>
+    /// <remarks>The bytes cannot ride inside the script the way <c>base64</c> does: an inlined photograph is handed to the sandbox parser as source text, and the rectangle is created first only so the existing image-fill command has a node to fill. A hop that fails takes the empty rectangle with it.</remarks>
+    private async Task<string> PlaceFromFileAsync(
+        string filePath,
+        string? parentId,
+        string? name,
+        double? x,
+        double? y,
+        CancellationToken cancellationToken)
+    {
+        var data = images.ReadAsBase64(filePath);
+
+        var createScript = $$"""
+            const parentId = {{JsonSerializer.Serialize(parentId is null ? null : NodeId.Normalize(parentId))}};
+            let parent = figma.currentPage;
+            if (parentId) {
+              parent = await figma.getNodeByIdAsync(parentId);
+              if (!parent) return { __error: 'Parent node ' + parentId + ' was not found.' };
+              if (typeof parent.appendChild !== 'function') return { __error: 'Node ' + parentId + ' cannot hold children.' };
+              if (parent.type === 'PAGE' && typeof parent.loadAsync === 'function') { await parent.loadAsync(); }
+            }
+            const rect = figma.createRectangle();
+            parent.appendChild(rect);
+            const name = {{JsonSerializer.Serialize(name)}};
+            if (name) rect.name = name;
+            const x = {{Coordinate(x)}};
+            const y = {{Coordinate(y)}};
+            if (x !== null) rect.x = x;
+            if (y !== null) rect.y = y;
+            return { id: rect.id, parentId: parent.id };
+            """;
+
+        var created = Unwrap(await Plugin.ApplyAsync(
+            EditorCommands.ExecuteCode,
+            new JsonObject { ["code"] = createScript, ["timeout"] = 15000 },
+            timeout: TimeSpan.FromSeconds(20),
+            cancellationToken: cancellationToken).ConfigureAwait(false));
+
+        if (created?["__error"]?.GetValue<string>() is { } createError)
+        {
+            return ToolResponse.Error(createError);
+        }
+
+        if (created?["id"]?.GetValue<string>() is not { } nodeId)
+        {
+            return ToolResponse.Error("The plugin created no rectangle to put the picture in.");
+        }
+
+        try
+        {
+            var filled = await Plugin.ApplyAsync(EditorCommands.SetImageFill, new JsonObject
+            {
+                ["nodeIds"] = new JsonArray(JsonValue.Create(nodeId)),
+                ["imageData"] = data,
+                ["scaleMode"] = "FILL",
+            }, timeout: ImageTransferTimeout, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (BridgeRefusal(filled) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
+            if (filled?["imageHash"]?.GetValue<string>() is not { } hash)
+            {
+                throw new InvalidOperationException($"The plugin took the picture but named no image for node {nodeId}.");
+            }
+
+            var sizeScript = $$"""
+                const node = await figma.getNodeByIdAsync({{JsonSerializer.Serialize(nodeId)}});
+                if (!node) return { __error: 'The rectangle was gone before the picture could be sized.' };
+                const image = figma.getImageByHash({{JsonSerializer.Serialize(hash)}});
+                if (!image) return { __error: 'Figma no longer knows the image that was just created.' };
+                const size = await image.getSizeAsync();
+                node.resize(size.width, size.height);
+                return { id: node.id, name: node.name, width: size.width, height: size.height, imageHash: {{JsonSerializer.Serialize(hash)}}, parentId: node.parent ? node.parent.id : null };
+                """;
+
+            var sized = Unwrap(await Plugin.ApplyAsync(
+                EditorCommands.ExecuteCode,
+                new JsonObject { ["code"] = sizeScript, ["timeout"] = 15000 },
+                timeout: TimeSpan.FromSeconds(20),
+                cancellationToken: cancellationToken).ConfigureAwait(false));
+
+            if (sized?["__error"]?.GetValue<string>() is { } sizeError)
+            {
+                throw new InvalidOperationException(sizeError);
+            }
+
+            if (Plugin.Documents.Resolve()?.FileKey is { } fileKey)
+            {
+                await Plugin.InvalidateWholeFileAsync(fileKey, cancellationToken).ConfigureAwait(false);
+            }
+
+            return ToolResponse.Ok(sized ?? new JsonObject { ["id"] = nodeId });
+        }
+        catch (Exception ex)
+        {
+            await DiscardAsync(nodeId).ConfigureAwait(false);
+
+            if (ex is InvalidOperationException or EditorCommandException)
+            {
+                return ToolResponse.Error(ex.Message, ImageRefusalHint);
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>The plugin's own words when it could not build the picture, or <c>null</c> when it did.</summary>
+    /// <remarks>It reports this inside the reply instead of failing the command, so a bare <c>ok</c> would hide the real cause — "in createImage: Image is too large" was observed exactly this way.</remarks>
+    private static string? BridgeRefusal(JsonNode? reply) =>
+        reply?["success"]?.GetValue<bool>() == false
+            ? reply["error"]?.GetValue<string>() ?? "The plugin refused the picture without saying why."
+            : null;
+
+    /// <summary>Removes the rectangle a failed placement would otherwise leave on the canvas.</summary>
+    /// <remarks>It takes no cancellation token on purpose: a cancelled placement is exactly when the canvas would keep an empty rectangle. The caller is already failing, so a failure here is only logged.</remarks>
+    private async Task DiscardAsync(string nodeId)
+    {
+        try
+        {
+            await Plugin.ApplyAsync(
+                EditorCommands.DeleteNode,
+                new JsonObject { ["nodeId"] = nodeId },
+                cancellationToken: CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is EditorUnavailableException or EditorCommandException or TimeoutException or InvalidOperationException)
+        {
+            Logger.LogWarning("Empty rectangle {NodeId} stayed behind after a failed placement: {Message}", nodeId, ex.Message);
+        }
+    }
+
+    /// <summary>Writes an optional coordinate as a JavaScript literal.</summary>
+    /// <remarks>The invariant culture keeps a comma locale from producing <c>1,5</c>, which the sandbox would read as two arguments.</remarks>
+    private static string Coordinate(double? value) =>
+        value is { } number ? number.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null";
 }

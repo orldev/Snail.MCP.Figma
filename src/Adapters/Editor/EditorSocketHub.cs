@@ -57,7 +57,7 @@ public sealed class EditorSocketHub(
 
         try
         {
-            await session.SendAsync(EditorWireProtocol.ServerHello(Port, ServerVersion), context.RequestAborted);
+            await session.SendAsync(EditorWireProtocol.ServerHello(Port, ServerVersion, options.AgentName), context.RequestAborted);
             await ReceiveLoopAsync(session, socket, context.RequestAborted);
         }
         catch (OperationCanceledException)
@@ -69,7 +69,7 @@ public sealed class EditorSocketHub(
         }
         finally
         {
-            registry.Remove(session);
+            await registry.RemoveAsync(session, CancellationToken.None);
         }
     }
 
@@ -147,13 +147,29 @@ public sealed class EditorSocketHub(
 
             case EditorWireProtocol.Events.SelectionChange:
                 session.Selection = data?.DeepClone();
-                registry.TouchByUserInteraction(session);
+                session.LastInteractionAt = DateTimeOffset.UtcNow;
                 break;
 
             case EditorWireProtocol.Events.PageChange:
                 session.CurrentPage = data?["pageName"]?.GetValue<string>();
                 session.CurrentPageId = data?["pageId"]?.GetValue<string>();
-                registry.TouchByUserInteraction(session);
+                session.LastInteractionAt = DateTimeOffset.UtcNow;
+                break;
+
+            case EditorWireProtocol.Events.BuildStop:
+                await HandleBuildStopAsync(session, data, cancellationToken).ConfigureAwait(false);
+                break;
+
+            case EditorWireProtocol.Events.Peers:
+                session.Peers = [.. (data?["agents"] as JsonArray ?? [])
+                    .Select(agent => agent?.GetValue<string>())
+                    .Where(agent => !string.IsNullOrWhiteSpace(agent))
+                    .Select(agent => agent!)];
+                break;
+
+            case EditorWireProtocol.Events.RemarksClear:
+                session.Remarks.TakeAll();
+                await session.PublishRemarksWaitingAsync(cancellationToken).ConfigureAwait(false);
                 break;
 
             case EditorWireProtocol.Events.DocumentChange:
@@ -188,6 +204,29 @@ public sealed class EditorSocketHub(
         }
     }
 
+    /// <summary>Queues the human's remark, but only when this agent works in the file the remark was typed in.</summary>
+    /// <remarks>Every server is connected to every panel. A remark for another agent, queued here, would light this panel's queue for a reader that never comes and stop a build the human was not looking at.</remarks>
+    private async Task HandleBuildStopAsync(EditorSession session, JsonNode? data, CancellationToken cancellationToken)
+    {
+        session.LastInteractionAt = DateTimeOffset.UtcNow;
+
+        if (registry.ActiveFileKey != session.FileKey)
+        {
+            logger.LogInformation(
+                "A remark from {FileKey} was left for another agent: this one works in {Target}",
+                session.FileKey, registry.ActiveFileKey ?? "no file yet");
+
+            return;
+        }
+
+        session.Remarks.Add(new BuildInterruption(
+            data?["remark"]?.GetValue<string>(),
+            data?["nodes"] as JsonArray is { } selected ? [.. selected.Select(node => node!.DeepClone())] : [],
+            DateTimeOffset.UtcNow));
+        logger.LogInformation("The human stepped into the build in {FileKey}", session.FileKey);
+        await session.PublishRemarksWaitingAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task HandleFileInfoAsync(EditorSession session, JsonNode? data, CancellationToken cancellationToken)
     {
         var fileKey = data?["fileKey"]?.GetValue<string>();
@@ -203,7 +242,7 @@ public sealed class EditorSocketHub(
         session.EditorType = data?["editorType"]?.GetValue<string>();
         session.CurrentPage = data?["currentPage"]?.GetValue<string>();
 
-        registry.Register(session, fileKey, data?["fileName"]?.GetValue<string>());
+        await registry.RegisterAsync(session, fileKey, data?["fileName"]?.GetValue<string>(), cancellationToken).ConfigureAwait(false);
 
         if (ExpectedPluginVersion is { } expected && session.PluginVersion != expected)
         {

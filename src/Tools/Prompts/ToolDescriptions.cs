@@ -10,6 +10,22 @@ public static class ToolDescriptions
         public const string Source =
             "Source: auto (the default — the plugin when a live session for the file exists, otherwise REST), " +
             "rest (Figma REST only: the last SAVED state, spends quota), plugin (the plugin only).";
+
+        /// <summary>The <c>deliver</c> parameter of the picture tools; the megabyte ceiling must stay equal to
+        /// <see cref="Snail.MCP.Figma.Application.Editor.ImageLimits.MaxInlineMegabytes"/>, which a catalog test checks.</summary>
+        public const string Deliver =
+            "What comes back: path (the default) saves the picture beside the server and answers with the file path, " +
+            "which suits a human working in the same machine; both answers with the path AND the picture itself as image " +
+            "content, which is what a caller in another process or container needs, since a path there opens nothing. " +
+            "Only PNG and JPG travel as content, and only up to 2 MB — a bigger one still comes back as a path.";
+
+        /// <summary>The <c>filePath</c> parameter of the image tools; the number of megabytes must stay equal to
+        /// <see cref="Snail.MCP.Figma.Application.Editor.ImageLimits.MaxFileMegabytes"/>, which a catalog test checks.</summary>
+        public const string ImageFilePath =
+            "Absolute path to a picture on the machine running the server; ~ is expanded. The server reads the file and " +
+            "sends the bytes over the bridge itself, so the picture never travels through the context — this is the way " +
+            "to place one at full resolution instead of shrinking it to fit a base64 argument. " +
+            "PNG, JPG, GIF and WebP up to 10 MB.";
     }
 
     /// <summary><c>CommentTools</c>.</summary>
@@ -327,8 +343,9 @@ public static class ToolDescriptions
 
         /// <summary><c>figma_set_image_fill</c></summary>
         public const string SetImageFill =
-            "Puts an image into a node as a fill. imageData is base64 without the data: prefix. " +
-            "scaleMode: FILL (the default), FIT, CROP, TILE. Requires the plugin.";
+            "Puts an image into a node as a fill. Give it filePath and the server reads the picture from disk itself; " +
+            "give it imageData and the bytes come as base64 without the data: prefix, at the cost of carrying them " +
+            "through the context. scaleMode: FILL (the default), FIT, CROP, TILE. Requires the plugin.";
 
         /// <summary><c>figma_create_child</c></summary>
         public const string CreateChild =
@@ -365,9 +382,11 @@ public static class ToolDescriptions
 
         /// <summary><c>figma_place_image</c></summary>
         public const string PlaceImage =
-            "Places a raster image into the file: Figma downloads the url itself (or takes base64 bytes) and the image " +
-            "lands as a rectangle with an image fill, sized to the source. PNG, JPG, GIF, WebP up to 4096x4096. " +
-            "Requires the plugin.";
+            "Places a raster image into the file as a rectangle with an image fill, sized to the source. Three ways in: " +
+            "filePath, which the server reads from disk and is the way to place a photograph at full resolution; " +
+            "base64, which carries the bytes through the context and suits an icon; and url, which Figma downloads " +
+            "itself and only from a host the plugin manifest allows, so a link to a local file server will not do. " +
+            "PNG, JPG, GIF, WebP up to 4096x4096. Requires the plugin.";
 
         /// <summary><c>figma_create_node_from_jsx</c></summary>
         public const string CreateNodeFromJsx =
@@ -461,7 +480,8 @@ public static class ToolDescriptions
             "spend no Figma quota at all, and the plugin additionally shows the state right now, " +
             "unsaved edits included. The response carries a source field: cache/figma-api give a link " +
             "in data.url (it lives 30 days), plugin gives a path to a file on disk in data.image.path " +
-            "(open the file to see the picture).";
+            "(open the file to see the picture). With deliver=both a picture taken through the plugin also comes back " +
+            "as image content, for a caller that cannot open a path on this machine.";
 
         /// <summary><c>figma_get_file_for_plugin</c></summary>
         public const string GetFileForPlugin =
@@ -474,19 +494,20 @@ public static class ToolDescriptions
     {
         /// <summary><c>figma_list_open_files</c></summary>
         public const string ListOpenFiles =
-            "Shows every Figma file the plugin is currently running in, and which of them is active. " +
-            "Useful when several files are open and commands go to the wrong one.";
+            "Shows every Figma file the plugin is currently running in, which of them is the target of the commands, " +
+            "and which other agents work in each. Useful when several files are open and commands go to the wrong one.";
 
         /// <summary><c>figma_navigate</c></summary>
         public const string Navigate =
-            "Selects the file the following commands will go to. It accepts a link to a Figma file or its key. " +
-            "lockTarget=true pins the target: then the user switching files will not move it — " +
-            "needed when an agent and a human work in different files at the same time.";
+            "Selects the file the following commands will go to, by a link to a Figma file or its key. " +
+            "The target then stays put: a human switching files in Figma does not move it, only another figma_navigate does. " +
+            "With several files connected and no target chosen, the write tools refuse and list the files — this call is the answer. " +
+            "The response names the other agents working in the same file, so the agent can keep to its own page or section.";
 
         /// <summary><c>figma_execute_across_files</c></summary>
         public const string ExecuteAcrossFiles =
-            "Runs the same JavaScript IN SEVERAL Figma files AT ONCE — in parallel, without touching " +
-            "the active file or the pinned target. For auditing and editing across a multi-file design system: " +
+            "Runs the same JavaScript IN SEVERAL Figma files AT ONCE — in parallel, without moving " +
+            "the target. For auditing and editing across a multi-file design system: " +
             "one check runs over every file and the results are compared with each other — instead of " +
             "switching the active file and calling figma_execute one by one. In every file the code runs " +
             "in that file's own plugin sandbox, with the same figma object as figma_execute. " +
@@ -495,7 +516,7 @@ public static class ToolDescriptions
 
         /// <summary><c>figma_reconnect</c></summary>
         public const string Reconnect =
-            "Releases the pinned target and re-reads the list of connected files. " +
+            "Re-reads the list of connected files and reports the target. " +
             "Call it when the server keeps aiming at a file that is already closed.";
 
         /// <summary><c>figma_reload_plugin</c></summary>
@@ -505,6 +526,17 @@ public static class ToolDescriptions
         public const string GetConsoleLogs =
             "The latest console lines from the plugin sandbox. Needed to understand why figma_execute failed " +
             "or what exactly the plugin did.";
+
+        /// <summary><c>figma_get_remarks</c></summary>
+        public const string GetRemarks =
+            "Reads what the human typed in the plugin panel: their words plus the layers they had selected. " +
+            "THIS IS THE CHANNEL FOR the case where the build is finished, the human looked at it and found a " +
+            "defect — call it after finishing a build and before starting the next task, because a remark left " +
+            "while nothing was running reaches nobody otherwise. Reading TAKES the remarks: the same one never " +
+            "comes back, so act on it in the same turn. A remark typed WHILE figma_execute_steps was running is " +
+            "not here — that one stops the build and comes back in its own answer. waitMs holds the call open until " +
+            "somebody writes, up to 60000 ms: nothing in MCP lets a server wake an agent, so a wait here is the " +
+            "only way to hear the human within a second rather than at the next turn. Requires the plugin.";
 
         /// <summary><c>figma_clear_console</c></summary>
         public const string ClearConsole = "Clears the console buffer, both on the server and in the plugin. Handy before a new figma_execute run.";
@@ -532,8 +564,9 @@ public static class ToolDescriptions
         /// <summary><c>figma_export_node</c></summary>
         public const string ExportNode =
             "Exports a node through the live editor: SVG returns the markup itself, PDF/PNG/JPG are saved to disk " +
-            "and the path is returned. No REST quota is spent — this replaces the paid /v1/images render for files " +
-            "open in Figma Desktop. Requires the plugin.";
+            "and the path is returned. With deliver=both a PNG or JPG also comes back as image content, which is what " +
+            "a caller outside this machine needs, since the path opens nothing there. No REST quota is spent — this " +
+            "replaces the paid /v1/images render for files open in Figma Desktop. Requires the plugin.";
 
         /// <summary><c>figma_get_active_users</c></summary>
         public const string GetActiveUsers =
@@ -545,10 +578,10 @@ public static class ToolDescriptions
         public const string TakeScreenshot =
             "Captures a node or the current page straight from the plugin. Unlike figma_get_component_image, " +
             "it shows the state RIGHT NOW, including edits made a moment ago — so this is the tool " +
-            "that verifies the result of a mutation. The picture does not come back as base64 in the response (that " +
-            "overflows the tool limit on large captures) — it is saved to disk, and the response carries " +
-            "the file path (image.path) and the metadata. Open the file at that path to see the picture. " +
-            "Requires the plugin.";
+            "that verifies the result of a mutation. By default the picture is saved to disk and the response carries " +
+            "the file path (image.path) and the metadata: open the file to see it. Pass deliver=both and the picture " +
+            "comes back as image content as well — the way to look at it from another process, at the cost of carrying " +
+            "the bytes in the answer. Requires the plugin.";
 
         /// <summary><c>figma_get_text_styles</c></summary>
         public const string GetTextStyles = "The text styles of a file read through the plugin: name, size, weight, line height. Requires the plugin.";
@@ -802,8 +835,9 @@ public static class ToolDescriptions
     {
         /// <summary><c>figma_get_selection</c></summary>
         public const string GetSelection =
-            "What is selected in Figma right now: the ids, names, types and sizes of the nodes. " +
+            "What is selected in Figma right now in the target file: the ids, names, types and sizes of the nodes. " +
             "This is the right first step for 'move this' and 'change the selected one' — the nodeId comes from the response. " +
+            "While no target is chosen it reports the file the human touched last, with its fileKey. " +
             "Requires a running Snail Bridge plugin.";
 
         /// <summary><c>figma_move_node</c></summary>
@@ -835,7 +869,24 @@ public static class ToolDescriptions
             "The universal tool for what the specialised commands do not cover. " +
             "The code runs as the body of an async function; return a value with return. " +
             "The asynchronous Figma methods (loadFontAsync, getNodeByIdAsync, loadAllPagesAsync) must be awaited. " +
+            "The code runs in the target file: the one figma_navigate chose, or the only connected one. " +
+            "With several files connected and none chosen the call refuses and lists them. " +
             "Requires the plugin.";
+
+        /// <summary><c>figma_execute_steps</c>; the step cap must stay equal to
+        /// <see cref="Snail.MCP.Figma.Tools.ToolLimits.MaxSteps"/>, which a catalog test checks.</summary>
+        public const string ExecuteSteps =
+            "Runs short scripts one after another, so a layout grows element by element instead of appearing all at " +
+            "once, and a failure names the step that caused it instead of the whole batch. Each step is a figma_execute " +
+            "body, and each runs on its own: declarations do not survive between steps, so carry what the next step " +
+            "needs on globalThis. Up to 60 steps in one call; globals live on afterwards, so a longer build continues " +
+            "in the next call. Prefer this over one large figma_execute: the sandbox parser chokes on a big nested " +
+            "expression, and there the error says nothing about where. The human can step in from the plugin panel " +
+            "while it runs: the answer then carries stopped=true, their remark and what they had selected, and the " +
+            "steps that did not run are simply sent again once the remark is dealt with. A remark left BEFORE this " +
+            "call does not stop it: that one waits for figma_get_remarks. Build into ONE frame created " +
+            "by the first step: undo cannot merge the steps back together, so a single container is what makes the " +
+            "whole build undoable by deleting it. Requires the plugin.";
 
         /// <summary><c>figma_get_selection_colors</c></summary>
         public const string GetSelectionColors =
@@ -864,7 +915,8 @@ public static class ToolDescriptions
 
         /// <summary><c>figma_get_status</c></summary>
         public const string GetStatus =
-            "The state of the bridge to Figma: whether the plugin is connected, which files are visible, which of them is active. " +
+            "The state of the bridge to Figma: whether the plugin is connected, which files are visible, which of them " +
+            "is the target of the commands and which other agents work there. " +
             "Call it first when the write tools answer 'the plugin is not connected'.";
     }
 }

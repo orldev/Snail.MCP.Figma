@@ -46,6 +46,8 @@ public static class IntegrationRegistrationExtensions
             services.AddSingleton<ILiveEditor>(provider => provider.GetRequiredService<LiveEditorGateway>());
             services.AddSingleton<CaptureStore>();
             services.AddSingleton<ICaptureStore>(provider => provider.GetRequiredService<CaptureStore>());
+            services.AddSingleton<ImageFiles>();
+            services.AddSingleton<IImageFiles>(provider => provider.GetRequiredService<ImageFiles>());
             services.AddSingleton<EditorExtensionInstaller>();
             services.AddSingleton<IEditorExtensionInstaller>(provider => provider.GetRequiredService<EditorExtensionInstaller>());
             services.AddHostedService(provider => provider.GetRequiredService<EditorExtensionInstaller>());

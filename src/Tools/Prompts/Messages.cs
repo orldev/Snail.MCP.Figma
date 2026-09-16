@@ -15,6 +15,10 @@ public static class Messages
 
     public const string PassFileUrlHint = "Pass fileUrl explicitly.";
 
+    public const string HowToChooseTarget =
+        "Call figma_navigate with the link of the file you work in; figma_list_open_files shows the connected files. " +
+        "The target then stays until you navigate elsewhere.";
+
     /// <summary>READ-channel hints: a read always has a REST fallback.</summary>
     public static class ReadFallback
     {

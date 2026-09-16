@@ -8,7 +8,7 @@
 // files IT ships and asks the UI to show an update banner on mismatch.
 // Stays in the first 2048 characters: EditorExtensionInstaller.ParsePluginVersion
 // reads only that prefix.
-var PLUGIN_VERSION = '0.1.0'; // Bumped on every change to the bundled plugin files.
+var PLUGIN_VERSION = '0.1.3'; // Bumped on every change to the bundled plugin files.
 
 // ============================================================================
 // FILE MAP — search a banner name below to jump to its section
@@ -37,7 +37,7 @@ var PLUGIN_VERSION = '0.1.0'; // Bumped on every change to the bundled plugin fi
 console.log('🐌 [Snail Bridge] Plugin loaded (v' + PLUGIN_VERSION + ')');
 
 // Show minimal UI - compact status indicator
-figma.showUI(__html__, { width: 240, height: 40, visible: true, themeColors: false });
+figma.showUI(__html__, { width: 300, height: 40, visible: true, themeColors: false });
 
 // ============================================================================
 // CONSOLE CAPTURE — Intercept console.* in the QuickJS sandbox and forward
@@ -3990,7 +3990,7 @@ figma.ui.onmessage = async (msg) => {
       });
       // Short delay to let the response message be sent before reload
       setTimeout(function() {
-        figma.showUI(__html__, { width: 240, height: 40, visible: true, themeColors: false });
+        figma.showUI(__html__, { width: 300, height: 40, visible: true, themeColors: false });
       }, 100);
     } catch (error) {
       var errorMsg = error && error.message ? error.message : String(error);

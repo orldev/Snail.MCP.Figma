@@ -125,7 +125,7 @@ public class EditorSocketHubTests
     }
 
     [Fact]
-    public async Task SelectionEventUpdatesTheSessionAndTheActiveFile()
+    public async Task SelectionEventUpdatesTheSessionAndStampsTheInteraction()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -148,9 +148,87 @@ public class EditorSocketHubTests
             () => _bridge.Registry.Resolve(fileKey)?.Selection is not null,
             "selection did not reach the session");
 
-        var selection = _bridge.Registry.Resolve(fileKey)!.Selection!;
-        Assert.Equal("Button", selection["nodes"]![0]!["name"]!.GetValue<string>());
-        Assert.Equal(fileKey, _bridge.Registry.ActiveFileKey);
+        var session = _bridge.Registry.Resolve(fileKey)!;
+        Assert.Equal("Button", session.Selection!["nodes"]![0]!["name"]!.GetValue<string>());
+        Assert.True(session.LastInteractionAt > session.ConnectedAt.AddSeconds(-1));
+    }
+
+    /// <summary>The panel is the human's only way into a build that is already running, and the remark is what makes the interruption worth more than a bare stop.</summary>
+    [Fact]
+    public async Task StepInFromThePanelCarriesTheRemarkAndTheSelection()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject
+        {
+            ["remark"] = "убери третий столбец",
+            ["nodes"] = new JsonArray(new JsonObject { ["id"] = "1:7", ["name"] = "Bar 3", ["type"] = "RECTANGLE" }),
+        });
+
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.Remarks.Count > 0,
+            "the remark did not arrive");
+
+        var stepIn = Assert.Single(_bridge.Registry.Resolve(fileKey)!.Remarks.TakeAll());
+
+        Assert.Equal("убери третий столбец", stepIn.Remark);
+        Assert.Equal("Bar 3", Assert.Single(stepIn.Nodes)["name"]!.GetValue<string>());
+        Assert.Equal(0, _bridge.Registry.Resolve(fileKey)!.Remarks.Count);
+    }
+
+    /// <summary>The queue lives on the server, so the panel has to be told the count — otherwise the wave it lights on Enter would never go out.</summary>
+    [Fact]
+    public async Task ThePanelIsToldHowManyRemarksAreWaiting()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "отступы гуляют" });
+
+        await BridgeHostFixture.WaitUntilAsync(
+            () => Waiting(plugin) == 1,
+            "the panel was never told about the waiting remark");
+    }
+
+    [Fact]
+    public async Task TakingTheRemarksBackEmptiesTheQueueAndSaysSo()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "передумал" });
+        await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 1, "the remark did not arrive");
+
+        await plugin.SendEventAsync("REMARKS_CLEAR", new JsonObject());
+
+        await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 0, "the queue was not taken back");
+
+        Assert.Equal(0, _bridge.Registry.Resolve(fileKey)!.Remarks.Count);
+    }
+
+    private static int? Waiting(FakeEditorExtension plugin) => plugin.Received
+        .LastOrDefault(message => message["type"]?.GetValue<string>() == "REMARKS_WAITING")?["data"]?["waiting"]?.GetValue<int>();
+
+    [Fact]
+    public async Task StopWithoutWordsIsStillAnInterruption()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject());
+
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.Remarks.Count > 0,
+            "the remark did not arrive");
+
+        var stepIn = Assert.Single(_bridge.Registry.Resolve(fileKey)!.Remarks.TakeAll());
+
+        Assert.Null(stepIn.Remark);
+        Assert.Empty(stepIn.Nodes);
     }
 
     [Fact]
@@ -175,8 +253,9 @@ public class EditorSocketHubTests
         Assert.Equal(2, change["changeCount"]!.GetValue<int>());
     }
 
+    /// <summary>The human reviewing another agent's file must not redirect this one's build: a click is not an instruction to the server.</summary>
     [Fact]
-    public async Task LockedTargetIgnoresUserInteractionInAnotherFile()
+    public async Task AClickInAnotherFileDoesNotMoveTheTarget()
     {
         var agentFile = NewFileKey();
         var userFile = NewFileKey();
@@ -184,16 +263,15 @@ public class EditorSocketHubTests
         await using var agentPlugin = await _bridge.ConnectPluginAsync(agentFile, "Agent file");
         await using var userPlugin = await _bridge.ConnectPluginAsync(userFile, "User file");
 
-        Assert.True(_bridge.Registry.SetActiveFile(agentFile, @lock: true));
+        Assert.True(await _bridge.Registry.ClaimAsync(agentFile));
 
         await userPlugin.SendEventAsync("SELECTION_CHANGE", new JsonObject { ["count"] = 1 });
+        await userPlugin.SendEventAsync("PAGE_CHANGE", new JsonObject { ["pageId"] = "1:1", ["pageName"] = "Page 2" });
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(userFile)?.Selection is not null,
-            "selection did not arrive");
+            () => _bridge.Registry.Resolve(userFile)?.CurrentPage == "Page 2",
+            "the events did not arrive");
 
         Assert.Equal(agentFile, _bridge.Registry.ActiveFileKey);
-
-        _bridge.Registry.Unlock();
     }
 
     [Fact]

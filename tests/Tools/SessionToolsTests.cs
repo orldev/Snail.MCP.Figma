@@ -7,7 +7,7 @@ using Snail.MCP.Figma.Application.Editor;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
-/// <summary>figma_execute_across_files fan-out: each file gets its own command, the active file and pinned target stay intact, and one failing file does not sink the rest.</summary>
+/// <summary>Session tools: the figma_execute_across_files fan-out, and the remark channel a human types into while the agent is elsewhere.</summary>
 [Collection(nameof(BridgeHostFixture))]
 public class SessionToolsTests
 {
@@ -34,6 +34,99 @@ public class SessionToolsTests
     private Task OnlyOurSessionsAsync(int expected) => BridgeHostFixture.WaitUntilAsync(
         () => _bridge.Registry.Sessions.Count(session => session.IsOpen) == expected,
         $"the registry did not end up with exactly {expected} open sessions");
+
+    /// <summary>The channel for "the build is finished, I looked at it and found a defect": a remark left in the quiet reaches the agent through nothing else.</summary>
+    [Fact]
+    public async Task ARemarkLeftInThePanelComesBackOnceAndOnlyOnce()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+        _bridge.Registry.Resolve(fileKey)!.Remarks.Add(new BuildInterruption(
+            "третий столбец выше остальных",
+            [new JsonObject { ["id"] = "1:7", ["name"] = "Bar 3" }],
+            DateTimeOffset.UtcNow));
+
+        var response = Parse(await Tools().GetRemarksAsync());
+
+        Assert.True(response["ok"]!.GetValue<bool>());
+        Assert.Equal(1, response["data"]!["returned"]!.GetValue<int>());
+        Assert.Equal("третий столбец выше остальных", response["data"]!["remarks"]![0]!["remark"]!.GetValue<string>());
+        Assert.Equal("Bar 3", response["data"]!["remarks"]![0]!["selection"]![0]!["name"]!.GetValue<string>());
+
+        var again = Parse(await Tools().GetRemarksAsync());
+
+        Assert.Equal(0, again["data"]!["returned"]!.GetValue<int>());
+    }
+
+    /// <summary>The agent cannot be woken, so it can end its turn waiting here and hear the human a second later instead of at the next call.</summary>
+    [Fact]
+    public async Task AWaitingReadReturnsAsSoonAsTheHumanWrites()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+        var reading = Tools().GetRemarksAsync(waitMs: 5000);
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(80);
+            _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
+                new BuildInterruption("тут отступ гуляет", [], DateTimeOffset.UtcNow));
+        });
+
+        var response = Parse(await reading);
+
+        Assert.Equal(1, response["data"]!["returned"]!.GetValue<int>());
+        Assert.Equal("тут отступ гуляет", response["data"]!["remarks"]![0]!["remark"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task AWaitThatHeardNothingSaysTheWaitIsOverNotBroken()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+
+        var response = Parse(await Tools().GetRemarksAsync(waitMs: 120));
+
+        Assert.True(response["ok"]!.GetValue<bool>());
+        Assert.Equal(0, response["data"]!["returned"]!.GetValue<int>());
+        Assert.Contains("120 ms", response["data"]!["note"]!.GetValue<string>(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Reading takes the remarks, and the panel must learn it: the wave it lights on Enter goes out only on this message.</summary>
+    [Fact]
+    public async Task ReadingTheRemarksTellsThePanelTheQueueIsEmpty()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+        _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
+            new BuildInterruption("правь отступы", [], DateTimeOffset.UtcNow));
+
+        await Tools().GetRemarksAsync();
+
+        await BridgeHostFixture.WaitUntilAsync(
+            () => plugin.Received
+                .LastOrDefault(message => message["type"]?.GetValue<string>() == "REMARKS_WAITING")?["data"]?["waiting"]?.GetValue<int>() == 0,
+            "the panel was never told the queue is empty");
+    }
+
+    /// <summary>An empty answer explains itself: "nobody wrote anything" and "the panel is not there" are different facts.</summary>
+    [Fact]
+    public async Task AnEmptyPanelSaysNobodyWroteAnything()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
+
+        var response = Parse(await Tools().GetRemarksAsync());
+
+        Assert.True(response["ok"]!.GetValue<bool>());
+        Assert.Equal(0, response["data"]!["returned"]!.GetValue<int>());
+        Assert.Contains("nobody has left a remark", response["data"]!["note"]!.GetValue<string>(), StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task NamedFilesEachRunTheCodeInTheirOwnContext()
@@ -65,31 +158,60 @@ public class SessionToolsTests
         Assert.Equal(["return figma.root.children.length;"], ExecutedCode(pluginB));
     }
 
+    /// <summary>The agent learns who shares the file at the moment it takes it, so it can keep to its own page or section.</summary>
     [Fact]
-    public async Task PinnedTargetSurvivesTheFanOut()
+    public async Task NavigateNamesTheOtherAgentsInTheFile()
     {
-        var pinned = NewFileKey();
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await plugin.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
+        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(fileKey)!.Peers.Count == 1, "the peers did not arrive");
+
+        var response = Parse(await Tools().NavigateAsync(fileKey));
+
+        Assert.True(response["ok"]!.GetValue<bool>());
+        Assert.True(response["data"]!["pluginConnected"]!.GetValue<bool>());
+        Assert.Equal("Keynex", response["data"]!["othersHere"]![0]!.GetValue<string>());
+        Assert.Contains("Keynex", response["data"]!["note"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Equal(fileKey, _bridge.Registry.ActiveFileKey);
+    }
+
+    [Fact]
+    public async Task ListingTheFilesMarksTheTargetAndItsCompany()
+    {
+        var target = NewFileKey();
         var other = NewFileKey();
-        await using var pluginA = await _bridge.ConnectPluginAsync(pinned);
+        await using var pluginA = await _bridge.ConnectPluginAsync(target, "Web");
+        await using var pluginB = await _bridge.ConnectPluginAsync(other, "Mobile");
+        await _bridge.Registry.ClaimAsync(target);
+        await pluginA.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
+        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(target)!.Peers.Count == 1, "the peers did not arrive");
+
+        var files = Parse(await Tools().ListOpenFilesAsync())["data"]!["files"]!.AsArray();
+
+        var web = files.Single(file => file!["fileKey"]!.GetValue<string>() == target)!;
+        var mobile = files.Single(file => file!["fileKey"]!.GetValue<string>() == other)!;
+        Assert.True(web["target"]!.GetValue<bool>());
+        Assert.Equal("Keynex", web["othersHere"]![0]!.GetValue<string>());
+        Assert.False(mobile["target"]!.GetValue<bool>());
+        Assert.Empty(mobile["othersHere"]!.AsArray());
+    }
+
+    [Fact]
+    public async Task TheTargetSurvivesTheFanOut()
+    {
+        var target = NewFileKey();
+        var other = NewFileKey();
+        await using var pluginA = await _bridge.ConnectPluginAsync(target);
         await using var pluginB = await _bridge.ConnectPluginAsync(other);
+        await _bridge.Registry.ClaimAsync(target);
 
-        _bridge.Registry.SetActiveFile(pinned, @lock: true);
+        var data = Parse(await Tools().ExecuteAcrossFilesAsync("return 1;", other))["data"]!;
 
-        try
-        {
-            var data = Parse(await Tools().ExecuteAcrossFilesAsync("return 1;", other))["data"]!;
-
-            Assert.Equal(pinned, data["active_file_key"]!.GetValue<string>());
-            Assert.True(data["target_locked"]!.GetValue<bool>());
-            Assert.Equal(pinned, _bridge.Registry.ActiveFileKey);
-
-            Assert.Empty(ExecutedCode(pluginA));
-            Assert.Single(ExecutedCode(pluginB));
-        }
-        finally
-        {
-            _bridge.Registry.Unlock();
-        }
+        Assert.Equal(target, data["active_file_key"]!.GetValue<string>());
+        Assert.Equal(target, _bridge.Registry.ActiveFileKey);
+        Assert.Empty(ExecutedCode(pluginA));
+        Assert.Single(ExecutedCode(pluginB));
     }
 
     [Fact]

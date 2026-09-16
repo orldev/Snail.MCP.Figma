@@ -17,7 +17,7 @@ public class ComponentToolsTests
 
     private VariableTools Variables() => new(_bridge.Gateway, NullLogger<VariableTools>.Instance);
 
-    private NodeTools Nodes() => new(_bridge.Gateway, NullLogger<NodeTools>.Instance);
+    private NodeTools Nodes() => new(_bridge.Gateway, new FakeImageFiles(), NullLogger<NodeTools>.Instance);
 
     private WriteTools Writes() => new(_bridge.Gateway, NullLogger<WriteTools>.Instance);
 
@@ -28,7 +28,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        _bridge.Registry.SetActiveFile(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
 
         var attempt = 0;
         plugin.Handlers[EditorCommands.CreateVariable.Name] = parameters => new JsonObject
@@ -54,7 +54,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        _bridge.Registry.SetActiveFile(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
 
         var response = Parse(await Nodes().SetStrokesAsync("1:2", "{not json"));
 
@@ -68,7 +68,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        _bridge.Registry.SetActiveFile(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
 
         var tools = new ComponentTools(_bridge.Gateway, NullLogger<ComponentTools>.Instance);
         var response = Parse(await tools.AddComponentPropertyAsync("1:2", "Size", "VARIANT"));

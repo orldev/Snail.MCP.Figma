@@ -1,3 +1,4 @@
+using ModelContextProtocol.Protocol;
 using System.Text;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
@@ -72,6 +73,29 @@ public class ReadToolsRenderTests : IDisposable
         };
 
     private static JsonNode Parse(string response) => JsonNode.Parse(response)!;
+
+    /// <summary>Text of a result that may also carry a picture; the JSON block is always the first one.</summary>
+    private static JsonNode Parse(CallToolResult result) =>
+        Parse(Assert.IsType<TextContentBlock>(result.Content[0]).Text);
+
+    [Fact]
+    public async Task PluginCaptureComesBackAsContentWhenAskedForBoth()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        AnswerWithScreenshot(plugin);
+
+        var (tools, _) = Build();
+        var result = await tools.GetComponentImageAsync("1:2", Url(fileKey), deliver: "both");
+
+        Assert.Equal(2, result.Content.Count);
+
+        var picture = Assert.IsType<ImageContentBlock>(result.Content[1]);
+
+        Assert.Equal("image/png", picture.MimeType);
+        Assert.Equal(SamplePng, Encoding.UTF8.GetString(picture.Data.Span));
+        Assert.True(File.Exists(Parse(result)["data"]!["image"]!["path"]!.GetValue<string>()));
+    }
 
     [Fact]
     public async Task ConnectedPluginRendersTheNodeWithoutSpendingQuota()

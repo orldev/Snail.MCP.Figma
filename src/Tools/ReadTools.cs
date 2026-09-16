@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Sanitization;
@@ -361,7 +362,7 @@ public sealed class ReadTools(
 
     [McpServerTool(Name = "figma_get_component_image")]
     [Description(ToolDescriptions.Read.GetComponentImage)]
-    public Task<string> GetComponentImageAsync(
+    public Task<CallToolResult> GetComponentImageAsync(
         [Description("Node id, for example '1:234'.")]
         string nodeId,
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]
@@ -372,12 +373,19 @@ public sealed class ReadTools(
         double scale = 2,
         [Description("Source: auto (the default — the cache, then the plugin, then REST), rest (Figma REST only, spends quota), plugin (the plugin only).")]
         string source = "auto",
+        [Description(ToolDescriptions.Parameters.Deliver)]
+        string deliver = PictureDelivery.PathOnly,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync(async ct =>
+        ExecutePicturedAsync(async ct =>
         {
+            if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
+            {
+                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+            }
+
             if (!TryParseSource(source, out var mode))
             {
-                return UnknownSource(source);
+                return ToolResponse.Textual(UnknownSource(source));
             }
 
             var fileKey = activeFile.Resolve(fileUrl);
@@ -386,24 +394,24 @@ public sealed class ReadTools(
 
             if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
             {
-                var captured = await CaptureThroughPluginAsync(fileKey, normalized, format, effectiveScale, ct)
+                var captured = await CaptureThroughPluginAsync(fileKey, normalized, format, effectiveScale, inline, ct)
                     .ConfigureAwait(false);
 
-                if (captured is not null)
+                if (captured is { } shot)
                 {
-                    return captured;
+                    return shot;
                 }
 
                 if (mode == "plugin")
                 {
-                    return ToolResponse.Error(
+                    return ToolResponse.Textual(ToolResponse.Error(
                         $"The plugin returned no picture for node {normalized}.",
-                        "Check the node id or retry with source=\"rest\".");
+                        "Check the node id or retry with source=\"rest\"."));
                 }
             }
             else if (mode == "plugin")
             {
-                return PluginUnavailable(fileKey);
+                return ToolResponse.Textual(PluginUnavailable(fileKey));
             }
 
             if (mode != "plugin")
@@ -414,8 +422,8 @@ public sealed class ReadTools(
 
                 if (cachedUrl is not null)
                 {
-                    return ImageResponse(fileKey, normalized, format, effectiveScale, "cache",
-                        data => data["url"] = cachedUrl);
+                    return ToolResponse.Textual(ImageResponse(fileKey, normalized, format, effectiveScale, "cache",
+                        data => data["url"] = cachedUrl));
                 }
             }
 
@@ -425,38 +433,40 @@ public sealed class ReadTools(
                     .RenderAsync(fileKey, [normalized], format, effectiveScale, ct)
                     .ConfigureAwait(false);
 
-                return render.Urls.TryGetValue(normalized, out var url)
+                return ToolResponse.Textual(render.Urls.TryGetValue(normalized, out var url)
                     ? ImageResponse(fileKey, normalized, format, effectiveScale, "figma-api",
                         data => data["url"] = url)
                     : ToolResponse.Error(
                         $"Figma did not render node {normalized}.",
-                        "Check that the node exists and that it is a visual node, not a page.");
+                        "Check that the node exists and that it is a visual node, not a page."));
             }
             catch (PublishedSourceException ex) when (ex.Failure == SourceFailure.RateLimited)
             {
                 var captured = HasLiveSession(fileKey)
-                    ? await CaptureThroughPluginAsync(fileKey, normalized, format, effectiveScale, ct).ConfigureAwait(false)
+                    ? await CaptureThroughPluginAsync(fileKey, normalized, format, effectiveScale, inline, ct).ConfigureAwait(false)
                     : null;
 
-                if (captured is not null)
+                if (captured is { } shot)
                 {
                     logger.LogWarning("Render quota exhausted — node {NodeId} captured through the plugin", normalized);
 
-                    return captured;
+                    return shot;
                 }
 
-                return ToolResponse.Error(
+                return ToolResponse.Textual(ToolResponse.Error(
                     ex.Message,
-                    $"{ex.Hint} The picture can be taken without quota: open the file in Figma Desktop, run the Snail Bridge plugin and repeat the call (or capture the whole page with figma_take_screenshot).");
+                    $"{ex.Hint} The picture can be taken without quota: open the file in Figma Desktop, run the Snail Bridge plugin and repeat the call (or capture the whole page with figma_take_screenshot)."));
             }
         }, cancellationToken);
 
-    /// <summary>Node capture through the plugin; <c>null</c> when it could not deliver, so the caller decides whether to fail or use REST.</summary>
-    private async Task<string?> CaptureThroughPluginAsync(
+    /// <summary>Node capture through the plugin, or <c>null</c> when it could not deliver.</summary>
+    /// <remarks>A null lets the caller decide between failing and spending REST quota. The picture is attached here rather than by the caller, because the capture store takes the base64 out of the payload on its way to disk.</remarks>
+    private async Task<CallToolResult?> CaptureThroughPluginAsync(
         string fileKey,
         string nodeId,
         string format,
         double scale,
+        bool inline,
         CancellationToken cancellationToken)
     {
         if (format.ToLowerInvariant() is not ("png" or "jpg"))
@@ -483,9 +493,12 @@ public sealed class ReadTools(
                 return null;
             }
 
+            var picture = PictureDelivery.From(image, inline);
             var saved = screenshots.SaveAndReplace(image);
 
-            return ImageResponse(fileKey, nodeId, format, scale, "plugin", data => data["image"] = saved.DeepClone());
+            return ToolResponse.Pictured(
+                ImageResponse(fileKey, nodeId, format, scale, "plugin", data => data["image"] = saved.DeepClone()),
+                picture);
         }
         catch (Exception ex) when (ex is EditorUnavailableException or EditorCommandException or TimeoutException or InvalidOperationException)
         {
@@ -579,7 +592,20 @@ public sealed class ReadTools(
     }
 
     /// <summary>Errors come back as data so the model can read the cause and fix the call.</summary>
-    private async Task<string> ExecuteAsync(Func<CancellationToken, Task<string>> action, CancellationToken cancellationToken = default)
+    private Task<string> ExecuteAsync(Func<CancellationToken, Task<string>> action, CancellationToken cancellationToken = default) =>
+        GuardAsync(action, static (message, hint) => ToolResponse.Error(message, hint), cancellationToken);
+
+    /// <summary>The same guard for the tool that may answer with a picture.</summary>
+    private Task<CallToolResult> ExecutePicturedAsync(
+        Func<CancellationToken, Task<CallToolResult>> action,
+        CancellationToken cancellationToken = default) =>
+        GuardAsync(action, static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)), cancellationToken);
+
+    /// <summary>One error ladder for both result shapes: what differs is only how the message and the hint are packed.</summary>
+    private async Task<T> GuardAsync<T>(
+        Func<CancellationToken, Task<T>> action,
+        Func<string, string?, T> fail,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -589,23 +615,23 @@ public sealed class ReadTools(
         {
             logger.LogWarning(ex, "Figma API returned an error");
 
-            return ToolResponse.Error(ex.Message, ex.Hint);
+            return fail(ex.Message, ex.Hint);
         }
         catch (EditorUnavailableException ex)
         {
-            return ToolResponse.Error(ex.Message, Messages.ReadFallback.NotConnected);
+            return fail(ex.Message, Messages.ReadFallback.NotConnected);
         }
         catch (EditorCommandException ex)
         {
-            return ToolResponse.Error(ex.Message, Messages.ReadFallback.CommandFailed);
+            return fail(ex.Message, Messages.ReadFallback.CommandFailed);
         }
         catch (TimeoutException ex)
         {
-            return ToolResponse.Error(ex.Message, Messages.ReadFallback.Timeout);
+            return fail(ex.Message, Messages.ReadFallback.Timeout);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            return ToolResponse.Error(ex.Message, Messages.PassFileUrlHint);
+            return fail(ex.Message, Messages.PassFileUrlHint);
         }
     }
 }

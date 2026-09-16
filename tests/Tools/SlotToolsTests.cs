@@ -24,7 +24,7 @@ public class SlotToolsTests
     {
         var fileKey = NewFileKey();
         var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        _bridge.Registry.SetActiveFile(fileKey);
+        await _bridge.Registry.ClaimAsync(fileKey);
 
         return plugin;
     }
