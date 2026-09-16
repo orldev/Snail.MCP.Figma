@@ -27,6 +27,10 @@ public sealed class BridgeHostFixture : IAsyncLifetime
 
     private const int SafePortRangeEnd = 19262;
 
+    /// <summary>Two hosts starting at once would both pick the same free port: the choice and the bind happen under one gate.</summary>
+    /// <remarks>The shared collection host and a class host (TargetBindingTests) initialize in parallel; without the gate one run in ten lost every test of the second host with a 500 on the handshake.</remarks>
+    private static readonly SemaphoreSlim PortGate = new(1, 1);
+
     private WebApplication? _app;
     private string _bridgePath = "/";
 
@@ -44,6 +48,20 @@ public sealed class BridgeHostFixture : IAsyncLifetime
     public ActiveDocumentTracker ActiveFile { get; private set; } = null!;
 
     public async Task InitializeAsync()
+    {
+        await PortGate.WaitAsync();
+
+        try
+        {
+            await StartHostAsync();
+        }
+        finally
+        {
+            PortGate.Release();
+        }
+    }
+
+    private async Task StartHostAsync()
     {
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();

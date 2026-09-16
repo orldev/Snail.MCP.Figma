@@ -122,21 +122,22 @@ public sealed class FakeEditorExtension : IAsyncDisposable
         }
     }
 
+    /// <summary>Says goodbye before the receive loop is cancelled: cancelling a receive aborts the socket, and a close started on an aborted socket throws instead of closing.</summary>
+    /// <remarks>Only the output side is closed here; the loop reads the server's close frame and ends by itself, so the two never race for the one receive the socket allows.</remarks>
     public async ValueTask DisposeAsync()
     {
-        _loop?.Cancel();
-
         if (_socket.State == WebSocketState.Open)
         {
             try
             {
-                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
             }
-            catch (WebSocketException)
+            catch (Exception ex) when (ex is WebSocketException or ObjectDisposedException or OperationCanceledException)
             {
             }
         }
 
+        _loop?.Cancel();
         _socket.Dispose();
         _loop?.Dispose();
     }
