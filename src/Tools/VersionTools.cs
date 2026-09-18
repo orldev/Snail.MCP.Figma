@@ -26,7 +26,7 @@ public sealed class VersionTools(
     /// <summary>Page cap when walking history — a guard against endless loops on broken pagination.</summary>
     private const int MaxScanPages = 20;
 
-    [McpServerTool(Name = "figma_get_file_versions")]
+    [McpServerTool(Name = "figma_get_file_versions", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.GetFileVersions)]
     public Task<string> GetFileVersionsAsync(
         [Description("Link to the Figma file. Optional if the file has already been used.")] string? fileUrl = null,
@@ -137,7 +137,7 @@ public sealed class VersionTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_file_at_version")]
+    [McpServerTool(Name = "figma_get_file_at_version", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.GetFileAtVersion)]
     public Task<string> GetFileAtVersionAsync(
         [Description("Version id from figma_get_file_versions.")] string versionId,
@@ -174,7 +174,7 @@ public sealed class VersionTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_diff_versions")]
+    [McpServerTool(Name = "figma_diff_versions", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.DiffVersions)]
     public Task<string> DiffVersionsAsync(
         [Description("The earlier version to compare from.")] string fromVersion,
@@ -191,7 +191,7 @@ public sealed class VersionTools(
             return ToolResponse.Ok(result.Payload);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_changes_since_version")]
+    [McpServerTool(Name = "figma_get_changes_since_version", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.GetChangesSinceVersion)]
     public Task<string> GetChangesSinceVersionAsync(
         [Description("The version the current state is compared against.")] string sinceVersion,
@@ -207,7 +207,7 @@ public sealed class VersionTools(
             return ToolResponse.Ok(result.Payload);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_generate_changelog")]
+    [McpServerTool(Name = "figma_generate_changelog", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.GenerateChangelog)]
     public Task<string> GenerateChangelogAsync(
         [Description("The earlier version.")] string fromVersion,
@@ -256,7 +256,7 @@ public sealed class VersionTools(
             return ToolResponse.Ok(payload);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_blame_node")]
+    [McpServerTool(Name = "figma_blame_node", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.BlameNode)]
     public Task<string> BlameNodeAsync(
         [Description("Node id, usually a COMPONENT_SET. Empty takes the first node of the current selection.")] string? nodeId = null,
@@ -934,7 +934,7 @@ public sealed class VersionTools(
 
     private string? FirstSelectedNodeId() => SelectedNodeIds().FirstOrDefault();
 
-    [McpServerTool(Name = "figma_save_version")]
+    [McpServerTool(Name = "figma_save_version", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Version.SaveVersion)]
     public Task<string> SaveVersionAsync(
         [Description("Title of the version checkpoint.")] string title,

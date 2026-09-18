@@ -283,6 +283,9 @@ Claude ── stdio ─┤
 - **One target per agent.** Commands go to the file the agent named with `figma_navigate`, and a human clicking
   in another file does not move it: with several files and several agents open, the click was meant for one of
   them. The panel sends a remark only to the agents working in its file, and names them when there are two.
+- **Built for hosts that load tools on demand.** The handshake carries instructions with a map of the 18
+  families; every tool states whether it reads, adds, overwrites or deletes, and whether it may call the REST
+  API, so a client can let reads through and ask before a delete; the status tools advertise an output schema.
 - **The panel talks back.** Type into the plugin window and the words reach the agent with the layer you had
   selected: during `figma_execute_steps` the remark stops the build after the current step, in the quiet it
   waits for `figma_get_remarks` — which is when a human actually reviews a result. The server tells the panel

@@ -47,12 +47,30 @@ public static class ToolCatalogExporter
 
         foreach (var tool in families.SelectMany(family => family.Tools))
         {
-            array.Add(new JsonObject
+            var entry = new JsonObject
             {
                 ["name"] = tool.Name,
                 ["description"] = tool.Description,
                 ["inputSchema"] = JsonNode.Parse(tool.InputSchema.GetRawText()),
-            });
+            };
+
+            if (tool.OutputSchema is { } output)
+            {
+                entry["outputSchema"] = JsonNode.Parse(output.GetRawText());
+            }
+
+            if (tool.Annotations is { } hints)
+            {
+                entry["annotations"] = new JsonObject
+                {
+                    ["readOnlyHint"] = hints.ReadOnlyHint,
+                    ["destructiveHint"] = hints.DestructiveHint,
+                    ["idempotentHint"] = hints.IdempotentHint,
+                    ["openWorldHint"] = hints.OpenWorldHint,
+                };
+            }
+
+            array.Add(entry);
         }
 
         return array.ToJsonString(Indented);

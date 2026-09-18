@@ -29,6 +29,7 @@ public class StdioContractTests
 
         Assert.Equal("Snail.MCP.Figma", serverInfo.GetProperty("name").GetString());
         Assert.False(string.IsNullOrWhiteSpace(serverInfo.GetProperty("version").GetString()));
+        Assert.Equal(ServerInstructions.Text, initialize.GetProperty("result").GetProperty("instructions").GetString());
 
         await session.NotifyAsync("notifications/initialized");
 

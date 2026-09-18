@@ -14,7 +14,7 @@ public sealed class CommentTools(
     ILogger<CommentTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_get_comments")]
+    [McpServerTool(Name = "figma_get_comments", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.GetComments)]
     public Task<string> GetCommentsAsync(
         [Description("Link to the Figma file. Optional if the file has already been used.")] string? fileUrl = null,
@@ -48,7 +48,7 @@ public sealed class CommentTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_post_comment")]
+    [McpServerTool(Name = "figma_post_comment", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.PostComment)]
     public Task<string> PostCommentAsync(
         [Description("Comment text.")] string message,
@@ -82,7 +82,7 @@ public sealed class CommentTools(
             return ToolResponse.Ok(response, envelope => envelope["fileKey"] = fileKey);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_delete_comment")]
+    [McpServerTool(Name = "figma_delete_comment", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.DeleteComment)]
     public Task<string> DeleteCommentAsync(
         [Description("Comment id.")] string commentId,

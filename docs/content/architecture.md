@@ -90,6 +90,28 @@ lives 30 days at Figma and is cached for `Cache.ImageTtlHours` (24 h). The image
 file on any `DOCUMENT_CHANGE`, because what is usually cached is the render of a parent node while the plugin
 reports only the nodes that changed directly.
 
+## What the catalog tells a host
+
+A client that mounts several servers no longer hands the model every schema: it shows the handshake
+instructions and a search box, loads a tool when the model asks for it, and may run a script that calls tools
+from a sandbox. The server meets that in three places.
+
+- **Instructions at the handshake.** `initialize` carries the server instructions: where to start
+  (`figma_navigate`), which family answers which task, and when one `figma_execute` script beats a chain of
+  calls. `ServerInstructionsTests` keeps every tool class mentioned, every reference real and the text under
+  4,500 characters.
+- **Behaviour hints on every tool.** All 141 tools state `readOnlyHint`, `destructiveHint`, `idempotentHint`
+  and `openWorldHint` explicitly. Read-only means the tool changes neither the Figma file nor the user's files
+  (a capture saved beside the server is a read); destructive means it overwrites or deletes what exists;
+  open-world means it may reach the REST API or a URL rather than the connected file only. A host uses them to
+  let reads through without a prompt and to ask before a delete, including the calls a script makes from a
+  sandbox. The convention tests fail on a tool that leaves a hint silent, on a read-only tool marked
+  destructive, and on a `_delete_` tool that is not.
+- **An output schema where the answer is stable.** `figma_get_status` and `figma_list_open_files` advertise
+  `outputSchema` and answer with `structuredContent` next to the usual text, so a host generating typed stubs
+  gets a return type instead of `any`. The other tools keep the text envelope: their answers are Figma trees,
+  and a schema of those would be wrong more often than useful.
+
 ## Process lifetime
 
 The server talks JSON-RPC over stdio, so every log line goes to stderr — a single stray write to stdout would

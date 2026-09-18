@@ -21,7 +21,7 @@ public sealed class DesignCodeTools(
     ILogger<DesignCodeTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_get_component_for_development")]
+    [McpServerTool(Name = "figma_get_component_for_development", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.GetComponentForDevelopment)]
     public Task<string> GetForDevelopmentAsync(
         [Description("Node id, for example '1:234'.")] string nodeId,
@@ -54,7 +54,7 @@ public sealed class DesignCodeTools(
             }, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_component_for_development_deep")]
+    [McpServerTool(Name = "figma_get_component_for_development_deep", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignCode.GetComponentForDevelopmentDeep)]
     public Task<string> GetForDevelopmentDeepAsync(
         [Description("Node id.")] string nodeId,
@@ -85,7 +85,7 @@ public sealed class DesignCodeTools(
             }, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_extract_style_values")]
+    [McpServerTool(Name = "figma_extract_style_values", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.ExtractStyleValues)]
     public Task<string> ExtractTokensAsync(
         [Description("Link to the Figma file. Optional if the file has already been used.")] string? fileUrl = null,
@@ -130,7 +130,7 @@ public sealed class DesignCodeTools(
             return ToolResponse.Ok(StyleExtractor.Format(styles), envelope => envelope["fileKey"] = fileKey);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_check_design_parity")]
+    [McpServerTool(Name = "figma_check_design_parity", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.CheckDesignParity)]
     public Task<string> CheckParityAsync(
         [Description("Id of the component node in Figma.")] string nodeId,
@@ -160,7 +160,7 @@ public sealed class DesignCodeTools(
             return ToolResponse.Ok(report, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_generate_component_doc")]
+    [McpServerTool(Name = "figma_generate_component_doc", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.GenerateComponentDoc)]
     public Task<string> GenerateComponentDocAsync(
         [Description("Id of the component node.")] string nodeId,

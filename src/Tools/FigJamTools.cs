@@ -13,7 +13,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
     private const int MaxBatchSize = 200;
     private const int MaxArrangeNodes = 500;
 
-    [McpServerTool(Name = "figjam_create_sticky")]
+    [McpServerTool(Name = "figjam_create_sticky", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateSticky)]
     public Task<string> CreateStickyAsync(
         [Description("Sticky text.")] string text,
@@ -29,7 +29,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["y"] = y,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_stickies")]
+    [McpServerTool(Name = "figjam_create_stickies", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateStickies)]
     public Task<string> CreateStickiesAsync(
         [Description("Array of stickies as a JSON string.")] string stickies,
@@ -59,7 +59,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_connector")]
+    [McpServerTool(Name = "figjam_create_connector", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateConnector)]
     public Task<string> CreateConnectorAsync(
         [Description("Id of the start node.")] string startNodeId,
@@ -77,7 +77,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["endMagnet"] = endMagnet,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_shape_with_text")]
+    [McpServerTool(Name = "figjam_create_shape_with_text", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateShapeWithText)]
     public Task<string> CreateShapeWithTextAsync(
         [Description("Label on the shape.")] string? text = null,
@@ -105,7 +105,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["strokeDashPattern"] = strokeDashPattern,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_section")]
+    [McpServerTool(Name = "figjam_create_section", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateSection)]
     public Task<string> CreateSectionAsync(
         [Description("Section name.")] string? name = null,
@@ -125,7 +125,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["fillColor"] = fillColor,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_table")]
+    [McpServerTool(Name = "figjam_create_table", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateTable)]
     public Task<string> CreateTableAsync(
         [Description("Number of rows.")] int rows,
@@ -155,7 +155,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_create_code_block")]
+    [McpServerTool(Name = "figjam_create_code_block", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.CreateCodeBlock)]
     public Task<string> CreateCodeBlockAsync(
         [Description("Block contents.")] string code,
@@ -171,7 +171,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["y"] = y,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_auto_arrange")]
+    [McpServerTool(Name = "figjam_auto_arrange", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.AutoArrange)]
     public Task<string> AutoArrangeAsync(
         [Description("Comma-separated node ids.")] string nodeIds,
@@ -259,7 +259,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figjam_get_board_contents")]
+    [McpServerTool(Name = "figjam_get_board_contents", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.GetBoardContents)]
     public Task<string> GetBoardContentsAsync(
         [Description("Comma-separated node types. Empty means all of them.")] string? nodeTypes = null,
@@ -271,7 +271,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
             ["maxNodes"] = Math.Clamp(maxNodes, 1, 1000),
         }, cancellationToken, TimeSpan.FromSeconds(45));
 
-    [McpServerTool(Name = "figjam_get_connections")]
+    [McpServerTool(Name = "figjam_get_connections", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.GetConnections)]
     public Task<string> GetConnectionsAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetConnections, new JsonObject(), cancellationToken, TimeSpan.FromSeconds(30));

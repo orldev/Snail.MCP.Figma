@@ -7,7 +7,12 @@ using Snail.MCP.Figma.Tools.Prompts;
 namespace Snail.MCP.Figma.Documentation;
 
 /// <summary>One tool exactly as the model receives it in tools/list.</summary>
-public sealed record ToolEntry(string Name, string Description, JsonElement InputSchema);
+public sealed record ToolEntry(
+    string Name,
+    string Description,
+    JsonElement InputSchema,
+    JsonElement? OutputSchema,
+    ToolAnnotations? Annotations);
 
 /// <summary>Tools that share a declaring class and therefore a subject.</summary>
 public sealed record ToolFamily(string Slug, string Title, IReadOnlyList<ToolEntry> Tools);
@@ -63,7 +68,7 @@ public static class ToolCatalog
             .Where(method => method.GetCustomAttribute<McpServerToolAttribute>() is not null)
             .OrderBy(method => method.MetadataToken)
             .Select(Protocol)
-            .Select(tool => new ToolEntry(tool.Name, tool.Description ?? string.Empty, tool.InputSchema))
+            .Select(tool => new ToolEntry(tool.Name, tool.Description ?? string.Empty, tool.InputSchema, tool.OutputSchema, tool.Annotations))
             .ToList();
 
     private static Tool Protocol(MethodInfo method) =>

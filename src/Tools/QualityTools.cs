@@ -11,7 +11,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_lint_design")]
+    [McpServerTool(Name = "figma_lint_design", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.LintDesign)]
     public Task<string> LintDesignAsync(
         [Description("Id of the root node. Empty means the whole current page.")] string? nodeId = null,
@@ -27,7 +27,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["maxFindings"] = maxFindings,
         }, cancellationToken, TimeSpan.FromSeconds(60));
 
-    [McpServerTool(Name = "figma_audit_component_accessibility")]
+    [McpServerTool(Name = "figma_audit_component_accessibility", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.AuditComponentAccessibility)]
     public Task<string> AuditAccessibilityAsync(
         [Description("Id of the component or frame.")] string nodeId,
@@ -39,7 +39,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["targetSize"] = targetSize,
         }, cancellationToken, TimeSpan.FromSeconds(60));
 
-    [McpServerTool(Name = "figma_get_annotations")]
+    [McpServerTool(Name = "figma_get_annotations", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.GetAnnotations)]
     public Task<string> GetAnnotationsAsync(
         [Description("Node id. Empty means the whole page.")] string? nodeId = null,
@@ -49,7 +49,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["nodeId"] = nodeId is null ? null : NodeId.Normalize(nodeId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_annotations")]
+    [McpServerTool(Name = "figma_set_annotations", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.SetAnnotations)]
     public Task<string> SetAnnotationsAsync(
         [Description("Node id.")] string nodeId,
@@ -72,12 +72,12 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_annotation_categories")]
+    [McpServerTool(Name = "figma_get_annotation_categories", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.GetAnnotationCategories)]
     public Task<string> GetAnnotationCategoriesAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetAnnotationCategories, null, cancellationToken);
 
-    [McpServerTool(Name = "figma_add_annotation_category")]
+    [McpServerTool(Name = "figma_add_annotation_category", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.AddAnnotationCategory)]
     public Task<string> AddAnnotationCategoryAsync(
         [Description("Label of the category.")] string label,

@@ -17,7 +17,7 @@ public sealed class DiagnosticsTools(
     IEditorExtensionInstaller installer,
     IApiIdentity identity)
 {
-    [McpServerTool(Name = "csharp_diagnose")]
+    [McpServerTool(Name = "csharp_diagnose", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Diagnostics.Diagnose)]
     public async Task<string> DiagnoseAsync(
         [Description("Open the cache file and check that it reads.")]

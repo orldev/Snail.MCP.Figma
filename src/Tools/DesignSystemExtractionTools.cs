@@ -27,7 +27,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
 
     private const int MaxComponentSourceKb = 64;
 
-    [McpServerTool(Name = "figma_ds_analyze")]
+    [McpServerTool(Name = "figma_ds_analyze", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsAnalyze)]
     public Task<string> AnalyzeAsync(
         [Description("Application roots, comma-separated or as a JSON array. Absolute paths are safer: the server working directory is not your project.")] string targets,
@@ -134,7 +134,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_extract_tokens")]
+    [McpServerTool(Name = "figma_ds_extract_tokens", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsExtractTokens)]
     public Task<string> ExtractTokensAsync(
         [Description("The directory used in figma_ds_analyze: .extraction/analysis.json is read from it.")] string? outDir = null,
@@ -245,7 +245,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_scaffold")]
+    [McpServerTool(Name = "figma_ds_scaffold", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsScaffold)]
     public Task<string> ScaffoldAsync(
         [Description("The directory used in figma_ds_analyze and figma_ds_extract_tokens.")] string outDir,
@@ -303,7 +303,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_setup_storybook")]
+    [McpServerTool(Name = "figma_ds_setup_storybook", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsSetupStorybook)]
     public Task<string> SetupStorybookAsync(
         [Description("Directory of the design system package with a freshly installed .storybook.")] string outDir,
@@ -332,7 +332,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_extract_component")]
+    [McpServerTool(Name = "figma_ds_extract_component", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsExtractComponent)]
     public Task<string> ExtractComponentAsync(
         [Description("The directory used in figma_ds_analyze.")] string outDir,
@@ -478,7 +478,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_verify")]
+    [McpServerTool(Name = "figma_ds_verify", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsVerify)]
     public Task<string> VerifyAsync(
         [Description("Design system package directory.")] string outDir,
@@ -504,7 +504,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_status")]
+    [McpServerTool(Name = "figma_ds_status", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsStatus)]
     public Task<string> StatusAsync(
         [Description("The directory used in figma_ds_analyze.")] string outDir,

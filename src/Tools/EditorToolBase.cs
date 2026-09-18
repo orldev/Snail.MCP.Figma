@@ -107,6 +107,15 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         CancellationToken cancellationToken) =>
         GuardAsync(action, static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)), cancellationToken);
 
+    /// <summary>The same guard for a tool that advertises an output schema: success goes out as structured content, failure as the text envelope alone.</summary>
+    protected Task<CallToolResult> ExecuteStructuredAsync(
+        Func<CancellationToken, Task<JsonNode>> action,
+        CancellationToken cancellationToken) =>
+        GuardAsync(
+            async ct => ToolResponse.Structured(await action(ct).ConfigureAwait(false)),
+            static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)),
+            cancellationToken);
+
     /// <summary>One error ladder for both result shapes: what differs is only how the message and the hint are packed.</summary>
     private async Task<T> GuardAsync<T>(
         Func<CancellationToken, Task<T>> action,

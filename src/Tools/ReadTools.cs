@@ -57,7 +57,7 @@ public sealed class ReadTools(
     private static string PluginUnavailable(string fileKey) =>
         ToolResponse.Error(Messages.PluginUnavailable(fileKey), Messages.PluginUnavailableHint);
 
-    [McpServerTool(Name = "figma_get_file_data")]
+    [McpServerTool(Name = "figma_get_file_data", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileData)]
     public Task<string> GetFileDataAsync(
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]
@@ -121,7 +121,7 @@ public sealed class ReadTools(
             return ToolResponse.FromRead(read, fileKey);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_component")]
+    [McpServerTool(Name = "figma_get_component", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetComponent)]
     public Task<string> GetComponentAsync(
         [Description("Node id, for example '1:234'. The dashed form from a link is accepted too.")]
@@ -193,7 +193,7 @@ public sealed class ReadTools(
             return ToolResponse.FromRead(read, fileKey, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_variables")]
+    [McpServerTool(Name = "figma_get_variables", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetVariables)]
     public Task<string> GetVariablesAsync(
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]
@@ -271,7 +271,7 @@ public sealed class ReadTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_file_meta")]
+    [McpServerTool(Name = "figma_get_file_meta", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileMeta)]
     public Task<string> GetFileMetaAsync(
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]
@@ -296,7 +296,7 @@ public sealed class ReadTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_styles")]
+    [McpServerTool(Name = "figma_get_styles", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetStyles)]
     public Task<string> GetStylesAsync(
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]
@@ -360,7 +360,7 @@ public sealed class ReadTools(
                 });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_component_image")]
+    [McpServerTool(Name = "figma_get_component_image", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetComponentImage)]
     public Task<CallToolResult> GetComponentImageAsync(
         [Description("Node id, for example '1:234'.")]
@@ -533,7 +533,7 @@ public sealed class ReadTools(
         });
     }
 
-    [McpServerTool(Name = "figma_get_file_for_plugin")]
+    [McpServerTool(Name = "figma_get_file_for_plugin", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileForPlugin)]
     public Task<string> GetFileForPluginAsync(
         [Description("Link to the Figma file. Optional if the file has already been used in this session.")]

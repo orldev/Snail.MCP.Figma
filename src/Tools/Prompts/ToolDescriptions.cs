@@ -334,7 +334,7 @@ public static class ToolDescriptions
         public const string DeleteNode = "Deletes a node together with everything inside it. The operation is irreversible. Requires the plugin.";
 
         /// <summary><c>figma_rename_node</c></summary>
-        public const string RenameNode = "Renames a node. Requires the plugin.";
+        public const string RenameNode = "Renames a node (a layer in the layers panel). Requires the plugin.";
 
         /// <summary><c>figma_set_strokes</c></summary>
         public const string SetStrokes =

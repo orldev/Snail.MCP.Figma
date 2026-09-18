@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 
 namespace Snail.MCP.Figma.Documentation;
 
@@ -44,20 +45,46 @@ public static class MarkdownPages
                 .AppendLine(tool.Description)
                 .AppendLine();
 
+            AppendBehaviour(page, tool.Annotations);
             AppendParameters(page, tool.InputSchema);
+            AppendSchema(page, "JSON Schema", tool.InputSchema);
 
-            page.AppendLine("<details><summary>JSON Schema</summary>")
-                .AppendLine()
-                .AppendLine("```json")
-                .AppendLine(JsonSerializer.Serialize(tool.InputSchema, Indented))
-                .AppendLine("```")
-                .AppendLine()
-                .AppendLine("</details>")
-                .AppendLine();
+            if (tool.OutputSchema is { } output)
+            {
+                AppendSchema(page, "Output schema", output);
+            }
         }
 
         return page.ToString();
     }
+
+    /// <summary>The four behaviour hints as one line of plain words, in the order a host weighs them: what it touches, how it touches it, whether a repeat is safe, how far it reaches.</summary>
+    private static void AppendBehaviour(StringBuilder page, ToolAnnotations? hints)
+    {
+        if (hints is null)
+        {
+            return;
+        }
+
+        var words = new List<string>
+        {
+            hints.ReadOnlyHint == true ? "read-only" : hints.DestructiveHint == true ? "may overwrite or delete" : "only adds",
+            hints.IdempotentHint == true ? "repeat-safe" : "every call adds",
+            hints.OpenWorldHint == true ? "may reach the REST API" : "the connected file only",
+        };
+
+        page.AppendLine($"*{string.Join(" · ", words)}.*").AppendLine();
+    }
+
+    private static void AppendSchema(StringBuilder page, string title, JsonElement schema) =>
+        page.AppendLine($"<details><summary>{title}</summary>")
+            .AppendLine()
+            .AppendLine("```json")
+            .AppendLine(JsonSerializer.Serialize(schema, Indented))
+            .AppendLine("```")
+            .AppendLine()
+            .AppendLine("</details>")
+            .AppendLine();
 
     private static void AppendParameters(StringBuilder page, JsonElement schema)
     {

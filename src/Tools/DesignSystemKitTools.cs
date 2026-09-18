@@ -19,7 +19,7 @@ public sealed class DesignSystemKitTools(
 {
     private const int BatchSize = 50;
 
-    [McpServerTool(Name = "figma_get_design_system_kit")]
+    [McpServerTool(Name = "figma_get_design_system_kit", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignSystemKit.GetDesignSystemKit)]
     public Task<string> GetDesignSystemKitAsync(
         [Description("Link to the Figma file or its key. Optional if the file has already been used.")] string? fileUrl = null,
