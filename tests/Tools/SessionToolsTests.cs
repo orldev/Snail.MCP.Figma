@@ -1,3 +1,6 @@
+using System.Text.Json;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools;
@@ -24,6 +27,8 @@ public class SessionToolsTests
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
     private static JsonNode Parse(string response) => JsonNode.Parse(response)!;
+
+    private static string Text(CallToolResult result) => Assert.IsType<TextContentBlock>(result.Content[0]).Text;
 
     private static string[] ExecutedCode(FakeEditorExtension plugin) => plugin.Received
         .Where(message => message["method"]?.GetValue<string>() == EditorCommands.ExecuteCode.Name)
@@ -187,7 +192,7 @@ public class SessionToolsTests
         await pluginA.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
         await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(target)!.Peers.Count == 1, "the peers did not arrive");
 
-        var files = Parse(await Tools().ListOpenFilesAsync())["data"]!["files"]!.AsArray();
+        var files = Parse(Text(await Tools().ListOpenFilesAsync()))["data"]!["files"]!.AsArray();
 
         var web = files.Single(file => file!["fileKey"]!.GetValue<string>() == target)!;
         var mobile = files.Single(file => file!["fileKey"]!.GetValue<string>() == other)!;
@@ -333,5 +338,47 @@ public class SessionToolsTests
 
         Assert.False(response["ok"]!.GetValue<bool>());
         Assert.Contains("Snail Bridge", response["error"]!.GetValue<string>());
+    }
+
+    /// <summary>The structured answer is what a code-mode host validates against the advertised schema, so its keys, down to one file, must be exactly the schema's.</summary>
+    [Fact]
+    public async Task ListingTheFilesAnswersStructuredContentShapedLikeItsOutputSchema()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+
+        var result = await Tools().ListOpenFilesAsync();
+        var schema = OutputSchemaOf(nameof(SessionTools.ListOpenFilesAsync));
+
+        var structured = Assert.NotNull(result.StructuredContent);
+        Assert.Equal(Text(result), structured.GetRawText());
+        AssertShapedLike(schema, structured);
+    }
+
+    private static JsonElement OutputSchemaOf(string method) =>
+        McpServerTool.Create(typeof(SessionTools).GetMethod(method)!, _ => throw new NotSupportedException(), new McpServerToolCreateOptions())
+            .ProtocolTool.OutputSchema!.Value;
+
+    /// <summary>Every object in the answer carries exactly the properties its schema lists; arrays are checked through their first element.</summary>
+    private static void AssertShapedLike(JsonElement schema, JsonElement instance)
+    {
+        if (schema.TryGetProperty("properties", out var properties))
+        {
+            var expected = properties.EnumerateObject().Select(property => property.Name).Order().ToList();
+
+            Assert.Equal(expected, instance.EnumerateObject().Select(property => property.Name).Order().ToList());
+
+            foreach (var property in properties.EnumerateObject())
+            {
+                AssertShapedLike(property.Value, instance.GetProperty(property.Name));
+            }
+
+            return;
+        }
+
+        if (schema.TryGetProperty("items", out var items) && instance.ValueKind == JsonValueKind.Array && instance.GetArrayLength() > 0)
+        {
+            AssertShapedLike(items, instance[0]);
+        }
     }
 }

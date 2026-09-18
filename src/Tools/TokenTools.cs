@@ -18,7 +18,7 @@ public sealed class TokenTools(
     ILogger<TokenTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_export_tokens")]
+    [McpServerTool(Name = "figma_export_tokens", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Token.ExportTokens)]
     public Task<string> ExportTokensAsync(
         [Description("Output format.")] string format = "dtcg",
@@ -96,7 +96,7 @@ public sealed class TokenTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_import_tokens")]
+    [McpServerTool(Name = "figma_import_tokens", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Token.ImportTokens)]
     public Task<string> ImportTokensAsync(
         [Description("Contents of the token file.")] string content,
@@ -152,7 +152,7 @@ public sealed class TokenTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_convert_tokens")]
+    [McpServerTool(Name = "figma_convert_tokens", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Token.ConvertTokens)]
     public Task<string> ConvertTokensAsync(
         [Description("Contents of the source file.")] string content,

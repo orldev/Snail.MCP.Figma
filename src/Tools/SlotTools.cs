@@ -11,7 +11,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_create_slot")]
+    [McpServerTool(Name = "figma_create_slot", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.CreateSlot)]
     public Task<string> CreateSlotAsync(
         [Description("Id of the COMPONENT node to add the slot to.")] string nodeId,
@@ -29,7 +29,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             ["layoutMode"] = layoutMode,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_slots")]
+    [McpServerTool(Name = "figma_get_slots", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.GetSlots)]
     public Task<string> GetSlotsAsync(
         [Description("Id of the COMPONENT, COMPONENT_SET or INSTANCE node.")] string nodeId,
@@ -39,7 +39,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             ["nodeId"] = NodeId.Normalize(nodeId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_append_to_slot")]
+    [McpServerTool(Name = "figma_append_to_slot", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.AppendToSlot)]
     public Task<string> AppendToSlotAsync(
         [Description("SlotNode id — from figma_get_slots.")] string? slotId = null,
@@ -87,7 +87,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_reset_slot")]
+    [McpServerTool(Name = "figma_reset_slot", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.ResetSlot)]
     public Task<string> ResetSlotAsync(
         [Description("SlotNode id.")] string? slotId = null,
@@ -113,7 +113,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_add_slot_property")]
+    [McpServerTool(Name = "figma_add_slot_property", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.AddSlotProperty)]
     public Task<string> AddSlotPropertyAsync(
         [Description("Id of the COMPONENT or COMPONENT_SET node.")] string nodeId,

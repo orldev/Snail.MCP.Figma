@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -11,7 +12,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_get_selection")]
+    [McpServerTool(Name = "figma_get_selection", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.GetSelection)]
     public Task<string> GetSelectionAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(_ =>
@@ -41,7 +42,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 }));
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_move_node")]
+    [McpServerTool(Name = "figma_move_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.MoveNode)]
     public Task<string> MoveNodeAsync(
         [Description("Node id, for example '1:234'.")] string nodeId,
@@ -55,7 +56,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["y"] = y,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_resize_node")]
+    [McpServerTool(Name = "figma_resize_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.ResizeNode)]
     public Task<string> ResizeNodeAsync(
         [Description("Node id, for example '1:234'.")] string nodeId,
@@ -71,7 +72,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["withConstraints"] = withConstraints,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_fills")]
+    [McpServerTool(Name = "figma_set_fills", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SetFills)]
     public Task<string> SetFillsAsync(
         [Description("Node id, for example '1:234'.")] string nodeId,
@@ -94,7 +95,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject());
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_text")]
+    [McpServerTool(Name = "figma_set_text", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SetText)]
     public Task<string> SetTextAsync(
         [Description("TEXT node id, for example '1:234'.")] string nodeId,
@@ -106,7 +107,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["text"] = text,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_execute")]
+    [McpServerTool(Name = "figma_execute", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.Execute)]
     public Task<string> ExecuteAsync(
         [Description("JavaScript code. Example: const n = await figma.getNodeByIdAsync('1:2'); return n.name;")]
@@ -131,7 +132,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject());
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_execute_steps")]
+    [McpServerTool(Name = "figma_execute_steps", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.ExecuteSteps)]
     public Task<string> ExecuteStepsAsync(
         [Description("""JSON array of code strings, run in order: ["globalThis.card = figma.createFrame();", "globalThis.card.resize(320, 180);"].""")]
@@ -261,7 +262,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                     data);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_selection_colors")]
+    [McpServerTool(Name = "figma_get_selection_colors", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.GetSelectionColors)]
     public Task<string> GetSelectionColorsAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(async ct =>
@@ -287,7 +288,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 : ToolResponse.Ok(payload ?? new JsonObject());
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_sort_styles")]
+    [McpServerTool(Name = "figma_sort_styles", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SortStyles)]
     public Task<string> SortStylesAsync(
         [Description("Style type: PAINT, TEXT, EFFECT or GRID.")] string styleType,
@@ -361,7 +362,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_commit_undo")]
+    [McpServerTool(Name = "figma_commit_undo", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.CommitUndo)]
     public Task<string> CommitUndoAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(async ct =>
@@ -381,7 +382,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["committed"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_create_style")]
+    [McpServerTool(Name = "figma_create_style", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.CreateStyle)]
     public Task<string> CreateStyleAsync(
         [Description("Style type: PAINT, TEXT, EFFECT or GRID.")] string styleType,
@@ -454,19 +455,17 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_status")]
+    [McpServerTool(Name = "figma_get_status", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        UseStructuredContent = true, OutputSchemaType = typeof(Answer<BridgeStatus>))]
     [Description(ToolDescriptions.Write.GetStatus)]
-    public Task<string> GetStatusAsync(CancellationToken cancellationToken = default) =>
-        ExecuteAsync(_ =>
+    public Task<CallToolResult> GetStatusAsync(CancellationToken cancellationToken = default) =>
+        ExecuteStructuredAsync(_ => Task.FromResult<JsonNode>(new JsonObject
         {
-            return Task.FromResult(ToolResponse.Ok(new JsonObject
-            {
-                ["connected"] = Plugin.IsConnected,
-                ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
-                ["othersHere"] = new JsonArray([.. OthersInTarget().Select(agent => (JsonNode)agent)]),
-                ["files"] = DescribeFiles(),
-            }));
-        }, cancellationToken);
+            ["connected"] = Plugin.IsConnected,
+            ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
+            ["othersHere"] = new JsonArray([.. OthersInTarget().Select(agent => (JsonNode)agent)]),
+            ["files"] = DescribeFiles(),
+        }), cancellationToken);
 
     /// <summary>Reads the steps argument into the scripts to run.</summary>
     /// <remarks>A step that is not a string is refused by itself: silently skipping it would build half a layout and report success.</remarks>

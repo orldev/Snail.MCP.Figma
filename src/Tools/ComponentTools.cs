@@ -14,7 +14,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
     private static TimeSpan ComponentSetTimeout(int variantCount) =>
         TimeSpan.FromMilliseconds(Math.Clamp(variantCount * 1200, 35_000, 125_000));
 
-    [McpServerTool(Name = "figma_search_components")]
+    [McpServerTool(Name = "figma_search_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.SearchComponents)]
     public Task<string> SearchComponentsAsync(
         [Description("Substring of the name. Empty returns every component of the file.")] string? query = null,
@@ -54,7 +54,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_instantiate_component")]
+    [McpServerTool(Name = "figma_instantiate_component", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.InstantiateComponent)]
     public Task<string> InstantiateComponentAsync(
         [Description("Component key from a library.")] string? componentKey = null,
@@ -96,7 +96,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_create_component_set")]
+    [McpServerTool(Name = "figma_create_component_set", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.CreateComponentSet)]
     public Task<string> CreateComponentSetAsync(
         [Description("Set name.")] string name,
@@ -129,7 +129,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_analyze_component_set")]
+    [McpServerTool(Name = "figma_analyze_component_set", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.AnalyzeComponentSet)]
     public Task<string> AnalyzeComponentSetAsync(
         [Description("Id of the COMPONENT_SET node.")] string nodeId,
@@ -137,7 +137,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
         ReadAsync(EditorCommands.AnalyzeComponentSet,
             new JsonObject { ["nodeId"] = NodeId.Normalize(nodeId) }, cancellationToken);
 
-    [McpServerTool(Name = "figma_arrange_component_set")]
+    [McpServerTool(Name = "figma_arrange_component_set", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.ArrangeComponentSet)]
     public Task<string> ArrangeComponentSetAsync(
         [Description("Id of the COMPONENT_SET node.")] string nodeId,
@@ -190,7 +190,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_add_component_property")]
+    [McpServerTool(Name = "figma_add_component_property", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.AddComponentProperty)]
     public Task<string> AddComponentPropertyAsync(
         [Description("Id of the component or variant set.")] string nodeId,
@@ -242,7 +242,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_edit_component_property")]
+    [McpServerTool(Name = "figma_edit_component_property", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.EditComponentProperty)]
     public Task<string> EditComponentPropertyAsync(
         [Description("Component id.")] string nodeId,
@@ -256,7 +256,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             ["newValue"] = newValue,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_delete_component_property")]
+    [McpServerTool(Name = "figma_delete_component_property", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.DeleteComponentProperty)]
     public Task<string> DeleteComponentPropertyAsync(
         [Description("Component id.")] string nodeId,
@@ -268,7 +268,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             ["propertyName"] = propertyName,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_component_details")]
+    [McpServerTool(Name = "figma_get_component_details", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.GetComponentDetails)]
     public Task<string> GetComponentDetailsAsync(
         [Description("Node id.")] string nodeId,

@@ -7,6 +7,7 @@ using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Extensions;
 
@@ -28,11 +29,11 @@ public static class PipelineRegistrationExtensions
             return services;
         }
 
-        /// <summary>Driving adapter: tools are delivered to the model over stdio; every call marks the server as active.</summary>
+        /// <summary>Driving adapter: tools are delivered to the model over stdio, the handshake carries the instructions, and every call marks the server as active.</summary>
         public IServiceCollection AddMcpTransport()
         {
             services
-                .AddMcpServer()
+                .AddMcpServer(options => options.ServerInstructions = ServerInstructions.Text)
                 .WithStdioServerTransport()
                 .WithToolsFromAssembly()
                 .WithRequestFilters(filters => filters.AddCallToolFilter(TouchActivity));

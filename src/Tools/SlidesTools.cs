@@ -13,12 +13,12 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
     private const int MaxGridRows = 50;
     private const int MaxGridRow = 50;
 
-    [McpServerTool(Name = "figma_list_slides")]
+    [McpServerTool(Name = "figma_list_slides", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.ListSlides)]
     public Task<string> ListSlidesAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.ListSlides, new JsonObject(), cancellationToken);
 
-    [McpServerTool(Name = "figma_get_slide_content")]
+    [McpServerTool(Name = "figma_get_slide_content", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideContent)]
     public Task<string> GetSlideContentAsync(
         [Description("Slide id, for example '1:23'.")] string slideId,
@@ -28,12 +28,12 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_slide_grid")]
+    [McpServerTool(Name = "figma_get_slide_grid", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideGrid)]
     public Task<string> GetSlideGridAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetSlideGrid, new JsonObject(), cancellationToken);
 
-    [McpServerTool(Name = "figma_get_slide_transition")]
+    [McpServerTool(Name = "figma_get_slide_transition", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideTransition)]
     public Task<string> GetSlideTransitionAsync(
         [Description("Slide id.")] string slideId,
@@ -43,12 +43,12 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_focused_slide")]
+    [McpServerTool(Name = "figma_get_focused_slide", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetFocusedSlide)]
     public Task<string> GetFocusedSlideAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetFocusedSlide, new JsonObject(), cancellationToken);
 
-    [McpServerTool(Name = "figma_create_slide")]
+    [McpServerTool(Name = "figma_create_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.CreateSlide)]
     public Task<string> CreateSlideAsync(
         [Description("Row index in the grid, zero-based.")] int? row = null,
@@ -60,7 +60,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["col"] = col,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_delete_slide")]
+    [McpServerTool(Name = "figma_delete_slide", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.DeleteSlide)]
     public Task<string> DeleteSlideAsync(
         [Description("Id of the slide to delete.")] string slideId,
@@ -70,7 +70,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_duplicate_slide")]
+    [McpServerTool(Name = "figma_duplicate_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.DuplicateSlide)]
     public Task<string> DuplicateSlideAsync(
         [Description("Slide id.")] string slideId,
@@ -80,7 +80,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_reorder_slides")]
+    [McpServerTool(Name = "figma_reorder_slides", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.ReorderSlides)]
     public Task<string> ReorderSlidesAsync(
         [Description("New grid as a JSON string.")] string grid,
@@ -109,7 +109,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_slide_transition")]
+    [McpServerTool(Name = "figma_set_slide_transition", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlideTransition)]
     public Task<string> SetSlideTransitionAsync(
         [Description("Slide id.")] string slideId,
@@ -125,7 +125,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["curve"] = curve,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_skip_slide")]
+    [McpServerTool(Name = "figma_skip_slide", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SkipSlide)]
     public Task<string> SkipSlideAsync(
         [Description("Slide id.")] string slideId,
@@ -137,7 +137,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["skip"] = skip,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_add_text_to_slide")]
+    [McpServerTool(Name = "figma_add_text_to_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.AddTextToSlide)]
     public Task<string> AddTextToSlideAsync(
         [Description("Slide id.")] string slideId,
@@ -171,7 +171,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["textCase"] = textCase,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_add_shape_to_slide")]
+    [McpServerTool(Name = "figma_add_shape_to_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.AddShapeToSlide)]
     public Task<string> AddShapeToSlideAsync(
         [Description("Slide id.")] string slideId,
@@ -193,7 +193,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["fillColor"] = fillColor,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_slide_background")]
+    [McpServerTool(Name = "figma_set_slide_background", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlideBackground)]
     public Task<string> SetSlideBackgroundAsync(
         [Description("Slide id.")] string slideId,
@@ -205,7 +205,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["color"] = color,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_set_slides_view_mode")]
+    [McpServerTool(Name = "figma_set_slides_view_mode", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlidesViewMode)]
     public Task<string> SetSlidesViewModeAsync(
         [Description("View mode: grid or single-slide.")] string mode,
@@ -215,7 +215,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["mode"] = mode,
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_focus_slide")]
+    [McpServerTool(Name = "figma_focus_slide", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.FocusSlide)]
     public Task<string> FocusSlideAsync(
         [Description("Slide id.")] string slideId,

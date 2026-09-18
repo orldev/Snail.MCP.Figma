@@ -17,7 +17,7 @@ public sealed partial class LibraryTools(
     ILogger<LibraryTools> logger)
     : EditorToolBase(plugin, logger)
 {
-    [McpServerTool(Name = "figma_get_library_component_by_key")]
+    [McpServerTool(Name = "figma_get_library_component_by_key", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Library.GetLibraryComponentByKey)]
     public Task<string> GetLibraryComponentByKeyAsync(
         [Description("Component key.")] string componentKey,
@@ -174,7 +174,7 @@ public sealed partial class LibraryTools(
             return ToolResponse.Ok(payload);
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_get_library_variables")]
+    [McpServerTool(Name = "figma_get_library_variables", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Library.GetLibraryVariables)]
     public Task<string> GetLibraryVariablesAsync(
         [Description("Filter by library name.")] string? libraryName = null,
@@ -276,7 +276,7 @@ public sealed partial class LibraryTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_import_library_variable")]
+    [McpServerTool(Name = "figma_import_library_variable", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Library.ImportLibraryVariable)]
     public Task<string> ImportLibraryVariableAsync(
         [Description("Variable key from figma_get_library_variables.")] string variableKey,
@@ -335,7 +335,7 @@ public sealed partial class LibraryTools(
         }, cancellationToken);
 
     /// <summary>Unwraps the plugin envelope <c>{ success, result }</c> around code execution.</summary>
-    [McpServerTool(Name = "figma_get_library_style_by_key")]
+    [McpServerTool(Name = "figma_get_library_style_by_key", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Library.GetLibraryStyleByKey)]
     public Task<string> GetLibraryStyleByKeyAsync(
         [Description("Style key.")] string styleKey,
@@ -373,7 +373,7 @@ public sealed partial class LibraryTools(
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_search_team_components")]
+    [McpServerTool(Name = "figma_search_team_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Library.SearchTeamComponents)]
     public Task<string> SearchTeamComponentsAsync(
         [Description("Team id, or a figma.com link containing /team/{id}/.")] string teamIdOrUrl,

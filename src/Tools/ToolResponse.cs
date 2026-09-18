@@ -68,6 +68,18 @@ public static class ToolResponse
     /// <summary>Serializes any node as compact JSON.</summary>
     public static string Serialize(JsonNode node) => node.ToJsonString(Options);
 
+    /// <summary>The success envelope twice: as the text every client reads, and as structured content for the clients that validate it against the tool's output schema.</summary>
+    public static CallToolResult Structured(JsonNode data)
+    {
+        var envelope = new JsonObject { ["ok"] = true, ["data"] = data }.ToJsonString(Options);
+
+        return new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = envelope }],
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(envelope),
+        };
+    }
+
     /// <summary>The envelope as the single text block.</summary>
     /// <remarks>This is the shape of every tool that cannot answer with a picture, and of a picture tool asked for a path.</remarks>
     public static CallToolResult Textual(string envelope) => new()

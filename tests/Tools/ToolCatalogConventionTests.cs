@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Configuration;
@@ -24,6 +25,13 @@ public class ToolCatalogConventionTests
             .ToList();
 
     private static string ToolName(MethodInfo method) => method.GetCustomAttribute<McpServerToolAttribute>()!.Name!;
+
+    /// <summary>The tool exactly as tools/list sends it; the SDK emits a hint only when the attribute states it, so a null hint here means the declaration is silent.</summary>
+    private static Tool Protocol(MethodInfo method) =>
+        McpServerTool.Create(method, Unreachable, new McpServerToolCreateOptions()).ProtocolTool;
+
+    private static object Unreachable(RequestContext<CallToolRequestParams> context) =>
+        throw new NotSupportedException("the convention tests read declarations only and never invoke a tool");
 
     private static string? DescriptionOf(ICustomAttributeProvider member) =>
         member.GetCustomAttributes(typeof(DescriptionAttribute), false)
@@ -220,5 +228,63 @@ public class ToolCatalogConventionTests
             ToolLimits.MaxPluginViewDepth.ToString(),
             DescriptionOf(depth) ?? string.Empty,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>A host that loads tools on demand or brokers them from a sandbox decides by these hints whether a call needs a human; a silent hint is read as "unknown" and costs a prompt.</summary>
+    [Fact]
+    public void EveryToolStatesAllFourBehaviourHints()
+    {
+        var silent = ToolMethods()
+            .Where(method => Protocol(method).Annotations is not
+            {
+                ReadOnlyHint: not null,
+                DestructiveHint: not null,
+                IdempotentHint: not null,
+                OpenWorldHint: not null,
+            })
+            .Select(ToolName)
+            .ToList();
+
+        Assert.True(silent.Count == 0, $"tools without explicit ReadOnly, Destructive, Idempotent and OpenWorld: {string.Join(", ", silent)}");
+    }
+
+    [Fact]
+    public void AReadOnlyToolIsNeverDestructive()
+    {
+        var contradictions = ToolMethods()
+            .Where(method => Protocol(method).Annotations is { ReadOnlyHint: true, DestructiveHint: true })
+            .Select(ToolName)
+            .ToList();
+
+        Assert.True(contradictions.Count == 0, $"read-only yet destructive: {string.Join(", ", contradictions)}");
+    }
+
+    [Fact]
+    public void AToolNamedAsAReadIsReadOnlyAndAToolNamedAsADeleteIsDestructive()
+    {
+        var reads = ToolMethods()
+            .Where(method => Regex.IsMatch(ToolName(method), "^(figma|figjam)_(get|list|search)_"))
+            .Where(method => Protocol(method).Annotations is not { ReadOnlyHint: true })
+            .Select(ToolName)
+            .ToList();
+
+        var deletes = ToolMethods()
+            .Where(method => ToolName(method).Contains("_delete_", StringComparison.Ordinal))
+            .Where(method => Protocol(method).Annotations is not { ReadOnlyHint: false, DestructiveHint: true })
+            .Select(ToolName)
+            .ToList();
+
+        Assert.True(reads.Count == 0, $"named as a read but not read-only: {string.Join(", ", reads)}");
+        Assert.True(deletes.Count == 0, $"named as a delete but not destructive: {string.Join(", ", deletes)}");
+    }
+
+    /// <summary>An output schema is a promise a code-mode host generates a typed stub from; a tool that states one must answer structured content, which only a CallToolResult can carry.</summary>
+    [Fact]
+    public void AToolThatAdvertisesAnOutputSchemaAnswersWithACallToolResult()
+    {
+        var advertised = ToolMethods().Where(method => Protocol(method).OutputSchema is not null).ToList();
+
+        Assert.NotEmpty(advertised);
+        Assert.All(advertised, method => Assert.Equal(typeof(Task<CallToolResult>), method.ReturnType));
     }
 }
