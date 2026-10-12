@@ -4,11 +4,9 @@ namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Library tool lookup order: component set first, single component as the fallback.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class LibraryToolsTests
+public class LibraryToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public LibraryToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private LibraryTools Library(FakePublishedSource api) => new(
         _bridge.Gateway, api, api, NullLogger<LibraryTools>.Instance);
@@ -96,7 +94,7 @@ public class LibraryToolsTests
 
         var data = Data(await Library(api).GetLibraryComponentByKeyAsync("abc"));
 
-        Assert.Equal(["/v1/component_sets/abc", "/v1/components/abc"], api.RequestedEndpoints.ToArray());
+        Assert.Equal(["/v1/component_sets/abc", "/v1/components/abc"], [.. api.RequestedEndpoints]);
         Assert.Equal("COMPONENT", data["resolvedAs"]!.GetValue<string>());
         Assert.Equal("LIBKEY", data["fileKey"]!.GetValue<string>());
     }

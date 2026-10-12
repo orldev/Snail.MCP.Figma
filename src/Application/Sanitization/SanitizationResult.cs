@@ -1,6 +1,9 @@
 namespace Snail.MCP.Figma.Application.Sanitization;
 
 /// <summary>Sanitization result with savings metrics.</summary>
+/// <param name="Node">The cleaned tree.</param>
+/// <param name="BytesIn">Size of the source tree as compact JSON.</param>
+/// <param name="BytesOut">Size of the cleaned tree as compact JSON.</param>
 /// <param name="NodesEmitted">Nodes included in the response.</param>
 /// <param name="NodesOmitted">Nodes dropped by depth and count limits.</param>
 /// <param name="StylesDeduplicated">Repeated styles moved into the dictionary.</param>

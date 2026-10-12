@@ -14,7 +14,7 @@ public sealed class JsonFlatFormatter : ITokenFormatter
 
         foreach (var token in document.AllTokens)
         {
-            var value = options.ResolveAliases
+            var value = options.ShouldResolveAliases
                 ? resolver.ResolveToLiteral(token, mode)
                 : token.ValueFor(mode);
 
@@ -61,7 +61,7 @@ public sealed class JsonNestedFormatter : ITokenFormatter
 
         foreach (var token in document.AllTokens)
         {
-            var value = options.ResolveAliases
+            var value = options.ShouldResolveAliases
                 ? resolver.ResolveToLiteral(token, mode)
                 : token.ValueFor(mode);
 
@@ -161,7 +161,7 @@ public sealed class StyleDictionaryV3Formatter : ITokenFormatter
 public sealed class TokensStudioFormatter : ITokenFormatter
 {
     /// <summary>DTCG types → Tokens Studio type names.</summary>
-    private static readonly Dictionary<string, string> TypeMap = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> StudioTypeByDtcgType = new(StringComparer.Ordinal)
     {
         [TokenTypes.Color] = "color",
         [TokenTypes.Dimension] = "sizing",
@@ -226,7 +226,7 @@ public sealed class TokensStudioFormatter : ITokenFormatter
                     ["value"] = value.IsReference
                         ? JsonValue.Create($"{{{value.Reference}}}")
                         : JsonFlatFormatter.RenderLiteral(value.Literal, token.Type, options),
-                    ["type"] = TypeMap.GetValueOrDefault(token.Type, token.Type),
+                    ["type"] = StudioTypeByDtcgType.GetValueOrDefault(token.Type, token.Type),
                 };
 
                 if (!string.IsNullOrWhiteSpace(token.Description))

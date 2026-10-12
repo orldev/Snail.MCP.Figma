@@ -79,9 +79,7 @@ public sealed class LiveEditorGateway(
                 .OnNodesMutatedAsync(session?.FileKey, affected, ancestors, cancellationToken)
                 .ConfigureAwait(false);
 
-            logger.LogDebug(
-                "{Method}: invalidated {Nodes} nodes and {Ancestors} ancestors",
-                command.Name, affected.Count, ancestors.Count);
+            Log.NodesInvalidated(logger, command.Name, affected.Count, ancestors.Count);
         }
 
         return result;

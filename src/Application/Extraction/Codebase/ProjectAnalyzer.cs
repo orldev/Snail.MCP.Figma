@@ -123,9 +123,9 @@ public static partial class ProjectAnalyzer
                 Frameworks = frameworks,
                 StylingMethods = stylingMethods,
                 ComponentLibraries = componentLibraries,
-                StyleSources = styleSources.Take(MaxStyleSources).ToList(),
+                StyleSources = [.. styleSources.Take(MaxStyleSources)],
                 Icons = icons,
-                Typography = typography.Take(MaxTypographyRules).ToList(),
+                Typography = [.. typography.Take(MaxTypographyRules)],
                 Stats = new DsTargetStats
                 {
                     FilesScanned = walk.Files.Count,

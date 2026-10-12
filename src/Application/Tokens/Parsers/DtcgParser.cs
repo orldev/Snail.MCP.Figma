@@ -102,7 +102,7 @@ public sealed class DtcgParser : ITokenParser
 
         var token = new Token
         {
-            Path = path.ToArray(),
+            Path = [.. path],
             Type = type,
             Description = leaf["$description"]?.GetValue<string>(),
             Figma = figma,

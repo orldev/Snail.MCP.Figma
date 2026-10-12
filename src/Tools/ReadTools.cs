@@ -1,11 +1,11 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Application.Sanitization;
-using Snail.MCP.Figma.Application.Editor;
-using Snail.MCP.Figma.Tools.Prompts;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Sanitization;
+using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -27,7 +27,7 @@ public sealed class ReadTools(
     private bool HasLiveSession(string fileKey) => plugin.Documents.Resolve(fileKey) is not null;
 
     /// <summary>In auto mode the plugin goes first unless disabled in configuration.</summary>
-    private bool PluginPreferred => bridgeOptions.PreferPluginForReads;
+    private bool IsPluginPreferred => bridgeOptions.PreferPluginForReads;
 
     /// <summary>Read mode as a lowercase string — exactly how it is compared downstream.</summary>
     private static bool TryParseSource(string? source, out string mode)
@@ -82,7 +82,7 @@ public sealed class ReadTools(
             var effectiveDepth = depth ?? sanitizationOptions.DefaultDepth;
             var effectiveMaxNodes = maxNodes ?? sanitizationOptions.DefaultMaxNodes;
 
-            if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
+            if (mode != "rest" && (mode == "plugin" || IsPluginPreferred) && HasLiveSession(fileKey))
             {
                 try
                 {
@@ -102,7 +102,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    logger.LogWarning("Plugin did not return the file tree, falling back to REST: {Message}", ex.Message);
+                    Log.FileTreeThroughRest(logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -146,7 +146,7 @@ public sealed class ReadTools(
             var normalized = NodeId.Normalize(nodeId);
             var effectiveDepth = depth ?? 4;
 
-            if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
+            if (mode != "rest" && (mode == "plugin" || IsPluginPreferred) && HasLiveSession(fileKey))
             {
                 try
                 {
@@ -173,7 +173,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    logger.LogWarning("Plugin did not return node {NodeId}, falling back to REST: {Message}", normalized, ex.Message);
+                    Log.NodeThroughRest(logger, normalized, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -219,7 +219,7 @@ public sealed class ReadTools(
             JsonNode? local = null;
             var localSource = "figma-api";
 
-            if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
+            if (mode != "rest" && (mode == "plugin" || IsPluginPreferred) && HasLiveSession(fileKey))
             {
                 try
                 {
@@ -233,7 +233,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    logger.LogWarning("Plugin did not return variables, falling back to REST: {Message}", ex.Message);
+                    Log.VariablesThroughRest(logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -253,7 +253,7 @@ public sealed class ReadTools(
                 }
                 catch (PublishedSourceException ex)
                 {
-                    logger.LogWarning("Published variables unavailable: {Message}", ex.Message);
+                    Log.PublishedVariablesUnavailable(logger, ex.Message);
                     formatted["publishedError"] = ex.Message;
                 }
             }
@@ -315,7 +315,7 @@ public sealed class ReadTools(
             JsonNode? styles = null;
             var stylesSource = "figma-api";
 
-            if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
+            if (mode != "rest" && (mode == "plugin" || IsPluginPreferred) && HasLiveSession(fileKey))
             {
                 try
                 {
@@ -326,7 +326,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    logger.LogWarning("Plugin did not return styles, falling back to REST: {Message}", ex.Message);
+                    Log.StylesThroughRest(logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -392,7 +392,7 @@ public sealed class ReadTools(
             var normalized = NodeId.Normalize(nodeId);
             var effectiveScale = Math.Clamp(scale, 0.01, 4);
 
-            if (mode != "rest" && (mode == "plugin" || PluginPreferred) && HasLiveSession(fileKey))
+            if (mode != "rest" && (mode == "plugin" || IsPluginPreferred) && HasLiveSession(fileKey))
             {
                 var captured = await CaptureThroughPluginAsync(fileKey, normalized, format, effectiveScale, inline, ct)
                     .ConfigureAwait(false);
@@ -448,7 +448,7 @@ public sealed class ReadTools(
 
                 if (captured is { } shot)
                 {
-                    logger.LogWarning("Render quota exhausted — node {NodeId} captured through the plugin", normalized);
+                    Log.CapturedThroughPlugin(logger, normalized);
 
                     return shot;
                 }
@@ -502,7 +502,7 @@ public sealed class ReadTools(
         }
         catch (Exception ex) when (ex is EditorUnavailableException or EditorCommandException or TimeoutException or InvalidOperationException)
         {
-            logger.LogWarning("Plugin could not capture node {NodeId}: {Message}", nodeId, ex.Message);
+            Log.CaptureFailed(logger, nodeId, ex.Message);
 
             return null;
         }
@@ -556,7 +556,7 @@ public sealed class ReadTools(
                 {
                     Profile = SanitizationProfile.Aggressive,
                     MaxDepth = effectiveDepth,
-                    DeduplicateStyles = false,
+                    ShouldDeduplicateStyles = false,
                 },
                 $"{fileKey}/plugin-view");
 
@@ -613,7 +613,7 @@ public sealed class ReadTools(
         }
         catch (PublishedSourceException ex)
         {
-            logger.LogWarning(ex, "Figma API returned an error");
+            Log.ApiError(logger, ex);
 
             return fail(ex.Message, ex.Hint);
         }

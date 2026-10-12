@@ -50,7 +50,7 @@ public sealed class CaptureStore(ServerConfig config, ILogger<CaptureStore> logg
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to prune old screenshots in {Dir}", config.ScreenshotDirectory);
+            Log.ScreenshotsNotPruned(logger, ex, config.ScreenshotDirectory);
         }
     }
 }

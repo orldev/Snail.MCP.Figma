@@ -15,7 +15,7 @@ public static class StructureProjector
     public static JsonNode Project(JsonNode source) => source switch
     {
         JsonObject obj => ProjectObject(obj),
-        JsonArray array => new JsonArray(array.Select(item => item is null ? null : Project(item)).ToArray()),
+        JsonArray array => new JsonArray([.. array.Select(item => item is null ? null : Project(item))]),
         _ => source.DeepClone(),
     };
 

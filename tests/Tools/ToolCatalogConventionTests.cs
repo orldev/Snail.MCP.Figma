@@ -11,18 +11,13 @@ using Snail.MCP.Figma.Tools.Prompts;
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Prompt catalog guards: descriptions are hardcoded consts that drift silently as the code evolves; these tests catch drift at build time.</summary>
-public class ToolCatalogConventionTests
+public partial class ToolCatalogConventionTests
 {
-    private static readonly Regex ToolNamePattern = new("^(figma|figjam|csharp)_[a-z0-9_]+$", RegexOptions.Compiled);
-
-    private static readonly Regex ToolReference = new(@"\b(figma|figjam|csharp)_[a-z0-9_]+", RegexOptions.Compiled);
-
     private static IReadOnlyList<MethodInfo> ToolMethods() =>
-        typeof(ToolDescriptions).Assembly.GetTypes()
+        [.. typeof(ToolDescriptions).Assembly.GetTypes()
             .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null)
             .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(method => method.GetCustomAttribute<McpServerToolAttribute>() is not null)
-            .ToList();
+            .Where(method => method.GetCustomAttribute<McpServerToolAttribute>() is not null)];
 
     private static string ToolName(MethodInfo method) => method.GetCustomAttribute<McpServerToolAttribute>()!.Name!;
 
@@ -263,7 +258,7 @@ public class ToolCatalogConventionTests
     public void AToolNamedAsAReadIsReadOnlyAndAToolNamedAsADeleteIsDestructive()
     {
         var reads = ToolMethods()
-            .Where(method => Regex.IsMatch(ToolName(method), "^(figma|figjam)_(get|list|search)_"))
+            .Where(method => ReadingNamePattern.IsMatch(ToolName(method)))
             .Where(method => Protocol(method).Annotations is not { ReadOnlyHint: true })
             .Select(ToolName)
             .ToList();
@@ -287,4 +282,13 @@ public class ToolCatalogConventionTests
         Assert.NotEmpty(advertised);
         Assert.All(advertised, method => Assert.Equal(typeof(Task<CallToolResult>), method.ReturnType));
     }
+
+    [GeneratedRegex("^(figma|figjam|csharp)_[a-z0-9_]+$")]
+    private static partial Regex ToolNamePattern { get; }
+
+    [GeneratedRegex(@"\b(figma|figjam|csharp)_[a-z0-9_]+")]
+    private static partial Regex ToolReference { get; }
+
+    [GeneratedRegex("^(figma|figjam)_(get|list|search)_")]
+    private static partial Regex ReadingNamePattern { get; }
 }

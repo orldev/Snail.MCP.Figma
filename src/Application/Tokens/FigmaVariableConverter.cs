@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Application.Tokens;
 public static class FigmaVariableConverter
 {
     /// <summary>Native Figma types → DTCG types.</summary>
-    private static readonly Dictionary<string, string> TypeMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> DtcgTypeByFigmaType = new(StringComparer.OrdinalIgnoreCase)
     {
         ["COLOR"] = TokenTypes.Color,
         ["FLOAT"] = TokenTypes.Dimension,
@@ -15,8 +15,8 @@ public static class FigmaVariableConverter
         ["BOOLEAN"] = TokenTypes.Boolean,
     };
 
-    /// <summary>Builds the document; <paramref name="modeNameMap"/> renames Figma modes to code names.</summary>
-    public static TokenDocument Convert(JsonNode variablesData, IReadOnlyDictionary<string, string>? modeNameMap = null)
+    /// <summary>Builds the document; <paramref name="codeNameByModeName"/> renames Figma modes to code names.</summary>
+    public static TokenDocument Convert(JsonNode variablesData, IReadOnlyDictionary<string, string>? codeNameByModeName = null)
     {
         var document = new TokenDocument();
 
@@ -52,7 +52,7 @@ public static class FigmaVariableConverter
                     continue;
                 }
 
-                var mapped = Rename(modeName, modeNameMap);
+                var mapped = Rename(modeName, codeNameByModeName);
 
                 if (!set.Modes.Contains(mapped, StringComparer.Ordinal))
                 {
@@ -79,7 +79,7 @@ public static class FigmaVariableConverter
             var token = new Token
             {
                 Path = name.Split('/', StringSplitOptions.RemoveEmptyEntries),
-                Type = TypeMap.GetValueOrDefault(resolvedType, TokenTypes.String),
+                Type = DtcgTypeByFigmaType.GetValueOrDefault(resolvedType, TokenTypes.String),
                 Description = EmptyToNull(variable["description"]?.GetValue<string>()),
                 Figma = new FigmaTokenExtensions
                 {
@@ -91,7 +91,7 @@ public static class FigmaVariableConverter
                 },
             };
 
-            var modeNames = ModeNamesFor(collections, collectionId, modeNameMap);
+            var modeNames = ModeNamesFor(collections, collectionId, codeNameByModeName);
 
             foreach (var (modeId, rawValue) in (variable["valuesByMode"] as JsonObject) ?? [])
             {
@@ -158,7 +158,7 @@ public static class FigmaVariableConverter
     private static Dictionary<string, string> ModeNamesFor(
         JsonObject collections,
         string? collectionId,
-        IReadOnlyDictionary<string, string>? modeNameMap)
+        IReadOnlyDictionary<string, string>? codeNameByModeName)
     {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -174,7 +174,7 @@ public static class FigmaVariableConverter
 
             if (modeId is not null && modeName is not null)
             {
-                result[modeId] = Rename(modeName, modeNameMap);
+                result[modeId] = Rename(modeName, codeNameByModeName);
             }
         }
 

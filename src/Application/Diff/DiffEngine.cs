@@ -123,7 +123,7 @@ public static class DiffEngine
                 });
             }
 
-            if (!JsonEquals(previous?["defaultValue"], definition?["defaultValue"]))
+            if (!AreJsonEqual(previous?["defaultValue"], definition?["defaultValue"]))
             {
                 defaultChanged.Add(new JsonObject
                 {
@@ -436,14 +436,13 @@ public static class DiffEngine
     }
 
     private static JsonArray StripDefaults(JsonNode? entries) =>
-        new((entries as JsonArray ?? [])
+        [.. (entries as JsonArray ?? [])
             .Select(entry => (JsonNode)new JsonObject
             {
                 ["name"] = entry?["name"]?.DeepClone(),
                 ["type"] = entry?["type"]?.DeepClone(),
-            })
-            .ToArray());
+            })];
 
-    private static bool JsonEquals(JsonNode? left, JsonNode? right) =>
+    private static bool AreJsonEqual(JsonNode? left, JsonNode? right) =>
         string.Equals(left?.ToJsonString(), right?.ToJsonString(), StringComparison.Ordinal);
 }

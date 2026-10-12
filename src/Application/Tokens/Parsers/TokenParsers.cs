@@ -16,7 +16,7 @@ public static class TokenParsers
         new StyleDictionaryV3Parser(),
     ];
 
-    public static IReadOnlyList<string> Formats => All.Select(parser => parser.Format).ToArray();
+    public static IReadOnlyList<string> Formats => [.. All.Select(parser => parser.Format)];
 
     /// <summary>Parser by format name; <c>null</c> when unknown.</summary>
     public static ITokenParser? Find(string? format) =>

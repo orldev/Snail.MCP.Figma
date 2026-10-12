@@ -12,7 +12,7 @@ public sealed class TokensStudioParser : ITokenParser
     };
 
     /// <summary>Tokens Studio type names → DTCG types.</summary>
-    private static readonly Dictionary<string, string> TypeMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> DtcgTypeByStudioType = new(StringComparer.OrdinalIgnoreCase)
     {
         ["color"] = TokenTypes.Color,
         ["sizing"] = TokenTypes.Dimension,
@@ -122,7 +122,7 @@ public sealed class TokensStudioParser : ITokenParser
             if (child.ContainsKey("value"))
             {
                 var rawType = child["type"]?.GetValue<string>() ?? groupType;
-                var type = rawType is not null && TypeMap.TryGetValue(rawType, out var mapped)
+                var type = rawType is not null && DtcgTypeByStudioType.TryGetValue(rawType, out var mapped)
                     ? mapped
                     : rawType ?? DtcgParser.InferType(child["value"]);
 

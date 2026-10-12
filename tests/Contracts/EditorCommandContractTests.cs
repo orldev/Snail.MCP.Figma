@@ -5,7 +5,7 @@ using Snail.MCP.Figma.Application.Editor;
 namespace Snail.MCP.Figma.Tests.Contracts;
 
 /// <summary>Every EditorCommands constant must have a handler in the plugin bundle — a missing one surfaces at runtime only as a timeout.</summary>
-public class EditorCommandContractTests
+public partial class EditorCommandContractTests
 {
     /// <summary>Handlers the plugin UI triggers on its own; no server command maps to them.</summary>
     private static readonly HashSet<string> PluginInternal = ["RESIZE_UI"];
@@ -46,7 +46,7 @@ public class EditorCommandContractTests
     {
         var source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "plugin", "code.js"));
 
-        return [.. Regex.Matches(source, @"msg\.type === '([A-Z_]+)'")
+        return [.. MessageTypePattern.Matches(source)
             .Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.Ordinal)];
     }
@@ -56,7 +56,7 @@ public class EditorCommandContractTests
     {
         var source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "plugin", "ui.html"));
 
-        return [.. Regex.Matches(source, @"'([A-Z_]+)':\s*function")
+        return [.. CommandHandlerPattern.Matches(source)
             .Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.Ordinal)];
     }
@@ -77,4 +77,10 @@ public class EditorCommandContractTests
 
         throw new InvalidOperationException("the plugin folder was not found above the test binaries");
     }
+
+    [GeneratedRegex(@"msg\.type === '([A-Z_]+)'")]
+    private static partial Regex MessageTypePattern { get; }
+
+    [GeneratedRegex(@"'([A-Z_]+)':\s*function")]
+    private static partial Regex CommandHandlerPattern { get; }
 }

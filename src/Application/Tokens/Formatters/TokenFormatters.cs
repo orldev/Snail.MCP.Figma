@@ -18,7 +18,7 @@ public static class TokenFormatters
         new StyleDictionaryV3Formatter(),
     ];
 
-    public static IReadOnlyList<string> Formats => All.Select(formatter => formatter.Format).ToArray();
+    public static IReadOnlyList<string> Formats => [.. All.Select(formatter => formatter.Format)];
 
     /// <summary>Formatter by format name; <c>null</c> when unknown.</summary>
     public static ITokenFormatter? Find(string? format) =>

@@ -1,21 +1,18 @@
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Application.Sanitization;
-using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Application.Documents;
-
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Sanitization;
+using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Plugin-first READ tools: while a plugin is connected for the file, reads go through it and paid REST is untouched; REST remains the fallback and the forced path via source="rest".</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class ReadToolsLiveEditorTests
+public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public ReadToolsLiveEditorTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private static string NewFileKey() => $"rd{Guid.NewGuid().ToString("N")[..10]}";
 

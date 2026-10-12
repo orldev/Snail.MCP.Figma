@@ -1,14 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Snail.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
         <RootNamespace>Snail.MCP.Figma.Benchmarks</RootNamespace>
-        <!-- A benchmark is named by what it measures; BenchmarkDotNet needs its classes public and unsealed. -->
-        <NoWarn>$(NoWarn);CS1591;CA1515;CA1822;CA1001</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

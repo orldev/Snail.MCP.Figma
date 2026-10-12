@@ -1,6 +1,6 @@
 using LiteDB;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 
@@ -80,10 +80,7 @@ public sealed class LiteDatabaseProvider(ServerConfig config, ILogger<LiteDataba
         }
         catch (Exception ex)
         {
-            logger.LogWarning(
-                ex,
-                "LiteDB cache unavailable, running without it (next retry not before {NextRetry:HH:mm:ss} UTC)",
-                _nextRetryAt);
+            Log.CacheUnavailable(logger, ex, _nextRetryAt);
 
             return null;
         }
@@ -100,7 +97,7 @@ public sealed class LiteDatabaseProvider(ServerConfig config, ILogger<LiteDataba
             Connection = config.Cache.SharedConnection ? ConnectionType.Shared : ConnectionType.Direct,
         };
 
-        logger.LogInformation("Opening LiteDB cache: {File}", config.CacheDatabaseFile);
+        Log.CacheOpening(logger, config.CacheDatabaseFile);
         var startedAt = DateTimeOffset.UtcNow;
 
         var database = new LiteDatabase(connection, CreateMapper());
@@ -110,10 +107,7 @@ public sealed class LiteDatabaseProvider(ServerConfig config, ILogger<LiteDataba
         nodes.EnsureIndex(n => n.ExpiresAt);
         database.GetCollection<DocumentVersionRecord>(LiteDbCollections.Versions).EnsureIndex(v => v.FileKey);
 
-        logger.LogInformation(
-            "Cache ready in {ElapsedMs} ms, file {File}",
-            (long)(DateTimeOffset.UtcNow - startedAt).TotalMilliseconds,
-            config.CacheDatabaseFile);
+        Log.CacheReady(logger, (long)(DateTimeOffset.UtcNow - startedAt).TotalMilliseconds, config.CacheDatabaseFile);
 
         return database;
     }
@@ -142,7 +136,7 @@ public sealed class LiteDatabaseProvider(ServerConfig config, ILogger<LiteDataba
                  Directory.Exists(Path.Combine(directory, "Databases"))))
             {
                 Directory.Delete(directory, recursive: true);
-                logger.LogInformation("Removed legacy RavenDB cache store: {Directory}", directory);
+                Log.LegacyStoreRemoved(logger, directory);
             }
 
             var logs = Path.Combine(config.DataDirectory, "logs", "raven");
@@ -154,7 +148,7 @@ public sealed class LiteDatabaseProvider(ServerConfig config, ILogger<LiteDataba
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to remove legacy RavenDB cache data in {Directory}", directory);
+            Log.LegacyStoreNotRemoved(logger, ex, directory);
         }
     }
 

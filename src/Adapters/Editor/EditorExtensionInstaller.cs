@@ -1,10 +1,11 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 
 /// <summary>Copies the JS plugin from the build output to a stable path under the data directory, where Figma imports its manifest once.</summary>
-public sealed class EditorExtensionInstaller(
+public sealed partial class EditorExtensionInstaller(
     ServerConfig config,
     ILogger<EditorExtensionInstaller> logger)
     : IHostedService, IEditorExtensionInstaller
@@ -32,7 +33,7 @@ public sealed class EditorExtensionInstaller(
         var buffer = new char[2048];
         var read = reader.Read(buffer, 0, buffer.Length);
         var head = new string(buffer, 0, read);
-        var match = System.Text.RegularExpressions.Regex.Match(head, "PLUGIN_VERSION = '([^']+)'");
+        var match = PluginVersionPattern().Match(head);
 
         return match.Success ? match.Groups[1].Value : null;
     }
@@ -45,7 +46,7 @@ public sealed class EditorExtensionInstaller(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to install the plugin into {Target}", TargetDirectory);
+            Log.PluginNotInstalled(logger, ex, TargetDirectory);
         }
 
         return Task.CompletedTask;
@@ -60,7 +61,7 @@ public sealed class EditorExtensionInstaller(
 
         if (source is null)
         {
-            logger.LogWarning("No plugin/ directory next to the assembly — the WRITE channel will be unavailable");
+            Log.PluginNotBundled(logger);
 
             return 0;
         }
@@ -83,10 +84,7 @@ public sealed class EditorExtensionInstaller(
 
         if (copied > 0)
         {
-            logger.LogInformation(
-                "Plugin updated in {Target} ({Count} files). Import manifest.json in Figma: " +
-                "Plugins → Development → Import plugin from manifest",
-                TargetDirectory, copied);
+            Log.PluginUpdated(logger, TargetDirectory, copied);
         }
 
         return copied;
@@ -99,4 +97,7 @@ public sealed class EditorExtensionInstaller(
 
         return RequiredFiles.All(file => File.Exists(Path.Combine(candidate, file))) ? candidate : null;
     }
+
+    [GeneratedRegex("PLUGIN_VERSION = '([^']+)'")]
+    private static partial Regex PluginVersionPattern();
 }

@@ -48,7 +48,7 @@ public sealed class ImageFiles(ILogger<ImageFiles> logger) : IImageFiles
                 $"{resolved} is {size.Width}x{size.Height} and Figma takes up to {ImageLimits.MaxPixelSide} px on a side; crop it or export it smaller.");
         }
 
-        logger.LogInformation("Reading {Bytes} bytes of {Path} for the editor", length, resolved);
+        Log.ImageRead(logger, length, resolved);
 
         return Convert.ToBase64String(File.ReadAllBytes(resolved));
     }

@@ -55,7 +55,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         query.Add("depth", options?.Depth);
         query.Add("geometry", options?.Geometry);
 
-        if (options?.BranchData == true)
+        if (options?.IncludesBranchData == true)
         {
             query.Add("branch_data", "true");
         }
@@ -207,9 +207,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
 
         if (_rateLimit.RemainingFor(endpoint) is { } blocked)
         {
-            _logger.LogWarning(
-                "Bucket {Bucket} is closed by exhausted quota for another {Remaining} — not sending {Endpoint}",
-                QuotaGate.BucketOf(endpoint), PublishedSourceException.Describe(blocked), endpoint);
+            Log.BucketClosed(_logger, QuotaGate.BucketOf(endpoint), PublishedSourceException.Describe(blocked), endpoint);
 
             throw new PublishedSourceException(
                 SourceFailure.RateLimited,
@@ -245,17 +243,12 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
 
             if (retryAfter > MaxRetryAfter)
             {
-                _logger.LogWarning(
-                    "Figma API rate-limited the request (429) and asks to wait {RetryAfter} — retries are pointless, "
-                    + "failing immediately. The plan quota is exhausted; the endpoint reopens after that period.",
-                    retryAfter);
+                Log.QuotaExhausted(_logger, retryAfter);
                 break;
             }
 
             var delay = retryAfter ?? TimeSpan.FromSeconds(attempt);
-            _logger.LogWarning(
-                "Figma API rate-limited the request (429), attempt {Attempt}/{MaxAttempts}, waiting {DelayMs} ms",
-                attempt, MaxAttempts, (int)delay.TotalMilliseconds);
+            Log.RateLimitedRetrying(_logger, attempt, MaxAttempts, (int)delay.TotalMilliseconds);
 
             response.Dispose();
             await _delay(delay, cancellationToken).ConfigureAwait(false);
@@ -335,16 +328,16 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
                        "Personal access tokens and update SNAIL_MCP_FIGMA_ACCESS_TOKEN.";
         }
         else switch (status)
-        {
-            case HttpStatusCode.TooManyRequests:
-                message += retryAfter is { } wait
-                    ? $" Figma rate-limited the requests and asks to wait {PublishedSourceException.Describe(wait)}."
-                    : " Figma rate-limited the requests — wait and retry.";
-                break;
-            case HttpStatusCode.Forbidden:
-                message += " This may be a plan limitation rather than a token problem (the Variables API, for example, is Enterprise-only).";
-                break;
-        }
+            {
+                case HttpStatusCode.TooManyRequests:
+                    message += retryAfter is { } wait
+                        ? $" Figma rate-limited the requests and asks to wait {PublishedSourceException.Describe(wait)}."
+                        : " Figma rate-limited the requests — wait and retry.";
+                    break;
+                case HttpStatusCode.Forbidden:
+                    message += " This may be a plan limitation rather than a token problem (the Variables API, for example, is Enterprise-only).";
+                    break;
+            }
 
         return new PublishedSourceException(Classify(status), message, isAuthError, retryAfter);
     }

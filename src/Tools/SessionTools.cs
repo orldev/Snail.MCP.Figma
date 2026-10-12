@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.MCP.Figma.Application.Documents;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -37,7 +37,7 @@ public sealed class SessionTools(
             var fileKey = DocumentLocator.Parse(fileUrlOrKey)?.EffectiveKey ?? fileUrlOrKey.Trim();
             activeFile.Remember(fileKey);
 
-            var bound = await Plugin.Documents.ClaimAsync(fileKey, ct).ConfigureAwait(false);
+            var bound = await Plugin.Documents.TryClaimAsync(fileKey, ct).ConfigureAwait(false);
             var others = bound ? OthersInTarget() : [];
 
             return ToolResponse.Ok(new JsonObject
@@ -100,10 +100,11 @@ public sealed class SessionTools(
 
             var targets = requested.Count == 0
                 ? addressable
-                : addressable.Where(session => requested.Contains(session.FileKey!)).ToList();
+                : [.. addressable.Where(session => requested.Contains(session.FileKey!))];
 
+            var connectedKeys = addressable.Select(session => session.FileKey).ToHashSet(StringComparer.Ordinal);
             var missing = requested
-                .Where(key => !addressable.Any(session => session.FileKey == key))
+                .Where(key => !connectedKeys.Contains(key))
                 .ToList();
 
             if (targets.Count == 0)
@@ -285,7 +286,7 @@ public sealed class SessionTools(
 
             if (waitMs > 0)
             {
-                await session.Remarks.WaitAsync(TimeSpan.FromMilliseconds(waitMs), ct).ConfigureAwait(false);
+                await session.Remarks.TryWaitAsync(TimeSpan.FromMilliseconds(waitMs), ct).ConfigureAwait(false);
             }
 
             var taken = session.Remarks.TakeAll();

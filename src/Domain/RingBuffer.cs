@@ -31,7 +31,7 @@ public sealed class RingBuffer<T>(int capacity)
     {
         lock (_gate)
         {
-            return _items.Skip(Math.Max(0, _items.Count - count)).ToArray();
+            return [.. _items.Skip(Math.Max(0, _items.Count - count))];
         }
     }
 

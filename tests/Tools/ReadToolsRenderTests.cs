@@ -1,26 +1,23 @@
-using ModelContextProtocol.Protocol;
 using System.Text;
+using ModelContextProtocol.Protocol;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Application.Sanitization;
-using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Application.Documents;
-
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
-/// <summary>Source selection of figma_get_component_image: REST is the only path that costs quota, so cache or plugin must win while they can; the cache itself is covered by <see cref="DocumentRendererTests"/>.</summary>
+/// <summary>Source selection of figma_get_component_image: REST is the only path that costs quota, so cache or plugin must win while they can; the cache itself is covered by <see cref="Application.Documents.DocumentRendererTests"/>.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class ReadToolsRenderTests : IDisposable
+public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
 {
-    private readonly BridgeHostFixture _bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
     private readonly string _screenshotDirectory =
         Path.Combine(Path.GetTempPath(), "snail-image-tests", Guid.NewGuid().ToString("N"));
-
-    public ReadToolsRenderTests(BridgeHostFixture bridge) => _bridge = bridge;
 
     private static string NewFileKey() => $"img{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -188,7 +185,7 @@ public class ReadToolsRenderTests : IDisposable
         AnswerWithScreenshot(plugin);
 
         var (tools, api) = Build();
-        api.FailImageRequests = true;
+        api.ShouldFailImageRequests = true;
 
         var response = Parse(await tools.GetComponentImageAsync("1:2", Url(fileKey), source: "rest"));
 
@@ -201,7 +198,7 @@ public class ReadToolsRenderTests : IDisposable
     public async Task ExhaustedQuotaWithoutAPluginExplainsHowToGetThePictureAnyway()
     {
         var (tools, api) = Build();
-        api.FailImageRequests = true;
+        api.ShouldFailImageRequests = true;
 
         var response = Parse(await tools.GetComponentImageAsync("1:2", Url(NewFileKey())));
 

@@ -202,7 +202,7 @@ public static class DesignSystemKit
                 {
                     delta[key] = null;
                 }
-                else if (!inBase || !JsonEquals(spec[key], baseSpec[key]))
+                else if (!inBase || !AreJsonEqual(spec[key], baseSpec[key]))
                 {
                     delta[key] = spec[key]?.DeepClone();
                 }
@@ -217,7 +217,7 @@ public static class DesignSystemKit
         }
     }
 
-    private static bool JsonEquals(JsonNode? left, JsonNode? right) =>
+    private static bool AreJsonEqual(JsonNode? left, JsonNode? right) =>
         string.Equals(left?.ToJsonString(), right?.ToJsonString(), StringComparison.Ordinal);
 
     /// <summary>Compression level by format and payload size, tuned to consumer model context windows.</summary>
@@ -318,11 +318,11 @@ public static class DesignSystemKit
                 {
                     entry["variants"] = variants.Count > 10
                         ? new JsonArray(new JsonObject { ["name"] = $"{variants.Count} variants", ["id"] = string.Empty })
-                        : new JsonArray(variants.Select(variant => (JsonNode)new JsonObject
+                        : [.. variants.Select(variant => (JsonNode)new JsonObject
                         {
                             ["name"] = variant?["name"]?.DeepClone(),
                             ["id"] = variant?["id"]?.DeepClone(),
-                        }).ToArray());
+                        })];
                 }
 
                 if (item?["properties"] is JsonObject properties)

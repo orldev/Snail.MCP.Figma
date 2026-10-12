@@ -1,17 +1,14 @@
 using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Tools;
-
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Tool behaviour over a live bridge: parameter parsing, partial failures, invalidation.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class ComponentToolsTests
+public class ComponentToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public ComponentToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -28,7 +25,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var attempt = 0;
         plugin.Handlers[EditorCommands.CreateVariable.Name] = parameters => new JsonObject
@@ -54,7 +51,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var response = Parse(await Nodes().SetStrokesAsync("1:2", "{not json"));
 
@@ -68,7 +65,7 @@ public class ComponentToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var tools = new ComponentTools(_bridge.Gateway, NullLogger<ComponentTools>.Instance);
         var response = Parse(await tools.AddComponentPropertyAsync("1:2", "Size", "VARIANT"));
@@ -118,7 +115,7 @@ public class ComponentToolsTests
             new JsonObject { ["nodeIds"] = new JsonArray("2:1", "2:2") },
             new JsonObject { ["nodeId"] = "1:234" });
 
-        Assert.Equal(["2:1", "2:2"], affected.OrderBy(id => id).ToArray());
+        Assert.Equal(["2:1", "2:2"], [.. affected.OrderBy(id => id)]);
     }
 
     [Fact]
@@ -130,6 +127,6 @@ public class ComponentToolsTests
             ["ancestorIds"] = new JsonArray("0:1"),
         });
 
-        Assert.Equal(["0:1", "1:1"], ancestors.OrderBy(id => id).ToArray());
+        Assert.Equal(["0:1", "1:1"], [.. ancestors.OrderBy(id => id)]);
     }
 }

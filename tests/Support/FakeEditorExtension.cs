@@ -13,7 +13,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
 
     public IReadOnlyList<JsonNode> Received
     {
-        get { lock (_gate) { return _received.ToArray(); } }
+        get { lock (_gate) { return [.. _received]; } }
     }
 
     /// <summary>How to answer a command: method name → result or error.</summary>
@@ -122,7 +122,11 @@ public sealed class FakeEditorExtension : IAsyncDisposable
             }
         }
 
-        _loop?.Cancel();
+        if (_loop is not null)
+        {
+            await _loop.CancelAsync();
+        }
+
         _socket.Dispose();
         _loop?.Dispose();
     }

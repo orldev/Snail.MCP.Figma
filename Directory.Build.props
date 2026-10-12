@@ -1,10 +1,14 @@
 <Project>
 
-  <!-- Migration debt: rules of the shared .editorconfig this repository does not meet yet (CS1591: 1254 members,
-       CS1573: 9 parameters, CS1574: 1 cref; not yet enforced by this build: IDE0055: 141 lines, IDE0305: 49 and
-       IDE0028: 16 collection expressions), removed when it moves onto Snail.Sdk (Toolkit/Snail.Sdk/docs/standard.md). -->
-  <PropertyGroup>
-    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
-  </PropertyGroup>
+    <!-- The build — language, nullable, docs, analyzers, warnings as errors — is Snail.Sdk's (global.json). -->
+
+    <!--
+        Migration debt: CS1591, a public member of src without its XML summary (678 members on 2026-10-12, measured on
+        Snail.Sdk 0.1.0-local.10). Writing them is a pass over the whole server of its own, not a part of the move; each
+        one documented lowers the count, and the entry goes when it reaches zero.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
 
 </Project>

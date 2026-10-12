@@ -128,7 +128,7 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         }
         catch (EditorUnavailableException ex)
         {
-            Logger.LogWarning("Bridge unavailable: {Message}", ex.Message);
+            Log.BridgeUnavailable(Logger, ex.Message);
 
             return fail(Messages.PluginNotConnected, Messages.HowToConnectPlugin);
         }

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Snail.MCP.Figma.Configuration;
-using Snail.Toolkit.Mcp.Hosting;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Extensions;
 

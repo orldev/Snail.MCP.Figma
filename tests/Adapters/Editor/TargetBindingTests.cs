@@ -12,7 +12,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     private static bool? LastBound(FakeEditorExtension plugin) => plugin.Received
         .LastOrDefault(message => message["type"]?.GetValue<string>() == "TARGET_BOUND")?["data"]?["bound"]?.GetValue<bool>();
 
-    private static bool Received(FakeEditorExtension plugin, string type) =>
+    private static bool HasReceived(FakeEditorExtension plugin, string type) =>
         plugin.Received.Any(message => message["type"]?.GetValue<string>() == type);
 
     /// <summary>Sessions of the previous test leave the registry a moment after their sockets close.</summary>
@@ -55,7 +55,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginA = await bridge.ConnectPluginAsync(first);
         await using var pluginB = await bridge.ConnectPluginAsync(second);
 
-        Assert.True(await bridge.Registry.ClaimAsync(second));
+        Assert.True(await bridge.Registry.TryClaimAsync(second));
 
         await BridgeHostFixture.WaitUntilAsync(() => LastBound(pluginB) == true, "the new panel was not told");
         await BridgeHostFixture.WaitUntilAsync(() => LastBound(pluginA) == false, "the old panel was not told");
@@ -69,7 +69,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         var fileKey = NewFileKey();
         await using var plugin = await bridge.ConnectPluginAsync(fileKey);
 
-        Assert.False(await bridge.Registry.ClaimAsync("file-without-plugin"));
+        Assert.False(await bridge.Registry.TryClaimAsync("file-without-plugin"));
 
         Assert.Equal(fileKey, bridge.Registry.ActiveFileKey);
     }
@@ -86,7 +86,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginMobile = await bridge.ConnectPluginAsync(mobile, "Mobile");
         await using (var pluginLeaving = await bridge.ConnectPluginAsync(leaving))
         {
-            await bridge.Registry.ClaimAsync(leaving);
+            await bridge.Registry.TryClaimAsync(leaving);
         }
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.ActiveFileKey is null, "the target did not go away with its plugin");
@@ -113,7 +113,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginMobile = await bridge.ConnectPluginAsync(mobile, "Mobile");
         await using (var pluginLeaving = await bridge.ConnectPluginAsync(leaving))
         {
-            await bridge.Registry.ClaimAsync(leaving);
+            await bridge.Registry.TryClaimAsync(leaving);
         }
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.ActiveFileKey is null, "the target did not go away with its plugin");
@@ -135,7 +135,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginB = await bridge.ConnectPluginAsync(second);
         await using (var pluginA = await bridge.ConnectPluginAsync(first))
         {
-            await bridge.Registry.ClaimAsync(first);
+            await bridge.Registry.TryClaimAsync(first);
         }
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.ActiveFileKey == second, "the remaining file did not take over");
@@ -151,14 +151,14 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         var theirs = NewFileKey();
         await using var pluginMine = await bridge.ConnectPluginAsync(mine);
         await using var pluginTheirs = await bridge.ConnectPluginAsync(theirs);
-        await bridge.Registry.ClaimAsync(mine);
+        await bridge.Registry.TryClaimAsync(mine);
 
         await pluginTheirs.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "not for you" });
         await pluginMine.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "for you" });
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.Resolve(mine)!.Remarks.Count == 1, "the agent's own remark did not arrive");
         Assert.Equal(0, bridge.Registry.Resolve(theirs)!.Remarks.Count);
-        Assert.False(Received(pluginTheirs, "REMARKS_WAITING"));
+        Assert.False(HasReceived(pluginTheirs, "REMARKS_WAITING"));
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginMobile = await bridge.ConnectPluginAsync(mobile, "Mobile");
         await using (var pluginLeaving = await bridge.ConnectPluginAsync(leaving))
         {
-            await bridge.Registry.ClaimAsync(leaving);
+            await bridge.Registry.TryClaimAsync(leaving);
         }
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.ActiveFileKey is null, "the target did not go away with its plugin");
@@ -211,7 +211,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
         await using var pluginMobile = await bridge.ConnectPluginAsync(mobile, "Mobile");
         await using (var pluginLeaving = await bridge.ConnectPluginAsync(leaving))
         {
-            await bridge.Registry.ClaimAsync(leaving);
+            await bridge.Registry.TryClaimAsync(leaving);
         }
 
         await BridgeHostFixture.WaitUntilAsync(() => bridge.Registry.ActiveFileKey is null, "the target did not go away with its plugin");
@@ -240,7 +240,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
         await using var plugin = await bridge.ConnectPluginAsync(fileKey);
 
-        await BridgeHostFixture.WaitUntilAsync(() => Received(plugin, "SERVER_HELLO"), "no greeting");
+        await BridgeHostFixture.WaitUntilAsync(() => HasReceived(plugin, "SERVER_HELLO"), "no greeting");
         var hello = plugin.Received.Single(message => message["type"]?.GetValue<string>() == "SERVER_HELLO");
         Assert.Equal("test-agent", hello["data"]!["agent"]!.GetValue<string>());
     }

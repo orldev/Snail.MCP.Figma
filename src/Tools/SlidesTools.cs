@@ -16,7 +16,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
     [McpServerTool(Name = "figma_list_slides", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.ListSlides)]
     public Task<string> ListSlidesAsync(CancellationToken cancellationToken = default) =>
-        ReadAsync(EditorCommands.ListSlides, new JsonObject(), cancellationToken);
+        ReadAsync(EditorCommands.ListSlides, [], cancellationToken);
 
     [McpServerTool(Name = "figma_get_slide_content", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideContent)]
@@ -31,7 +31,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
     [McpServerTool(Name = "figma_get_slide_grid", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideGrid)]
     public Task<string> GetSlideGridAsync(CancellationToken cancellationToken = default) =>
-        ReadAsync(EditorCommands.GetSlideGrid, new JsonObject(), cancellationToken);
+        ReadAsync(EditorCommands.GetSlideGrid, [], cancellationToken);
 
     [McpServerTool(Name = "figma_get_slide_transition", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideTransition)]
@@ -46,7 +46,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
     [McpServerTool(Name = "figma_get_focused_slide", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetFocusedSlide)]
     public Task<string> GetFocusedSlideAsync(CancellationToken cancellationToken = default) =>
-        ReadAsync(EditorCommands.GetFocusedSlide, new JsonObject(), cancellationToken);
+        ReadAsync(EditorCommands.GetFocusedSlide, [], cancellationToken);
 
     [McpServerTool(Name = "figma_create_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.CreateSlide)]

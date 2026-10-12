@@ -38,6 +38,6 @@ public class SiblingDiscoveryTests
         var message = EditorWireProtocol.PortsAlive([9223, 9225]);
 
         Assert.Equal("PORTS_ALIVE", message["type"]!.GetValue<string>());
-        Assert.Equal([9223, 9225], message["data"]!["ports"]!.AsArray().Select(port => port!.GetValue<int>()).ToArray());
+        Assert.Equal([9223, 9225], [.. message["data"]!["ports"]!.AsArray().Select(port => port!.GetValue<int>())]);
     }
 }

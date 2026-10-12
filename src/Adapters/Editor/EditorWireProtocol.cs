@@ -8,7 +8,7 @@ public static class EditorWireProtocol
     {
         ["id"] = id,
         ["method"] = method,
-        ["params"] = parameters ?? new JsonObject(),
+        ["params"] = parameters ?? [],
     };
 
     /// <summary>Greeting sent on connect; the plugin writes it to its log and keeps the agent's name for the panel.</summary>

@@ -44,7 +44,7 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
         var context = new WalkContext(request);
         var cleaned = Visit(source, depth: 0, context) ?? new JsonObject();
 
-        var deduplicated = request.DeduplicateStyles ? ApplyStyleDictionary(cleaned, context) : 0;
+        var deduplicated = request.ShouldDeduplicateStyles ? ApplyStyleDictionary(cleaned, context) : 0;
 
         var result = new SanitizationResult(
             cleaned,
@@ -67,21 +67,21 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
                 return VisitObject(obj, depth, context);
 
             case JsonArray array:
-            {
-                var result = new JsonArray();
-
-                foreach (var item in array)
                 {
-                    var visited = Visit(item, depth, context);
+                    var result = new JsonArray();
 
-                    if (visited is not null)
+                    foreach (var item in array)
                     {
-                        result.Add(visited);
-                    }
-                }
+                        var visited = Visit(item, depth, context);
 
-                return result;
-            }
+                        if (visited is not null)
+                        {
+                            result.Add(visited);
+                        }
+                    }
+
+                    return result;
+                }
 
             default:
                 return node?.DeepClone();
@@ -139,7 +139,7 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
                 continue;
             }
 
-            if (context.Request.DeduplicateStyles && StyleBearingKeys.Contains(key) && !IsEmptyContainer(visited))
+            if (context.Request.ShouldDeduplicateStyles && StyleBearingKeys.Contains(key) && !IsEmptyContainer(visited))
             {
                 context.RegisterStyleCandidate(result, key, visited);
             }
@@ -234,11 +234,7 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
             return;
         }
 
-        logger.LogInformation(
-            "sanitize[{Label}] profile={Profile} {Metric}",
-            label ?? "-",
-            request.Profile,
-            result.ToMetricString());
+        Log.Sanitized(logger, label ?? "-", request.Profile, result.ToMetricString());
     }
 
     private static bool IsEmptyContainer(JsonNode? node) => node switch

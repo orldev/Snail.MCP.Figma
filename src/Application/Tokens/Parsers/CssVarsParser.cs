@@ -14,6 +14,12 @@ public sealed partial class CssVarsParser : ITokenParser
     [GeneratedRegex(@"^var\(\s*--(?<name>[A-Za-z0-9_-]+)\s*\)$")]
     private static partial Regex VarReferencePattern();
 
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex BlockCommentPattern();
+
+    [GeneratedRegex(@"data-theme\s*=\s*[""']?(?<name>[^""'\]]+)")]
+    private static partial Regex DataThemePattern();
+
     public string Format => "css-vars";
 
     public ParseResult Parse(string content, ParseContext context)
@@ -21,7 +27,7 @@ public sealed partial class CssVarsParser : ITokenParser
         var warnings = new List<string>();
         var set = context.Document.GetOrAddSet(context.SetName);
 
-        var stripped = Regex.Replace(content, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        var stripped = BlockCommentPattern().Replace(content, string.Empty);
 
         var byPath = new Dictionary<string, Token>(StringComparer.Ordinal);
 
@@ -78,7 +84,7 @@ public sealed partial class CssVarsParser : ITokenParser
             return "Dark";
         }
 
-        var themeMatch = Regex.Match(selector, @"data-theme\s*=\s*[""']?(?<name>[^""'\]]+)");
+        var themeMatch = DataThemePattern().Match(selector);
 
         return themeMatch.Success ? themeMatch.Groups["name"].Value : defaultMode;
     }

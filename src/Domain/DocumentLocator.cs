@@ -56,6 +56,7 @@ public static partial class DocumentLocator
 }
 
 /// <summary>Parsed document link.</summary>
+/// <param name="Key">Key of the main document, as in its URL.</param>
 /// <param name="BranchKey">Branch key when the link points into a branch.</param>
 /// <param name="NodeId">Node from <c>node-id</c>, already in colon form.</param>
 public sealed record DocumentReference(string Key, string? BranchKey, string? NodeId)

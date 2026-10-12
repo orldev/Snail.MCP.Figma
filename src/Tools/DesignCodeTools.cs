@@ -107,7 +107,7 @@ public sealed class DesignCodeTools(
                         Profile = SanitizationProfile.Balanced,
                         MaxDepth = depth,
                         MaxNodes = 5000,
-                        DeduplicateStyles = false,
+                        ShouldDeduplicateStyles = false,
                     },
                     ct).ConfigureAwait(false);
 
@@ -213,7 +213,7 @@ public sealed class DesignCodeTools(
             }
             catch (Exception ex) when (ex is EditorCommandException or TimeoutException or EditorUnavailableException)
             {
-                Logger.LogInformation("Plugin did not return node {NodeId}, reading through REST: {Message}", nodeId, ex.Message);
+                Log.NodeReadThroughRest(Logger, nodeId, ex.Message);
             }
         }
 
@@ -227,7 +227,7 @@ public sealed class DesignCodeTools(
                 Profile = SanitizationProfile.Balanced,
                 MaxDepth = depth,
                 MaxNodes = sanitizationOptions.DefaultMaxNodes * 4,
-                DeduplicateStyles = false,
+                ShouldDeduplicateStyles = false,
             },
             cancellationToken).ConfigureAwait(false);
 

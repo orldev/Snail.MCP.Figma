@@ -1,9 +1,10 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Snail.MCP.Figma.Application.Extraction;
 
 /// <summary>Collects token-like values straight from the design tree where Figma variables are unavailable.</summary>
-public sealed class StyleExtractor
+public sealed partial class StyleExtractor
 {
     private readonly Dictionary<string, ExtractedStyle> _styles = new(StringComparer.Ordinal);
     private int _colorIndex;
@@ -18,7 +19,7 @@ public sealed class StyleExtractor
 
         Walk(root["document"] ?? root, 0, maxDepth);
 
-        return _styles.Values.ToArray();
+        return [.. _styles.Values];
     }
 
     private void Walk(JsonNode? node, int depth, int maxDepth)
@@ -272,7 +273,7 @@ public sealed class StyleExtractor
         if (!string.IsNullOrWhiteSpace(nodeName))
         {
             var name = nodeName.ToLowerInvariant();
-            var slug = System.Text.RegularExpressions.Regex.Replace(name, "[^a-z0-9]+", "-").Trim('-');
+            var slug = NonSlugCharacterPattern().Replace(name, "-").Trim('-');
 
             if (name.Contains("heading") || name.Contains("h1") || name.Contains("h2")) return $"heading/{slug}";
             if (name.Contains("body") || name.Contains("paragraph")) return $"body/{slug}";
@@ -284,6 +285,9 @@ public sealed class StyleExtractor
 
     private static int ToByte(JsonNode? channel) =>
         (int)Math.Round(Math.Clamp(channel?.GetValue<double>() ?? 0, 0, 1) * 255);
+
+    [GeneratedRegex("[^a-z0-9]+")]
+    private static partial Regex NonSlugCharacterPattern();
 }
 
 /// <summary>One extracted style value.</summary>
@@ -292,6 +296,8 @@ public sealed class StyleExtractor
 /// <param name="Value">Value in CSS-ready form.</param>
 /// <param name="Type">COLOR, TYPOGRAPHY, SPACING or RADIUS.</param>
 /// <param name="Category">Semantic group inferred from the node name.</param>
+/// <param name="SourceNodeName">Name of the node the value was taken from.</param>
+/// <param name="SourceNodeId">Id of the node the value was taken from.</param>
 public sealed record ExtractedStyle(
     string Id,
     string Name,

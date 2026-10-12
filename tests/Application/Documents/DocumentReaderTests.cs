@@ -1,19 +1,17 @@
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
+using Snail.MCP.Figma.Application.Sanitization;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Application.Documents;
 
 /// <summary>Stage 1 definition of done: repeated reads do not hit the Figma API and a version change drops the cache; uses a real LiteDB in a temp directory.</summary>
 [Collection(nameof(LiteDbFixture))]
-public class DocumentReaderTests : IAsyncLifetime
+public class DocumentReaderTests(LiteDbFixture cacheFixture) : IAsyncLifetime
 {
-    private readonly LiteDbFixture _cacheFixture;
+    private readonly LiteDbFixture _cacheFixture = cacheFixture;
     private readonly string _fileKey = $"file-{Guid.NewGuid().ToString("N")[..8]}";
-
-    public DocumentReaderTests(LiteDbFixture cacheFixture) => _cacheFixture = cacheFixture;
 
     public Task InitializeAsync() => Task.CompletedTask;
 
@@ -66,11 +64,11 @@ public class DocumentReaderTests : IAsyncLifetime
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive, MaxDepth = 3 };
 
         var first = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions { Depth = 3 }, request);
-        Assert.False(first.FromCache);
+        Assert.False(first.IsFromCache);
         Assert.Equal(1, api.FileCalls);
 
         var second = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions { Depth = 3 }, request);
-        Assert.True(second.FromCache);
+        Assert.True(second.IsFromCache);
         Assert.Equal(1, api.FileCalls);
         Assert.True(JsonNode.DeepEquals(first.Node, second.Node));
     }
@@ -83,7 +81,7 @@ public class DocumentReaderTests : IAsyncLifetime
         await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), new SanitizationRequest { Profile = SanitizationProfile.Aggressive });
         var balanced = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), new SanitizationRequest { Profile = SanitizationProfile.Balanced });
 
-        Assert.False(balanced.FromCache);
+        Assert.False(balanced.IsFromCache);
         Assert.Equal(2, api.FileCalls);
         Assert.Contains("absoluteBoundingBox", balanced.Node.ToJsonString());
     }
@@ -100,7 +98,7 @@ public class DocumentReaderTests : IAsyncLifetime
         api.Version = "v2";
 
         var afterEdit = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
-        Assert.False(afterEdit.FromCache);
+        Assert.False(afterEdit.IsFromCache);
         Assert.Equal(2, api.FileCalls);
     }
 
@@ -115,7 +113,7 @@ public class DocumentReaderTests : IAsyncLifetime
         Assert.True(removed >= 1);
 
         var afterInvalidation = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
-        Assert.False(afterInvalidation.FromCache);
+        Assert.False(afterInvalidation.IsFromCache);
         Assert.Equal(2, api.FileCalls);
     }
 
@@ -128,7 +126,7 @@ public class DocumentReaderTests : IAsyncLifetime
         await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
         var second = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
 
-        Assert.False(second.FromCache);
+        Assert.False(second.IsFromCache);
         Assert.Equal(2, api.FileCalls);
     }
 
@@ -144,7 +142,7 @@ public class DocumentReaderTests : IAsyncLifetime
         await cache.InvalidateNodesAsync(_fileKey, ["0:1"]);
 
         var afterMutation = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
-        Assert.False(afterMutation.FromCache);
+        Assert.False(afterMutation.IsFromCache);
         Assert.Equal(2, api.FileCalls);
     }
 
@@ -171,7 +169,7 @@ public class DocumentReaderTests : IAsyncLifetime
         for (var i = 0; i < 5; i++)
         {
             var repeat = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
-            Assert.True(repeat.FromCache);
+            Assert.True(repeat.IsFromCache);
             Assert.False(repeat.IsStale);
         }
 
@@ -185,13 +183,13 @@ public class DocumentReaderTests : IAsyncLifetime
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
 
         var first = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
-        Assert.False(first.FromCache);
+        Assert.False(first.IsFromCache);
 
-        api.FailFileRequests = true;
+        api.ShouldFailFileRequests = true;
 
         var underRateLimit = await reader.ReadFileAsync(_fileKey, new DocumentReadOptions(), request);
 
-        Assert.True(underRateLimit.FromCache);
+        Assert.True(underRateLimit.IsFromCache);
         Assert.True(underRateLimit.IsStale);
         Assert.True(JsonNode.DeepEquals(first.Node, underRateLimit.Node));
     }
@@ -200,7 +198,7 @@ public class DocumentReaderTests : IAsyncLifetime
     public async Task UnavailableFigmaWithNothingCachedStillReportsTheError()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
-        api.FailFileRequests = true;
+        api.ShouldFailFileRequests = true;
 
         await Assert.ThrowsAsync<PublishedSourceException>(() => reader.ReadFileAsync(
             _fileKey, new DocumentReadOptions(), new SanitizationRequest { Profile = SanitizationProfile.Aggressive }));

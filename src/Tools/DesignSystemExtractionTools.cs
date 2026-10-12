@@ -89,17 +89,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             {
                 ["manifestPath"] = manifestPath,
                 ["outDir"] = resolvedOut,
-                ["targets"] = new JsonArray(analysis.Targets.Select(target => (JsonNode)new JsonObject
-                {
-                    ["root"] = target.Root,
-                    ["packageName"] = target.PackageName,
-                    ["frameworks"] = ToJsonArray(target.Frameworks),
-                    ["stylingMethods"] = ToJsonArray(target.StylingMethods),
-                    ["componentLibraries"] = ToJsonArray(target.ComponentLibraries.Select(l => l.Name)),
-                    ["icons"] = target.Icons.Count,
-                    ["typographyRules"] = target.Typography.Count,
-                    ["stats"] = Serialize(target.Stats),
-                }).ToArray()),
+                ["targets"] = new JsonArray(analysis.Targets.Select(TargetSummary).ToArray()),
                 ["inventory"] = new JsonObject
                 {
                     ["totalComponents"] = analysis.Components.Count,
@@ -152,7 +142,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
 
             if (explicitTargets.Count > 0)
             {
-                roots = explicitTargets.Select(ExtractionManifests.ResolvePath).ToList();
+                roots = [.. explicitTargets.Select(ExtractionManifests.ResolvePath)];
                 resolvedOut = ResolveOutDir(outDir, roots);
             }
             else
@@ -174,7 +164,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
                         "Run figma_ds_analyze with the same outDir first.");
                 }
 
-                roots = analysis.Targets.Select(t => t.Root).ToList();
+                roots = [.. analysis.Targets.Select(t => t.Root)];
             }
 
             var files = roots
@@ -289,7 +279,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
                 PackageName = packageName ?? "@extracted/design-system",
                 Framework = resolvedFramework,
                 Formats = ParseList(formats),
-                Force = force,
+                ShouldOverwrite = force,
             });
 
             return ToolResponse.Ok(new JsonObject
@@ -494,11 +484,11 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             return ToolResponse.Ok(new JsonObject
             {
                 ["outDir"] = resolvedOut,
-                ["passed"] = report.Passed,
+                ["passed"] = report.HasPassed,
                 ["checks"] = Serialize(report.Checks),
                 ["figmaRoundTrip"] = new JsonObject
                 {
-                    ["ready"] = report.FigmaRoundTripReady,
+                    ["ready"] = report.IsFigmaRoundTripReady,
                     ["how"] = ToJsonArray(report.FigmaRoundTripHow),
                 },
             });
@@ -591,7 +581,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(ex, "Design-system extraction hit a file-system error");
+            Log.ExtractionFileSystemError(logger, ex);
 
             return Task.FromResult(ToolResponse.Error(
                 ex.Message,
@@ -599,7 +589,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or JsonException or RegexMatchTimeoutException)
         {
-            logger.LogWarning(ex, "Design-system extraction failed");
+            Log.ExtractionFailed(logger, ex);
 
             return Task.FromResult(ToolResponse.Error(ex.Message));
         }
@@ -627,11 +617,10 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             {
                 if (JsonNode.Parse(trimmed) is JsonArray array)
                 {
-                    return array
+                    return [.. array
                         .Select(item => item?.GetValue<string>())
                         .Where(item => !string.IsNullOrWhiteSpace(item))
-                        .Select(item => item!.Trim())
-                        .ToList();
+                        .Select(item => item!.Trim())];
                 }
             }
             catch (JsonException)
@@ -639,13 +628,24 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             }
         }
 
-        return trimmed
-            .Split([',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
+        return [.. trimmed.Split([',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
     }
 
     private static JsonArray ToJsonArray(IEnumerable<string> values) =>
-        new(values.Select(value => (JsonNode)JsonValue.Create(value)!).ToArray());
+        [.. values.Select(value => (JsonNode)JsonValue.Create(value)!)];
+
+    /// <summary>One analysed target as figma_ds_analyze reports it.</summary>
+    private static JsonNode TargetSummary(DsTargetAnalysis target) => new JsonObject
+    {
+        ["root"] = target.Root,
+        ["packageName"] = target.PackageName,
+        ["frameworks"] = ToJsonArray(target.Frameworks),
+        ["stylingMethods"] = ToJsonArray(target.StylingMethods),
+        ["componentLibraries"] = ToJsonArray(target.ComponentLibraries.Select(l => l.Name)),
+        ["icons"] = target.Icons.Count,
+        ["typographyRules"] = target.Typography.Count,
+        ["stats"] = Serialize(target.Stats),
+    };
 
     private static JsonNode? Serialize<T>(T value) => JsonSerializer.SerializeToNode(value, DsJson.Options);
 

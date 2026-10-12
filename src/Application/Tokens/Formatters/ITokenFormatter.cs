@@ -17,13 +17,13 @@ public sealed record FormatOptions
     public string Prefix { get; init; } = string.Empty;
 
     /// <summary>Separate file per mode.</summary>
-    public bool SplitByMode { get; init; }
+    public bool ShouldSplitByMode { get; init; }
 
     /// <summary>Separate file per set.</summary>
-    public bool SplitByCollection { get; init; }
+    public bool ShouldSplitByCollection { get; init; }
 
     /// <summary>Resolve references to final values; CSS, SCSS and Tailwind express them natively, other formats cannot.</summary>
-    public bool ResolveAliases { get; init; }
+    public bool ShouldResolveAliases { get; init; }
 
     /// <summary>Output color format: hex, hex8, rgba, hsl, oklch.</summary>
     public string ColorFormat { get; init; } = "hex";

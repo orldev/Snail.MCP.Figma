@@ -12,7 +12,7 @@ public interface ISnapshotStoreHealth
 }
 
 /// <summary>Cache probe result: counters or the open error.</summary>
-public sealed record SnapshotStoreProbe(bool Ok, int NodeEntries, int ImageEntries, string? Error)
+public sealed record SnapshotStoreProbe(bool Succeeded, int NodeEntries, int ImageEntries, string? Error)
 {
     public static SnapshotStoreProbe Failed(string error) => new(false, 0, 0, error);
 }

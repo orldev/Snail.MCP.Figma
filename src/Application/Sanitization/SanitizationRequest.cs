@@ -14,7 +14,7 @@ public sealed record SanitizationRequest
     public int? MaxNodes { get; init; }
 
     /// <summary>Move repeated styles into the <c>$styles</c> dictionary.</summary>
-    public bool DeduplicateStyles { get; init; } = true;
+    public bool ShouldDeduplicateStyles { get; init; } = true;
 
     /// <summary><see cref="SanitizationProfile.Raw"/> disables all processing.</summary>
     public bool IsPassthrough => Profile == SanitizationProfile.Raw;

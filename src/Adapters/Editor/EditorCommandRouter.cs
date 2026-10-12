@@ -62,7 +62,7 @@ public sealed class EditorCommandRouter(
         }
 
         session.LastActivityAt = DateTimeOffset.UtcNow;
-        logger.LogDebug("→ plugin {Method} (id={Id}, file={FileKey})", method, id, session.FileKey);
+        Log.CommandSent(logger, method, id, session.FileKey);
 
         return await pending.Completion.Task.ConfigureAwait(false);
     }

@@ -22,7 +22,7 @@ public sealed class DtcgFormatter : ITokenFormatter
         var warnings = new List<string>();
         var files = new List<GeneratedFile>();
 
-        if (options.SplitByCollection)
+        if (options.ShouldSplitByCollection)
         {
             foreach (var set in document.Sets)
             {
@@ -187,7 +187,7 @@ public sealed class DtcgFormatter : ITokenFormatter
         FormatOptions options,
         Dictionary<string, string>? qualifier)
     {
-        var ours = token.Figma?.ToJson() ?? new JsonObject();
+        var ours = token.Figma?.ToJson() ?? [];
 
         if (primaryMode is not null && token.Values.Count > 1)
         {

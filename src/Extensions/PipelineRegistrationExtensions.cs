@@ -1,12 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Hosting;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Diff;
-using Snail.MCP.Figma.Application.Snapshots;
-using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Sanitization;
+using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Hosting;
 using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Extensions;

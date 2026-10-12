@@ -19,7 +19,7 @@ public class IdleShutdownWatcherTests
         await watcher.StartAsync(CancellationToken.None);
         await AdvanceAsync(time, TimeSpan.FromMinutes(65));
 
-        Assert.True(lifetime.Stopped);
+        Assert.True(lifetime.WasStopped);
 
         await watcher.StopAsync(CancellationToken.None);
     }
@@ -33,7 +33,7 @@ public class IdleShutdownWatcherTests
         await watcher.StartAsync(CancellationToken.None);
         await AdvanceAsync(time, TimeSpan.FromMinutes(100));
 
-        Assert.False(lifetime.Stopped);
+        Assert.False(lifetime.WasStopped);
 
         await watcher.StopAsync(CancellationToken.None);
     }
@@ -49,10 +49,10 @@ public class IdleShutdownWatcherTests
         documents.HasConnection = false;
 
         await AdvanceAsync(time, TimeSpan.FromMinutes(50));
-        Assert.False(lifetime.Stopped);
+        Assert.False(lifetime.WasStopped);
 
         await AdvanceAsync(time, TimeSpan.FromMinutes(15));
-        Assert.True(lifetime.Stopped);
+        Assert.True(lifetime.WasStopped);
 
         await watcher.StopAsync(CancellationToken.None);
     }
@@ -87,7 +87,7 @@ public class IdleShutdownWatcherTests
     {
         private readonly CancellationTokenSource _stopping = new();
 
-        public bool Stopped { get; private set; }
+        public bool WasStopped { get; private set; }
 
         public CancellationToken ApplicationStarted => CancellationToken.None;
 
@@ -95,7 +95,7 @@ public class IdleShutdownWatcherTests
 
         public CancellationToken ApplicationStopped => CancellationToken.None;
 
-        public void StopApplication() => Stopped = true;
+        public void StopApplication() => WasStopped = true;
     }
 
     private sealed class FakeOpenDocuments : IOpenDocuments
@@ -108,7 +108,7 @@ public class IdleShutdownWatcherTests
 
         public IOpenDocument? LastTouched => null;
 
-        public Task<bool> ClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<bool> TryClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public IOpenDocument? Resolve(string? fileKey = null) => null;
     }

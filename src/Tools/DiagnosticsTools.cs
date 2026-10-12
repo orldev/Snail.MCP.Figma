@@ -151,7 +151,7 @@ public sealed class DiagnosticsTools(
 
         var probe = cacheDiagnostics.Probe();
 
-        if (probe.Ok)
+        if (probe.Succeeded)
         {
             cache["probe"] = "ok";
             cache["started"] = true;

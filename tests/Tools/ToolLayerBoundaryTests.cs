@@ -20,10 +20,10 @@ public class ToolLayerBoundaryTests
     [Fact]
     public void ToolsDependOnlyOnPortsThroughTheirConstructors()
     {
-        var offenders = typeof(ToolDescriptions).Assembly.GetTypes()
-            .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null)
-            .SelectMany(type => type.GetConstructors().SelectMany(ctor => ctor.GetParameters())
-                .Select(parameter => (Tool: type.Name, Dependency: parameter.ParameterType)))
+        var toolTypes = typeof(ToolDescriptions).Assembly.GetTypes()
+            .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null);
+        var dependencies = toolTypes.SelectMany(type => ConstructorDependencies(type).Select(dependency => (Tool: type.Name, Dependency: dependency)));
+        var offenders = dependencies
             .Where(pair => IsForbidden(pair.Dependency))
             .Select(pair => $"{pair.Tool} ← {pair.Dependency.FullName}")
             .Distinct()
@@ -50,6 +50,9 @@ public class ToolLayerBoundaryTests
 
         Assert.True(offenders.Count == 0, $"infrastructure in Tools sources:\n{string.Join("\n", offenders)}");
     }
+
+    private static IEnumerable<Type> ConstructorDependencies(Type type) =>
+        type.GetConstructors().SelectMany(ctor => ctor.GetParameters()).Select(parameter => parameter.ParameterType);
 
     private static bool IsForbidden(Type type) =>
         ForbiddenNamespaces.Any(ns => type.Namespace?.StartsWith(ns, StringComparison.Ordinal) == true)
