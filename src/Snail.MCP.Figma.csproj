@@ -8,6 +8,8 @@
         <InvariantGlobalization>true</InvariantGlobalization>
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
         <RollForward>LatestMajor</RollForward>
+        <!-- Published framework-dependent under ~/.snail-mcp: the plugin bridge runs on ASP.NET Core. -->
+        <SnailMcpName>Snail.MCP.Figma</SnailMcpName>
     </PropertyGroup>
     
     <PropertyGroup>
@@ -39,6 +41,8 @@
     <ItemGroup>
         <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
         <PackageReference Include="LiteDB" Version="5.0.21" />
+        <PackageReference Include="Snail.Toolkit.Mcp.Build" Version="0.1.0-preview.1" PrivateAssets="all" />
+        <PackageReference Include="Snail.Toolkit.Mcp.Hosting" Version="0.1.0-preview.1" />
     </ItemGroup>
 
     <ItemGroup>
