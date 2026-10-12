@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Snail.MCP.Figma.Configuration;
+using Snail.Toolkit.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Extensions;
 
@@ -11,7 +12,7 @@ public static class McpServerRegistrationExtensions
     {
         public WebApplicationBuilder ConfigureMcpServer()
         {
-            builder.UseStderrLogging();
+            builder.Logging.UseStderr();
 
             var config = builder.AddServerConfiguration();
             var endpoint = builder.ReserveBridgePort(config.Bridge);
@@ -23,15 +24,6 @@ public static class McpServerRegistrationExtensions
                 .AddReadPipeline()
                 .AddIdleShutdownWatcher(config.IdleTimeoutMinutes)
                 .AddMcpTransport();
-
-            return builder;
-        }
-
-        /// <summary>stdio carries JSON-RPC, so every log line must go to stderr.</summary>
-        internal WebApplicationBuilder UseStderrLogging()
-        {
-            builder.Logging.ClearProviders();
-            builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 
             return builder;
         }

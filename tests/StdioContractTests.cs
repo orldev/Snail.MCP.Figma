@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Toolkit.Mcp.Testing;
 
 namespace Snail.MCP.Figma.Tests;
 
@@ -86,15 +87,18 @@ public class StdioContractTests
         public static async Task<ServerSession> StartAsync()
         {
             var dataDirectory = Path.Combine(Path.GetTempPath(), $"snail-stdio-{Guid.NewGuid().ToString("N")[..8]}");
+            var (command, arguments) = ServerProgram.Command("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER");
             var start = new ProcessStartInfo
             {
-                FileName = "dotnet",
+                FileName = command,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
 
-            start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "Snail.MCP.Figma.dll"));
+            foreach (var argument in arguments)
+                start.ArgumentList.Add(argument);
+
             start.Environment["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = dataDirectory;
             start.Environment["SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES"] = "0";
             start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = "9400";
