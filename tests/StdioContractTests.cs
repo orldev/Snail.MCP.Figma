@@ -28,7 +28,7 @@ public class StdioContractTests
 
         var serverInfo = initialize.GetProperty("result").GetProperty("serverInfo");
 
-        Assert.Equal("Snail.MCP.Figma", serverInfo.GetProperty("name").GetString());
+        Assert.Equal("s3l-mcp-figma", serverInfo.GetProperty("name").GetString());
         Assert.False(string.IsNullOrWhiteSpace(serverInfo.GetProperty("version").GetString()));
         Assert.Equal(ServerInstructions.Text, initialize.GetProperty("result").GetProperty("instructions").GetString());
 

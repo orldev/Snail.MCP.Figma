@@ -1,15 +1,11 @@
-using System.Reflection;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Configuration;
 
-/// <summary>Assembly name and version, computed once at startup.</summary>
+/// <summary>The name and version the server announces in initialize, computed once at startup.</summary>
 internal static class ThisAssembly
 {
-    public static string Name { get; } = typeof(ThisAssembly).Assembly.GetName().Name ?? "Snail.MCP.Figma";
+    public static string Name { get; } = ServerIdentity.NameOf(typeof(ThisAssembly).Assembly);
 
-    public static string InformationalVersion { get; } =
-        typeof(ThisAssembly).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0]
-        ?? "0.0.0";
+    public static string InformationalVersion { get; } = ServerIdentity.VersionOf(typeof(ThisAssembly).Assembly);
 }
