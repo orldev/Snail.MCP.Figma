@@ -19,11 +19,12 @@ public class ServerConfigTests
     public void Defaults_UseHomeDataDirectory()
     {
         var config = new ServerConfig();
+        var data = ".s3l-mcp-figma";
 
-        Assert.EndsWith(ServerPaths.DataDirectoryName, config.DataDirectory);
-        Assert.EndsWith(Path.Combine(ServerPaths.DataDirectoryName, "cache.db"), config.CacheDatabaseFile);
-        Assert.EndsWith(Path.Combine(ServerPaths.DataDirectoryName, "plugin"), config.PluginDirectory);
-        Assert.EndsWith(Path.Combine(ServerPaths.DataDirectoryName, "screenshots"), config.ScreenshotDirectory);
+        Assert.EndsWith(data, config.DataDirectory, StringComparison.Ordinal);
+        Assert.EndsWith(Path.Combine(data, "cache.db"), config.CacheDatabaseFile, StringComparison.Ordinal);
+        Assert.EndsWith(Path.Combine(data, "plugin"), config.PluginDirectory, StringComparison.Ordinal);
+        Assert.EndsWith(Path.Combine(data, "screenshots"), config.ScreenshotDirectory, StringComparison.Ordinal);
         Assert.Equal(30, config.Screenshots.RetainCount);
     }
 
@@ -101,7 +102,9 @@ public class ServerConfigTests
             () => ServerPaths.ConfigCandidates().ToList());
 
         Assert.Equal("/tmp/snail-mcp-figma-explicit.json", candidates[0]);
-        Assert.Contains(candidates, c => c.EndsWith(".snail-mcp-figma.json", StringComparison.Ordinal));
+        Assert.Contains(candidates, c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal));
+        Assert.True(candidates.FindIndex(c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal))
+            < candidates.FindIndex(c => c.EndsWith(".snail-mcp-figma.json", StringComparison.Ordinal)));
     }
 
     private static void RunWithEnvironment(Dictionary<string, string?> values, Action action) =>

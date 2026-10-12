@@ -42,7 +42,7 @@ per-client paths and fixes for what usually goes wrong lives in
 
 ### 1. Install the server
 
-The recommended way is a global .NET tool — it gives you the `snail-mcp-figma` command:
+The recommended way is a global .NET tool — it gives you the `s3l-mcp-figma` command:
 
 ```bash
 dotnet tool install -g Snail.MCP.Figma
@@ -87,9 +87,9 @@ Without a token the server still starts and everything the plugin can do keeps w
 **Claude Code**
 
 ```bash
-claude mcp add snail-mcp-figma --scope user \
+claude mcp add s3l-mcp-figma --scope user \
   --env SNAIL_MCP_FIGMA_ACCESS_TOKEN=figd_... \
-  -- snail-mcp-figma
+  -- s3l-mcp-figma
 ```
 
 Check it with `claude mcp list`, or `/mcp` inside a session.
@@ -100,8 +100,8 @@ Check it with `claude mcp list`, or `/mcp` inside a session.
 ```json
 {
   "mcpServers": {
-    "snail-mcp-figma": {
-      "command": "snail-mcp-figma",
+    "s3l-mcp-figma": {
+      "command": "s3l-mcp-figma",
       "env": {
         "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_..."
       }
@@ -117,9 +117,9 @@ Check it with `claude mcp list`, or `/mcp` inside a session.
 ```json
 {
   "servers": {
-    "snail-mcp-figma": {
+    "s3l-mcp-figma": {
       "type": "stdio",
-      "command": "snail-mcp-figma",
+      "command": "s3l-mcp-figma",
       "env": { "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_..." }
     }
   }
@@ -129,8 +129,8 @@ Check it with `claude mcp list`, or `/mcp` inside a session.
 **Codex CLI** — `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.snail-mcp-figma]
-command = "snail-mcp-figma"
+[mcp_servers.s3l-mcp-figma]
+command = "s3l-mcp-figma"
 args = []
 env = { SNAIL_MCP_FIGMA_ACCESS_TOKEN = "figd_..." }
 ```
@@ -144,7 +144,7 @@ Every other setting is optional — see [Configuration](#configuration).
 ### 4. Install the Figma plugin
 
 The plugin is what makes writes possible and reads free. On its first run the server unpacks it into
-`~/.snail-mcp-figma/plugin` (ask the agent for `csharp_diagnose` to see the exact path under
+`~/.s3l-mcp-figma/plugin` (ask the agent for `csharp_diagnose` to see the exact path under
 `plugin.bundledPath`).
 
 1. Open **Figma Desktop** (the browser cannot run development plugins).
@@ -171,7 +171,7 @@ dotnet tool uninstall -g Snail.MCP.Figma  # remove
 ```
 
 After an update the plugin panel shows a *re-import plugin* banner when the bundled plugin changed —
-repeat step 4 to pick up the new bundle. Removing `~/.snail-mcp-figma` deletes the snapshot cache,
+repeat step 4 to pick up the new bundle. Removing `~/.s3l-mcp-figma` deletes the snapshot cache,
 the unpacked plugin and saved screenshots; nothing else is stored outside it.
 
 ## What you can ask for
@@ -231,7 +231,7 @@ Nothing has to be configured — the defaults work. Every setting is an environm
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SNAIL_MCP_FIGMA_ACCESS_TOKEN` | — | Figma token, for the REST channel |
-| `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.snail-mcp-figma` | Snapshot cache, unpacked plugin, screenshots |
+| `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.s3l-mcp-figma` | Snapshot cache, unpacked plugin, screenshots |
 | `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without a tool call before the server exits by itself; `0` disables the watchdog |
 | `SNAIL_MCP_FIGMA_SANITIZATION__PROFILE` | `Aggressive` | How hard REST responses are trimmed: `Aggressive` / `Balanced` / `Raw` |
 | `SNAIL_MCP_FIGMA_SANITIZATION__DEFAULT_DEPTH` | `3` | Default tree depth of a REST read |
@@ -245,8 +245,9 @@ Nothing has to be configured — the defaults work. Every setting is an environm
 | `SNAIL_MCP_FIGMA_SCREENSHOTS__RETAIN_COUNT` | `30` | How many screenshots are kept on disk |
 
 A settings file can hold the same fields instead, looked up as `$SNAIL_MCP_FIGMA_CONFIG` →
-`./.snail-mcp-figma.json` → `./snail-mcp-figma.json` → `~/.config/snail-mcp-figma/config.json` →
-`~/.snail-mcp-figma.json`. Environment variables always win. Full sample:
+`./.s3l-mcp-figma.json` → `./s3l-mcp-figma.json` → `~/.config/s3l-mcp-figma/config.json` →
+`~/.s3l-mcp-figma.json`, then the same files under the snail name from before the rename (`./.snail-mcp-figma.json` →
+`./snail-mcp-figma.json` → `~/.snail-mcp-figma.json`). Environment variables always win. Full sample:
 [Configuration](https://orldev.github.io/Snail.MCP.Figma/configuration/).
 
 ## Troubleshooting
@@ -258,7 +259,7 @@ A settings file can hold the same fields instead, looked up as `$SNAIL_MCP_FIGMA
 | Answers marked `source: "cache-stale"` | Figma was unreachable, so the last snapshot was served. Ask again with `source: "plugin"` |
 | 429 with a `Retry-After` of hours | The daily REST quota. The bucket closes locally until it expires; work through the plugin meanwhile |
 | Variables return 403 | The REST variables API is Enterprise-only — read them through the plugin (`figma_get_token_values`) |
-| The tool list is empty in the client | The command is not on `PATH`. Use the absolute path to `snail-mcp-figma`, or the `dotnet <dll>` form |
+| The tool list is empty in the client | The command is not on `PATH`. Use the absolute path to `s3l-mcp-figma`, or the `dotnet <dll>` form |
 
 More cases: [Troubleshooting](https://orldev.github.io/Snail.MCP.Figma/troubleshooting/).
 

@@ -5,7 +5,7 @@ If the server itself is not installed yet, start with [Installation](installatio
 
 ## Install
 
-On its first run the server copies the plugin into `~/.snail-mcp-figma/plugin` (the path follows
+On its first run the server copies the plugin into `~/.s3l-mcp-figma/plugin` (the path follows
 `SNAIL_MCP_FIGMA_DATA_DIRECTORY`). `csharp_diagnose` prints the exact location under `plugin.bundledPath`.
 
 In Figma Desktop: **Plugins → Development → Import plugin from manifest…** and pick `manifest.json` from that

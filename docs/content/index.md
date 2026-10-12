@@ -30,8 +30,8 @@ Register the command with your MCP client:
 ```json
 {
   "mcpServers": {
-    "snail-mcp-figma": {
-      "command": "snail-mcp-figma",
+    "s3l-mcp-figma": {
+      "command": "s3l-mcp-figma",
       "env": {
         "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_..."
       }
@@ -41,7 +41,7 @@ Register the command with your MCP client:
 ```
 
 Then import the bundled plugin into Figma Desktop once — **Plugins → Development → Import plugin from
-manifest…**, picking `manifest.json` from `~/.snail-mcp-figma/plugin` — and run **Snail Bridge** in the file
+manifest…**, picking `manifest.json` from `~/.s3l-mcp-figma/plugin` — and run **Snail Bridge** in the file
 you work in.
 
 The token is needed by the REST channel only — version history, comments, other teams' libraries and files

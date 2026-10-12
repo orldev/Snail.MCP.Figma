@@ -12,7 +12,7 @@ is a field like any other.
 |----------|---------|---------|
 | `SNAIL_MCP_FIGMA_ACCESS_TOKEN` | — | Figma personal or OAuth token. Needed by the REST channel only |
 | `SNAIL_MCP_FIGMA_CONFIG` | — | Explicit path to the settings file (read before the config is loaded) |
-| `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.snail-mcp-figma` | Snapshot database, bundled plugin, captures |
+| `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.s3l-mcp-figma` | Snapshot database, bundled plugin, captures |
 | `SNAIL_MCP_FIGMA_MODE` | `Local` | Server mode |
 | `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without a tool call before the process exits; the countdown is held while a plugin is connected, `0` disables it |
 | `SNAIL_MCP_FIGMA_SANITIZATION__PROFILE` | `Aggressive` | `Aggressive` / `Balanced` / `Raw` |
@@ -36,11 +36,11 @@ falling back to a default silently.
 ```json
 {
   "mcpServers": {
-    "snail-mcp-figma": {
-      "command": "snail-mcp-figma",
+    "s3l-mcp-figma": {
+      "command": "s3l-mcp-figma",
       "env": {
         "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_...",
-        "SNAIL_MCP_FIGMA_DATA_DIRECTORY": "~/.snail-mcp-figma",
+        "SNAIL_MCP_FIGMA_DATA_DIRECTORY": "~/.s3l-mcp-figma",
         "SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES": "60",
         "SNAIL_MCP_FIGMA_SANITIZATION__PROFILE": "Aggressive",
         "SNAIL_MCP_FIGMA_BRIDGE__PREFER_PLUGIN_FOR_READS": "true",
@@ -58,17 +58,18 @@ Only `command` and the token are needed in practice; the rest is shown to make t
 Optional — without it the server runs on defaults. It is looked up along the chain
 
 1. `$SNAIL_MCP_FIGMA_CONFIG`
-2. `./.snail-mcp-figma.json`
-3. `./snail-mcp-figma.json`
-4. `~/.config/snail-mcp-figma/config.json`
-5. `~/.snail-mcp-figma.json`
+2. `./.s3l-mcp-figma.json`
+3. `./s3l-mcp-figma.json`
+4. `~/.config/s3l-mcp-figma/config.json`
+5. `~/.s3l-mcp-figma.json`
+6. `./.snail-mcp-figma.json`, `./snail-mcp-figma.json`, `~/.snail-mcp-figma.json` — the names from before the rename
 
 Every field is optional and the values below are the defaults, so an empty `{}` behaves exactly like no file.
 
 ```json
 {
   "Mode": "Local",
-  "DataDirectory": "~/.snail-mcp-figma",
+  "DataDirectory": "~/.s3l-mcp-figma",
   "IdleTimeoutMinutes": 60,
   "Bridge": {
     "PortRangeStart": 9223,
