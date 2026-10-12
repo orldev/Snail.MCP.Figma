@@ -195,7 +195,7 @@ public sealed class EditorSocketHub(
                 break;
 
             case EditorWireProtocol.Events.VariablesData:
-                session.VariablesSnapshot = data?.DeepClone();
+                session.RememberVariables(data?.DeepClone());
                 break;
 
             default:
@@ -261,6 +261,7 @@ public sealed class EditorSocketHub(
         }
 
         session.DocumentChanges.Add(data.DeepClone());
+        session.DoubtVariables();
 
         var changedNodeIds = (data["changedNodeIds"] as JsonArray)?
             .Select(node => node?.GetValue<string>())

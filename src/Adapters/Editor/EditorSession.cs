@@ -47,8 +47,33 @@ public sealed class EditorSession : IOpenDocument
     /// <summary>Last known selection — the source of coordinates for mutations.</summary>
     public JsonNode? Selection { get; set; }
 
-    /// <summary>Variables snapshot pushed by the plugin; mirrors the cache ui.html itself serves, so reads skip the socket.</summary>
-    public JsonNode? VariablesSnapshot { get; set; }
+    /// <summary>How long a variables snapshot is believed without asking the plugin again.</summary>
+    /// <remarks>Figma's documentchange event says nothing about variables, so an edit a human makes in the variables panel reaches the server as silence; age is the only signal left for it.</remarks>
+    public static readonly TimeSpan VariablesBelievedFor = TimeSpan.FromSeconds(30);
+
+    private DateTimeOffset _variablesTakenAt;
+
+    private bool _areVariablesDoubted;
+
+    /// <summary>Variables as the plugin last sent them; served without the socket only while <see cref="HasFreshVariables"/>.</summary>
+    public JsonNode? VariablesSnapshot { get; private set; }
+
+    /// <summary>Whether the snapshot may answer a read: it exists, nothing was written since, and it is young.</summary>
+    public bool HasFreshVariables => HasFreshVariablesAt(DateTimeOffset.UtcNow);
+
+    internal bool HasFreshVariablesAt(DateTimeOffset moment) =>
+        VariablesSnapshot is not null && !_areVariablesDoubted && moment - _variablesTakenAt < VariablesBelievedFor;
+
+    /// <summary>Takes what the plugin just read from the file as the truth of this moment.</summary>
+    public void RememberVariables(JsonNode? variables)
+    {
+        VariablesSnapshot = variables;
+        _variablesTakenAt = DateTimeOffset.UtcNow;
+        _areVariablesDoubted = false;
+    }
+
+    /// <summary>Something was written to the file, by the agent or by the human, so the snapshot may no longer match it.</summary>
+    public void DoubtVariables() => _areVariablesDoubted = true;
 
     /// <summary>Ring buffer of the plugin sandbox console.</summary>
     public RingBuffer<JsonNode> ConsoleLogs { get; } = new(1000);

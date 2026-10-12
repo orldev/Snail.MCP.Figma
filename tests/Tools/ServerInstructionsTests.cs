@@ -8,8 +8,9 @@ namespace Snail.MCP.Figma.Tests.Tools;
 /// <summary>The instructions are the only text a discovering host shows before any tool loads, so they must name every family, point only at real tools and stay short enough to sit in every context.</summary>
 public class ServerInstructionsTests
 {
-    /// <summary>About 1,000 tokens: a ceiling, not a target — the instructions ride in every request of every session that mounts the server.</summary>
-    private const int MaxCharacters = 4500;
+    /// <summary>Claude Code cuts server instructions at 2,048 characters; what does not fit never reaches the model.</summary>
+    /// <remarks>Measured in its log on 18.09.2026: "Server instructions truncated from 3623 to 2048 chars" — the family map ended mid-line and the rule about one script was gone.</remarks>
+    private const int MaxCharacters = 2048;
 
     private static readonly Regex ToolReference = new(@"\b(figma|figjam|csharp)_[a-z0-9_]+", RegexOptions.Compiled);
 

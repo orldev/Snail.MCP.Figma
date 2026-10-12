@@ -172,27 +172,7 @@ public class ReadToolsLiveEditorTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        plugin.Handlers[EditorCommands.GetVariablesData.Name] = _ => new JsonObject
-        {
-            ["variableCollections"] = new JsonObject
-            {
-                ["VariableCollectionId:1:1"] = new JsonObject
-                {
-                    ["name"] = "Colors",
-                    ["modes"] = new JsonArray(new JsonObject { ["modeId"] = "1:0", ["name"] = "Light" }),
-                    ["variableIds"] = new JsonArray("VariableID:1:2"),
-                },
-            },
-            ["variables"] = new JsonObject
-            {
-                ["VariableID:1:2"] = new JsonObject
-                {
-                    ["name"] = "color/bg",
-                    ["resolvedType"] = "COLOR",
-                    ["variableCollectionId"] = "VariableCollectionId:1:1",
-                },
-            },
-        };
+        plugin.Handlers[EditorCommands.GetVariablesData.Name] = _ => PluginVariables.Payload();
 
         var (tools, api) = Build();
         var response = Parse(await tools.GetVariablesAsync(Url(fileKey), format: "full"));
@@ -201,7 +181,23 @@ public class ReadToolsLiveEditorTests
         var variables = (response["data"]!["variables"] as JsonArray)!;
         Assert.Single(variables);
         Assert.Equal("color/bg", variables[0]!["name"]!.GetValue<string>());
+        Assert.Equal(1, response["data"]!["summary"]!["totalCollections"]!.GetValue<int>());
         Assert.Equal(0, api.VariableCalls);
+    }
+
+    /// <summary>On 19.09.2026 an unreadable payload came back as ok true with zero collections, and only a note from two weeks earlier gave it away.</summary>
+    [Fact]
+    public async Task AVariablesPayloadTheServerCannotReadIsAnErrorNotAnEmptyFile()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        plugin.Handlers[EditorCommands.GetVariablesData.Name] = _ => new JsonObject { ["success"] = true };
+
+        var (tools, _) = Build();
+        var response = Parse(await tools.GetVariablesAsync(Url(fileKey)));
+
+        Assert.False(response["ok"]!.GetValue<bool>());
+        Assert.Contains("not an empty file", response["error"]!.GetValue<string>());
     }
 
     [Fact]

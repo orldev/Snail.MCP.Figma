@@ -50,6 +50,35 @@ public class FigmaVariableConverterTests
         }
         """)!;
 
+    /// <summary>The same payload the way the plugin sends it: each section an array, the id moved inside the item.</summary>
+    private static JsonNode AsThePluginSendsIt(JsonNode rest)
+    {
+        static JsonArray Listed(JsonNode section) => new([.. section.AsObject().Select(pair =>
+        {
+            var item = pair.Value!.DeepClone().AsObject();
+            item["id"] = pair.Key;
+
+            return (JsonNode)item;
+        })]);
+
+        return new JsonObject
+        {
+            ["variableCollections"] = Listed(rest["variableCollections"]!),
+            ["variables"] = Listed(rest["variables"]!),
+        };
+    }
+
+    [Fact]
+    public void ThePluginShapeConvertsToTheSameTokensAsTheRestShape()
+    {
+        var fromRest = FigmaVariableConverter.Convert(VariablesPayload());
+        var fromPlugin = FigmaVariableConverter.Convert(AsThePluginSendsIt(VariablesPayload()));
+
+        Assert.Equal(fromRest.AllTokens.Select(token => token.DottedPath), fromPlugin.AllTokens.Select(token => token.DottedPath));
+        Assert.Equal(["Light", "Dark"], Assert.Single(fromPlugin.Sets).Modes);
+        Assert.Equal("color.blue.500", fromPlugin.AllTokens.Single(token => token.DottedPath == "color.brand").Values["Light"].Reference);
+    }
+
     [Fact]
     public void CollectionBecomesASetAndModesKeepTheirNames()
     {

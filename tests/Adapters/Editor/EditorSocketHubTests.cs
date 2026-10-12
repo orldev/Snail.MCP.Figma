@@ -292,9 +292,70 @@ public class EditorSocketHubTests
             "variables snapshot did not arrive");
 
         var served = await _bridge.Gateway.ReadAsync(
-            Snail.MCP.Figma.Application.Editor.EditorCommands.GetVariablesData, fileKey: fileKey);
+            EditorCommands.GetVariablesData, fileKey: fileKey);
 
         Assert.Equal("bg/lowest", served!["variables"]![0]!["name"]!.GetValue<string>());
+    }
+
+    /// <summary>A collection created after the plugin started never reached the snapshot, so a read after a write answered with the file as it was at start-up.</summary>
+    [Fact]
+    public async Task AfterAWriteTheNextVariablesReadAsksThePluginToReadTheFileAgain()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload("color/old"));
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            "variables snapshot did not arrive");
+        plugin.Handlers[EditorCommands.RefreshVariables.Name] = _ => new JsonObject
+        {
+            ["success"] = true,
+            ["data"] = PluginVariables.Payload("color/new"),
+        };
+
+        await _bridge.Gateway.ApplyAsync(EditorCommands.RenameNode, new JsonObject { ["nodeId"] = "1:2" }, fileKey: fileKey);
+        var served = await _bridge.Gateway.ReadAsync(EditorCommands.GetVariablesData, fileKey: fileKey);
+
+        Assert.Equal("color/new", served!["variables"]![0]!["name"]!.GetValue<string>());
+        Assert.True(_bridge.Registry.Resolve(fileKey)!.HasFreshVariables);
+    }
+
+    [Fact]
+    public async Task AHumanEditInTheFileDoubtsTheVariablesSnapshot()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload());
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            "variables snapshot did not arrive");
+
+        await plugin.SendEventAsync("DOCUMENT_CHANGE", new JsonObject
+        {
+            ["hasStyleChanges"] = false,
+            ["changedNodeIds"] = new JsonArray("1:2"),
+        });
+
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == false,
+            "the document change did not doubt the snapshot");
+    }
+
+    /// <summary>Figma reports no event for a variable edited in its own panel, so the snapshot also stops being believed by age alone.</summary>
+    [Fact]
+    public async Task AnUntouchedSnapshotStopsBeingBelievedAfterHalfAMinute()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload());
+        await BridgeHostFixture.WaitUntilAsync(
+            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            "variables snapshot did not arrive");
+
+        var session = _bridge.Registry.Resolve(fileKey)!;
+
+        Assert.True(session.HasFreshVariablesAt(DateTimeOffset.UtcNow + EditorSession.VariablesBelievedFor - TimeSpan.FromSeconds(5)));
+        Assert.False(session.HasFreshVariablesAt(DateTimeOffset.UtcNow + EditorSession.VariablesBelievedFor));
     }
 
     [Fact]

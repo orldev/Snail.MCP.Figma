@@ -26,13 +26,36 @@ public sealed class LiveEditorGateway(
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
-        if (command == EditorCommands.GetVariablesData
-            && registry.Resolve(fileKey) is { VariablesSnapshot: not null } session)
+        return command == EditorCommands.GetVariablesData
+            ? ReadVariablesAsync(fileKey, timeout, cancellationToken)
+            : router.SendAsync(command.Name, parameters, fileKey, timeout, cancellationToken);
+    }
+
+    /// <summary>Variables from the session snapshot while it is fresh, otherwise read again in the plugin.</summary>
+    /// <remarks>GET_VARIABLES_DATA is answered by ui.html from its own cache, which is exactly as old as ours; only REFRESH_VARIABLES makes code.js read the file, and its reply carries the data. A bundle whose reply carries none is asked the old way.</remarks>
+    private async Task<JsonNode?> ReadVariablesAsync(string? fileKey, TimeSpan? timeout, CancellationToken cancellationToken)
+    {
+        var session = registry.Resolve(fileKey);
+
+        if (session is { HasFreshVariables: true })
         {
-            return Task.FromResult<JsonNode?>(session.VariablesSnapshot.DeepClone());
+            return session.VariablesSnapshot!.DeepClone();
         }
 
-        return router.SendAsync(command.Name, parameters, fileKey, timeout, cancellationToken);
+        var refreshed = await router
+            .SendAsync(EditorCommands.RefreshVariables.Name, null, fileKey, timeout, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (refreshed?["data"] is not JsonObject variables)
+        {
+            return await router
+                .SendAsync(EditorCommands.GetVariablesData.Name, null, fileKey, timeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        session?.RememberVariables(variables.DeepClone());
+
+        return variables.DeepClone();
     }
 
     /// <summary>Mutation; only the plugin reply confirms the write, since REST lags behind saved state.</summary>
@@ -43,9 +66,11 @@ public sealed class LiveEditorGateway(
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
+        var session = registry.Resolve(fileKey);
+        session?.DoubtVariables();
+
         var result = await router.SendAsync(command.Name, parameters, fileKey, timeout, cancellationToken).ConfigureAwait(false);
 
-        var session = registry.Resolve(fileKey);
         var affected = ExtractAffectedNodeIds(result, parameters);
         var ancestors = ExtractAncestorIds(result);
 

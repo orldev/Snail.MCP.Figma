@@ -60,6 +60,14 @@ requests are refused without touching the network; `csharp_diagnose` lists the c
 The Figma Variables REST API is Enterprise-only. Read variables through the plugin instead
 (`figma_get_token_values`, or `figma_get_variables` with a live session) — that works on any plan.
 
+## "Not connected" in a few milliseconds, right after a call that worked
+
+Look at how long the refusal took. A call refused within milliseconds never reached the plugin: the socket
+had already dropped, and the script in that call is not what dropped it. A call that hangs for tens of seconds
+and then times out did reach the plugin, and the plugin may still finish it — read the state again before
+repeating anything. `figma_get_status` shows a new `connectionId` and `connectedAt` after a reconnect, and
+globals kept between `figma_execute` calls are gone with the old connection.
+
 ## The server reports an old state after a rebuild
 
 A running process keeps the assembly it started with. Restart the MCP server in your client; `figma_reconnect`
