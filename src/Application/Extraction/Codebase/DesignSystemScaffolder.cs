@@ -270,7 +270,7 @@ public static partial class DesignSystemScaffolder
             ["private"] = true,
             ["type"] = "module",
             ["description"] =
-                "Design system extracted from production applications by the snail-figma server. "
+                "Design system extracted from production applications by the s3l-mcp-figma server. "
                 + "Components live in src/components, tokens in tokens/.",
             ["files"] = new JsonArray("dist", "tokens"),
             ["peerDependencies"] = peers,

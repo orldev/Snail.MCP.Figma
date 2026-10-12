@@ -31,7 +31,7 @@ public sealed class ServerConfig
 
     public ServerMode Mode { get; set; } = ServerMode.Local;
 
-    /// <summary>Data root: database, installed plugin, logs; defaults to <c>~/.snail-mcp-figma</c>.</summary>
+    /// <summary>Data root: database, installed plugin, logs; defaults to <c>~/.s3l-mcp-figma</c>.</summary>
     public string DataDirectory { get; set; } = ServerPaths.DefaultDataDirectory;
 
     public EditorLinkOptions Bridge { get; set; } = new();

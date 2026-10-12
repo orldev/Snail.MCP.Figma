@@ -8,6 +8,7 @@ using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Hosting;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Extensions;
 
@@ -33,7 +34,11 @@ public static class PipelineRegistrationExtensions
         public IServiceCollection AddMcpTransport()
         {
             services
-                .AddMcpServer(options => options.ServerInstructions = ServerInstructions.Text)
+                .AddMcpServer(options =>
+                {
+                    options.ServerInfo = ServerIdentity.Of(typeof(ThisAssembly).Assembly);
+                    options.ServerInstructions = ServerInstructions.Text;
+                })
                 .WithStdioServerTransport()
                 .WithToolsFromAssembly()
                 .WithRequestFilters(filters => filters.AddCallToolFilter(TouchActivity));

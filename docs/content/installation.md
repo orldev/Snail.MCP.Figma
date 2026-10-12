@@ -27,10 +27,10 @@ dotnet --version   # 10.x
 dotnet tool install -g Snail.MCP.Figma
 ```
 
-This gives you a `snail-mcp-figma` command, which is what MCP clients will start. Verify:
+This gives you an `s3l-mcp-figma` command, which is what MCP clients will start. Verify:
 
 ```bash
-dotnet tool list -g | grep snail   # snail.mcp.figma   <version>   snail-mcp-figma
+dotnet tool list -g | grep snail   # snail.mcp.figma   <version>   s3l-mcp-figma
 ```
 
 If the shell answers `command not found`, the tools folder is not on `PATH`:
@@ -41,8 +41,8 @@ If the shell answers `command not found`, the tools folder is not on `PATH`:
 | Windows | `%USERPROFILE%\.dotnet\tools` | usually added by the installer; otherwise add it in *Environment Variables* |
 
 Clients do not always inherit your shell `PATH` — GUI apps in particular. If a client cannot start the
-server, put the absolute path in `command`: `~/.dotnet/tools/snail-mcp-figma` (macOS, Linux) or
-`C:\Users\<you>\.dotnet\tools\snail-mcp-figma.exe` (Windows).
+server, put the absolute path in `command`: `~/.dotnet/tools/s3l-mcp-figma` (macOS, Linux) or
+`C:\Users\<you>\.dotnet\tools\s3l-mcp-figma.exe` (Windows).
 
 ### Without installing
 
@@ -99,9 +99,9 @@ only. Everything else has a default — see [Configuration](configuration.md).
 ### Claude Code
 
 ```bash
-claude mcp add snail-mcp-figma --scope user \
+claude mcp add s3l-mcp-figma --scope user \
   --env SNAIL_MCP_FIGMA_ACCESS_TOKEN=figd_... \
-  -- snail-mcp-figma
+  -- s3l-mcp-figma
 ```
 
 `--scope user` makes it available in every project; use `--scope project` to write it into the repository's
@@ -120,8 +120,8 @@ Edit `claude_desktop_config.json` and restart the app.
 ```json
 {
   "mcpServers": {
-    "snail-mcp-figma": {
-      "command": "snail-mcp-figma",
+    "s3l-mcp-figma": {
+      "command": "s3l-mcp-figma",
       "env": {
         "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_..."
       }
@@ -142,9 +142,9 @@ explicit:
 ```json
 {
   "servers": {
-    "snail-mcp-figma": {
+    "s3l-mcp-figma": {
       "type": "stdio",
-      "command": "snail-mcp-figma",
+      "command": "s3l-mcp-figma",
       "env": { "SNAIL_MCP_FIGMA_ACCESS_TOKEN": "figd_..." }
     }
   }
@@ -156,8 +156,8 @@ explicit:
 `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.snail-mcp-figma]
-command = "snail-mcp-figma"
+[mcp_servers.s3l-mcp-figma]
+command = "s3l-mcp-figma"
 args = []
 env = { SNAIL_MCP_FIGMA_ACCESS_TOKEN = "figd_..." }
 ```
@@ -173,14 +173,14 @@ Replace the command with the form matching your choice:
 
 | Install | `command` | `args` |
 |---------|-----------|--------|
-| Global tool | `snail-mcp-figma` | — |
+| Global tool | `s3l-mcp-figma` | — |
 | `dnx` | `dnx` | `["Snail.MCP.Figma", "--yes"]` |
 | From source | `dotnet` | `["<repo>/src/bin/Release/net10.0/Snail.MCP.Figma.dll"]` |
 
 ## Step 4 — install the Figma plugin
 
 Writes and plugin-first reads need the bundled plugin running in Figma Desktop. On its first start the
-server unpacks it into `~/.snail-mcp-figma/plugin` — so let the client start the server once before this
+server unpacks it into `~/.s3l-mcp-figma/plugin` — so let the client start the server once before this
 step, and read the exact path from `csharp_diagnose` under `plugin.bundledPath`.
 
 1. **Plugins → Development → Import plugin from manifest…**
@@ -218,15 +218,16 @@ If the update also changed the plugin bundle, its panel shows a *re-import plugi
 dotnet tool uninstall -g Snail.MCP.Figma
 ```
 
-Remove the registration from your client's configuration, delete `~/.snail-mcp-figma` (snapshot cache,
-unpacked plugin, screenshots — nothing is stored anywhere else) and remove **Snail Bridge** from
+Remove the registration from your client's configuration, delete `~/.s3l-mcp-figma` (snapshot cache,
+unpacked plugin, screenshots — nothing is stored anywhere else) with `~/.snail-mcp-figma` when it is there, the link the
+server left at the old name when it moved the folder, and remove **Snail Bridge** from
 Figma's Plugins → Development list.
 
 ## When installation goes wrong
 
 | Symptom | Cause and fix |
 |---------|---------------|
-| `command not found: snail-mcp-figma` | `PATH` — see step 1, or use the absolute path in `command` |
+| `command not found: s3l-mcp-figma` | `PATH` — see step 1, or use the absolute path in `command` |
 | The client shows the server but no tools | The process failed to start. Check the client's MCP log; a wrong `command` or a missing .NET 10 is the usual reason |
 | `You must install .NET to run this application` | The tool was installed with an older SDK, or only a runtime is present. Install the .NET 10 SDK |
 | The plugin sees no server | The server exits after an hour of idling and starts again with the next tool call — ask the assistant for anything, then check the plugin. Ports 9223–9232 must be free |

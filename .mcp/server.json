@@ -21,7 +21,7 @@
         },
         {
           "name": "SNAIL_MCP_FIGMA_DATA_DIRECTORY",
-          "description": "Data root: snapshot database, installed editor extension, captures. Default: ~/.snail-mcp-figma.",
+          "description": "Data root: snapshot database, installed editor extension, captures. Default: ~/.s3l-mcp-figma.",
           "isRequired": false
         },
         {
