@@ -39,10 +39,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
-        <PackageReference Include="LiteDB" Version="5.0.21" />
-        <PackageReference Include="Snail.Toolkit.Mcp.Build" Version="0.1.0-preview.1" PrivateAssets="all" />
-        <PackageReference Include="Snail.Toolkit.Mcp.Hosting" Version="0.1.0-preview.1" />
+        <PackageReference Include="ModelContextProtocol" />
+        <PackageReference Include="LiteDB" />
+        <PackageReference Include="Snail.Toolkit.Mcp.Build" PrivateAssets="all" />
+        <PackageReference Include="Snail.Toolkit.Mcp.Hosting" />
     </ItemGroup>
 
     <ItemGroup>
