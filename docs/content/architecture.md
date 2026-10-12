@@ -68,6 +68,19 @@ that said yes; the server, in turn, queues a remark only for its target file. Wi
 panel lets the human pick the addressee by name. The panel also tells every server who else has claimed the
 file (`PEERS`), which is how `figma_navigate` can name the other agents: servers never see each other.
 
+## Variables: one shape, a snapshot that can be doubted
+
+REST answers variables as dictionaries keyed by id, the plugin as arrays whose items carry their own id.
+`VariablesShape` brings both to the keyed form before anything reads them, and refuses a payload that is
+neither: an empty answer is a claim about the file, and read carelessly a plugin array used to come back as
+"0 collections" with `ok: true`.
+
+The plugin pushes its variables at start-up and the server keeps them on the session, so a read costs no
+socket round trip. The snapshot is believed only while nothing was written since (any command of this server,
+any `DOCUMENT_CHANGE`) and while it is younger than thirty seconds — Figma raises no event for a variable
+edited in its own panel, so age is the only signal for that. A doubted snapshot is replaced through
+`REFRESH_VARIABLES`, the one command that makes the plugin read the file again.
+
 ## One read, at most one request
 
 A read costs at most one REST request, and none at all while the snapshot is fresh. The file version is taken
@@ -98,8 +111,9 @@ from a sandbox. The server meets that in three places.
 
 - **Instructions at the handshake.** `initialize` carries the server instructions: where to start
   (`figma_navigate`), which family answers which task, and when one `figma_execute` script beats a chain of
-  calls. `ServerInstructionsTests` keeps every tool class mentioned, every reference real and the text under
-  4,500 characters.
+  calls. Claude Code cuts server instructions at 2,048 characters, so the text stays under that and puts
+  what matters first; `ServerInstructionsTests` keeps every tool class mentioned, every reference real and
+  the length in.
 - **Behaviour hints on every tool.** All 141 tools state `readOnlyHint`, `destructiveHint`, `idempotentHint`
   and `openWorldHint` explicitly. Read-only means the tool changes neither the Figma file nor the user's files
   (a capture saved beside the server is a read); destructive means it overwrites or deletes what exists;

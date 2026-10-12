@@ -1,3 +1,4 @@
+using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Tokens.Transforms;
 
 namespace Snail.MCP.Figma.Application.Tokens;
@@ -19,8 +20,9 @@ public static class FigmaVariableConverter
     {
         var document = new TokenDocument();
 
-        var collections = variablesData["variableCollections"] as JsonObject ?? [];
-        var variables = variablesData["variables"] as JsonObject ?? [];
+        var keyed = VariablesShape.Keyed(variablesData);
+        var collections = keyed["variableCollections"]!.AsObject();
+        var variables = keyed["variables"]!.AsObject();
 
         var pathByVariableId = new Dictionary<string, string>(StringComparer.Ordinal);
 
