@@ -9,6 +9,11 @@
         <SnailMcpNative>false</SnailMcpNative>
     </PropertyGroup>
 
+    <!-- The tool reference goes into the MkDocs site (docs/mkdocs.yml reads docs/content): tools/ and schemas/ there. -->
+    <PropertyGroup>
+        <SnailReferenceFolder>$(MSBuildThisFileDirectory)../docs/content</SnailReferenceFolder>
+    </PropertyGroup>
+
     <PropertyGroup>
         <PackageVersion>0.1.0</PackageVersion>
         <Description>Local MCP server that gives AI agents 141 tools for reading and editing Figma. Reads go through the live Figma Desktop plugin — no REST quota spent and unsaved edits visible — or through the REST API behind a LiteDB snapshot cache and a sanitizer that keeps the raw Figma JSON out of the model context; writes go through the plugin: nodes, variables, components, FigJam and Slides. Also design tokens in 11 formats, version diffs and Markdown changelogs, and design system extraction from a codebase.</Description>
