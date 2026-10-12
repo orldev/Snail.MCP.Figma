@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Snail.MCP.Figma.Configuration;
 
 /// <summary>Server mode; the donor's Cloudflare mode is not ported.</summary>
@@ -74,6 +76,7 @@ public sealed class EditorLinkOptions
     public int RequestTimeoutSeconds { get; set; } = 30;
 
     /// <summary>Read through the plugin while it is connected: no quota and unsaved edits visible; REST stays the fallback and the only path for history, comments, libraries and svg/pdf.</summary>
+    [SuppressMessage("Snail", "S3L0008", Justification = "A settings key: SNAIL_MCP_FIGMA_BRIDGE__PREFER_PLUGIN_FOR_READS, published in server.json, and config files bind by this name.")]
     public bool PreferPluginForReads { get; set; } = true;
 
     /// <summary>How the panel names this server when several agents share a file.</summary>
@@ -102,6 +105,7 @@ public sealed class CacheOptions
     public int FreshnessSeconds { get; set; } = 300;
 
     /// <summary>Open the file in shared mode, so several stdio clients can use the cache at once.</summary>
+    [SuppressMessage("Snail", "S3L0008", Justification = "A settings key: SNAIL_MCP_FIGMA_CACHE__SHARED_CONNECTION and config files bind by this name.")]
     public bool SharedConnection { get; set; } = true;
 
     /// <summary>Past-version snapshots kept in process memory; past versions never go stale and diff tools re-read them dozens of times.</summary>
@@ -114,6 +118,7 @@ public sealed class SanitizationOptions
     public SanitizationProfile Profile { get; set; } = SanitizationProfile.Aggressive;
 
     /// <summary>Log <c>bytes_in / bytes_out / ratio</c> to stderr.</summary>
+    [SuppressMessage("Snail", "S3L0008", Justification = "A settings key: SNAIL_MCP_FIGMA_SANITIZATION__LOG_METRICS and config files bind by this name.")]
     public bool LogMetrics { get; set; } = true;
 
     /// <summary>Default tree depth for progressive disclosure.</summary>

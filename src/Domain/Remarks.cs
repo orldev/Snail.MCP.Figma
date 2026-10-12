@@ -36,7 +36,7 @@ public sealed class Remarks(int capacity)
 
     /// <summary>Waits for a remark to arrive, or gives up after <paramref name="timeout"/>.</summary>
     /// <remarks>MCP cannot wake an agent, so an agent that wants to hear the human within a second has to hold a call open here; anything already waiting returns at once.</remarks>
-    public async Task<bool> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+    public async Task<bool> TryWaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
         Task arrival;
 

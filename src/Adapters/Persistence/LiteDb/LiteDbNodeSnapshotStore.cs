@@ -1,6 +1,6 @@
 using LiteDB;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 
@@ -40,16 +40,14 @@ public sealed class LiteDbNodeSnapshotStore(
 
             if (cached.ExpiresAt <= DateTimeOffset.UtcNow)
             {
-                logger.LogDebug("Cache {FileKey}/{NodeId} expired ({ExpiresAt:O}) — miss", fileKey, nodeId, cached.ExpiresAt);
+                Log.SnapshotExpired(logger, fileKey, nodeId, cached.ExpiresAt);
 
                 return Task.FromResult<NodeSnapshot?>(null);
             }
 
             if (currentFileVersion is not null && cached.FileVersion != currentFileVersion)
             {
-                logger.LogDebug(
-                    "Cache {FileKey}/{NodeId} was taken on version {Cached}, current is {Current} — miss",
-                    fileKey, nodeId, cached.FileVersion, currentFileVersion);
+                Log.SnapshotOutdated(logger, fileKey, nodeId, cached.FileVersion, currentFileVersion);
 
                 return Task.FromResult<NodeSnapshot?>(null);
             }
@@ -58,7 +56,7 @@ public sealed class LiteDbNodeSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Cache read failed, falling back to Figma");
+            Log.CacheReadFailed(logger, ex);
 
             return Task.FromResult<NodeSnapshot?>(null);
         }
@@ -86,7 +84,7 @@ public sealed class LiteDbNodeSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Cache write failed, continuing without caching");
+            Log.CacheWriteFailed(logger, ex);
         }
 
         return Task.CompletedTask;
@@ -123,7 +121,7 @@ public sealed class LiteDbNodeSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Node invalidation failed");
+            Log.NodeInvalidationFailed(logger, ex);
 
             return Task.FromResult(0);
         }
@@ -142,13 +140,13 @@ public sealed class LiteDbNodeSnapshotStore(
         try
         {
             var removed = Nodes(database).DeleteMany(n => n.FileKey == fileKey);
-            logger.LogInformation("Cache of file {FileKey} dropped, {Count} documents removed", fileKey, removed);
+            Log.FileCacheDropped(logger, fileKey, removed);
 
             return Task.FromResult(removed);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Dropping the file cache failed");
+            Log.FileCacheNotDropped(logger, ex);
 
             return Task.FromResult(0);
         }
@@ -176,7 +174,7 @@ public sealed class LiteDbNodeSnapshotStore(
 
         if (removed > 0)
         {
-            logger.LogDebug("Swept {Count} expired snapshots", removed);
+            Log.ExpiredSwept(logger, removed);
         }
     }
 

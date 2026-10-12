@@ -17,7 +17,7 @@ public sealed record ScaffoldOptions
     public IReadOnlyList<string> Formats { get; init; } = ["dtcg", "css-vars"];
 
     /// <summary>Overwrite existing files; token files are always refreshed.</summary>
-    public bool Force { get; init; }
+    public bool ShouldOverwrite { get; init; }
 }
 
 public sealed class ScaffoldResult
@@ -309,7 +309,7 @@ public static partial class DesignSystemScaffolder
     {
         var absolute = Path.Combine(options.OutDir, relativePath.Replace('/', Path.DirectorySeparatorChar));
 
-        if (File.Exists(absolute) && !options.Force && !alwaysOverwrite)
+        if (File.Exists(absolute) && !options.ShouldOverwrite && !alwaysOverwrite)
         {
             result.FilesSkipped.Add(relativePath);
 

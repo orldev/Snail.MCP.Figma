@@ -274,7 +274,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
     [McpServerTool(Name = "figjam_get_connections", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.FigJam.GetConnections)]
     public Task<string> GetConnectionsAsync(CancellationToken cancellationToken = default) =>
-        ReadAsync(EditorCommands.GetConnections, new JsonObject(), cancellationToken, TimeSpan.FromSeconds(30));
+        ReadAsync(EditorCommands.GetConnections, [], cancellationToken, TimeSpan.FromSeconds(30));
 
     /// <summary>String into a JavaScript literal via JSON serialization.</summary>
     private static string ToJsString(string value) => System.Text.Json.JsonSerializer.Serialize(value);
@@ -282,8 +282,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
     private static JsonArray? SplitToArray(string? value) =>
         string.IsNullOrWhiteSpace(value)
             ? null
-            : new JsonArray(value
+            : [.. value
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(item => (JsonNode)JsonValue.Create(item)!)
-                .ToArray());
+                .Select(item => (JsonNode)JsonValue.Create(item)!)];
 }

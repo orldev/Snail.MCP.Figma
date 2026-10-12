@@ -61,6 +61,15 @@ public static partial class CodeTokenExtractor
     [GeneratedRegex(@"<style[^>]*>[\s\S]*?</style>", RegexOptions.IgnoreCase)]
     private static partial Regex StyleBlockStripPattern();
 
+    [GeneratedRegex(@"^-")]
+    private static partial Regex LeadingMinusPattern();
+
+    [GeneratedRegex(@"[^\w.-]")]
+    private static partial Regex UnsafeNameCharacterPattern();
+
+    [GeneratedRegex(@"^(-?\d*\.?\d+)(px|rem|em)?$")]
+    private static partial Regex LengthValuePattern();
+
     /// <summary>Mined variable name into a token path, split on dashes and dots.</summary>
     public static string[] NameToPath(string name) =>
         name.Replace('.', '-').Split('-', StringSplitOptions.RemoveEmptyEntries);
@@ -242,8 +251,8 @@ public static partial class CodeTokenExtractor
 
             var provenance = new DsTokenProvenance
             {
-                Confidence = baseVariable.Inferred ? "inferred" : "declared",
-                Sources = variables.Take(MaxSourcesPerToken).Select(v => v.Source).ToList(),
+                Confidence = baseVariable.IsInferred ? "inferred" : "declared",
+                Sources = [.. variables.Take(MaxSourcesPerToken).Select(v => v.Source)],
                 Frequency = baseVariable.Frequency,
                 Note = baseVariable.Origin,
             };
@@ -349,9 +358,8 @@ public static partial class CodeTokenExtractor
                     var group = parts[0];
                     literal = parts.Length > 1 ? parts[1] : entry.Value;
 
-                    var sanitized = Regex.Replace(
-                        Regex.Replace(literal, @"^-", "neg-"),
-                        @"[^\w.-]",
+                    var sanitized = UnsafeNameCharacterPattern().Replace(
+                        LeadingMinusPattern().Replace(literal, "neg-"),
                         string.Empty);
 
                     path =
@@ -435,7 +443,7 @@ public static partial class CodeTokenExtractor
         return new ExtractTokensResult(
             document,
             warnings,
-            belowThreshold.Take(100).ToList(),
+            [.. belowThreshold.Take(100)],
             counts);
     }
 
@@ -523,7 +531,7 @@ public static partial class CodeTokenExtractor
     /// <summary>Approximate pixels from "12px" / "0.5rem" / "16" — for proportional showcase bars.</summary>
     public static double? ApproximatePixels(string value)
     {
-        var match = Regex.Match(value.Trim(), @"^(-?\d*\.?\d+)(px|rem|em)?$");
+        var match = LengthValuePattern().Match(value.Trim());
 
         if (!match.Success)
         {

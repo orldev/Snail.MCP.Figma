@@ -1,7 +1,6 @@
 using System.Net;
-using Microsoft.Extensions.Http;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Adapters.Rest;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Adapters.Rest;
 

@@ -29,9 +29,7 @@ public sealed class LiteDbDocumentVersionLedger(
 
             if (stored?.Version is not null && info.Version is not null && stored.Version != info.Version)
             {
-                logger.LogInformation(
-                    "File {FileKey} changed ({Old} → {New}), dropping its other snapshots",
-                    fileKey, stored.Version, info.Version);
+                Log.FileChanged(logger, fileKey, stored.Version, info.Version);
                 await cache.InvalidateFileAsync(fileKey, cancellationToken).ConfigureAwait(false);
                 await images.InvalidateFileAsync(fileKey, cancellationToken).ConfigureAwait(false);
             }
@@ -48,7 +46,7 @@ public sealed class LiteDbDocumentVersionLedger(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to store the version of file {FileKey}", fileKey);
+            Log.VersionNotStored(logger, ex, fileKey);
         }
     }
 
@@ -68,7 +66,7 @@ public sealed class LiteDbDocumentVersionLedger(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to read the stored version of file {FileKey}", fileKey);
+            Log.VersionNotRead(logger, ex, fileKey);
 
             return null;
         }
@@ -90,7 +88,7 @@ public sealed class LiteDbDocumentVersionLedger(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to forget the version of file {FileKey}", fileKey);
+            Log.VersionNotForgotten(logger, ex, fileKey);
         }
 
         return Task.CompletedTask;

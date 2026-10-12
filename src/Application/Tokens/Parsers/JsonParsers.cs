@@ -102,7 +102,7 @@ public sealed class JsonNestedParser : ITokenParser
             }
             else
             {
-                var token = new Token { Path = path.ToArray(), Type = DtcgParser.InferType(value) };
+                var token = new Token { Path = [.. path], Type = DtcgParser.InferType(value) };
                 token.Values[context.DefaultMode] = DtcgParser.ReadValue(value);
                 set.Tokens.Add(token);
             }
@@ -150,7 +150,7 @@ public sealed class StyleDictionaryV3Parser : ITokenParser
             {
                 var token = new Token
                 {
-                    Path = path.ToArray(),
+                    Path = [.. path],
                     Type = child["type"]?.GetValue<string>() ?? DtcgParser.InferType(child["value"]),
                     Description = child["comment"]?.GetValue<string>(),
                 };

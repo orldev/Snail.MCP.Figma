@@ -1,8 +1,11 @@
-name: Tests and Figma Contracts
+name: build and tests
+
+# The shared server CI of Snail.Sdk: the tests, the conformance check, the reference the build writes, and the server
+# published framework-dependent (the plugin bridge runs on ASP.NET Core) and asked over stdio. Once a month, and by
+# hand, the contract guards run against the latest Figma REST and Plugin API artifacts: this server's own job.
 
 on:
   push:
-    branches: [master]
   pull_request:
   schedule:
     - cron: '0 6 1 * *'
@@ -12,31 +15,13 @@ permissions:
   contents: read
 
 jobs:
-  tests:
+  ci:
     if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build project
-        run: dotnet build -c Release --no-restore
-
-      - name: Run Tests
-        run: dotnet test -c Release --no-build
+    uses: orldev/Snail.Sdk/.github/workflows/mcp-ci.yml@v1
+    with:
+      name: Snail.MCP.Figma
+      native: false
+      contract-variable: SNAIL_FIGMA_SERVER
 
   contracts:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -48,15 +33,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          global-json-file: global.json
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -67,7 +52,7 @@ jobs:
           for f in *.tgz; do d="${f%.tgz}"; mkdir "$d"; tar xzf "$f" -C "$d"; done
           cp figma-rest-api-spec-*/package/openapi/openapi.yaml "$GITHUB_WORKSPACE/tests/Contracts/Figma/openapi.yaml"
           cp figma-plugin-typings-*/package/plugin-api.d.ts "$GITHUB_WORKSPACE/tests/Contracts/Figma/plugin-api.d.ts"
-          ls -la figma-*/package | head -5
+          find figma-*/package -maxdepth 1 -type f | head -5
 
       - name: Restore dependencies
         run: dotnet restore

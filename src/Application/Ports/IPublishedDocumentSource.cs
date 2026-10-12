@@ -38,7 +38,7 @@ public sealed record DocumentReadOptions
     /// <summary>Vector geometry in the response (<c>paths</c>); expensive and rarely needed.</summary>
     public string? Geometry { get; init; }
 
-    public bool BranchData { get; init; }
+    public bool IncludesBranchData { get; init; }
 }
 
 /// <summary>Node read options.</summary>

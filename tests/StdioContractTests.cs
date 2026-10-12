@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.Toolkit.Mcp.Testing;
+using Snail.Sdk.Mcp.Testing;
 
 namespace Snail.MCP.Figma.Tests;
 
@@ -60,14 +60,41 @@ public class StdioContractTests
         Assert.All(session.StdoutLines, line => Assert.Equal("2.0", session.ParseOrFail(line).GetProperty("jsonrpc").GetString()));
     }
 
+    /// <summary>
+    /// The guard rules of every Snail server, on the list a model receives: names in snake case and listed once, the tool
+    /// and every parameter described, read-only or destructive stated, every allowed value named, English.
+    /// </summary>
+    [Fact]
+    public async Task Tools_AsListed_KeepTheGuardRules()
+    {
+        var dataDirectory = Path.Combine(Path.GetTempPath(), $"snail-stdio-{Guid.NewGuid().ToString("N")[..8]}");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var listed = await client.ListToolsAsync();
+
+            Assert.Empty(ToolGuards.Problems(listed.Select(tool => tool.ProtocolTool)));
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
     /// <summary>Tools are discovered by the SDK through attributes, so a misconfigured attribute is invisible to reflection-only guards.</summary>
-    private static HashSet<string> ToolNamesOfAssembly() =>
-        typeof(ToolDescriptions).Assembly.GetTypes()
-            .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null)
-            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+    private static HashSet<string> ToolNamesOfAssembly()
+    {
+        var toolTypes = typeof(ToolDescriptions).Assembly.GetTypes()
+            .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null);
+        var methods = toolTypes.SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+        return methods
             .Select(method => method.GetCustomAttribute<McpServerToolAttribute>()?.Name)
             .OfType<string>()
             .ToHashSet(StringComparer.Ordinal);
+    }
 
     /// <summary>The server started as a separate process and spoken to over stdin/stdout, exactly as an MCP client does.</summary>
     private sealed class ServerSession : IDisposable
@@ -99,18 +126,33 @@ public class StdioContractTests
             foreach (var argument in arguments)
                 start.ArgumentList.Add(argument);
 
-            start.Environment["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = dataDirectory;
-            start.Environment["SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES"] = "0";
-            start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = "9400";
-            start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = "9410";
-            start.Environment.Remove("SNAIL_MCP_FIGMA_ACCESS_TOKEN");
-            start.Environment.Remove("SNAIL_MCP_FIGMA_CONFIG");
+            foreach (var (name, value) in Environment(dataDirectory))
+            {
+                if (value is null)
+                    start.Environment.Remove(name);
+                else
+                    start.Environment[name] = value;
+            }
 
             var session = new ServerSession(Process.Start(start)!, dataDirectory);
             session.DrainStderr();
 
             return await Task.FromResult(session);
         }
+
+        /// <summary>
+        /// What the server under test is told: a data directory of its own, no idle exit, a bridge outside 9223-9232 (the
+        /// range the real plugin scans), and none of the developer's token or config file.
+        /// </summary>
+        public static Dictionary<string, string?> Environment(string dataDirectory) => new(StringComparer.Ordinal)
+        {
+            ["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = dataDirectory,
+            ["SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES"] = "0",
+            ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = "9400",
+            ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = "9410",
+            ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null,
+            ["SNAIL_MCP_FIGMA_CONFIG"] = null,
+        };
 
         public async Task<JsonElement> CallAsync(int id, string method, object parameters)
         {

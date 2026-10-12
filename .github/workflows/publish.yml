@@ -1,113 +1,35 @@
-name: Release to NuGet
+name: release to NuGet
+
+# The shared server release of Snail.Sdk (docs/publishing.md): one framework-dependent tool package, as the plugin
+# bridge runs on ASP.NET Core, asked over stdio before it is pushed; .mcp/server.json takes the version. A v* tag
+# releases; run by hand, it builds and checks the package and pushes only when asked to. The site is docs.yml's.
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to pack, such as 0.2.0 or 0.2.0-preview.1
+        required: true
+      push:
+        description: Push the package to NuGet
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    permissions:
-      id-token: write
-      contents: read
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build project
-        run: dotnet build -c Release --no-restore
-
-      - name: Run Tests
-        run: dotnet test -c Release --no-build
-
-      - name: Get version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Sync version in .mcp/server.json
-        run: |
-          jq --arg v "${{ steps.version.outputs.version }}" '.version = $v | .packages[].version = $v' .mcp/server.json > .mcp/server.json.tmp
-          mv .mcp/server.json.tmp .mcp/server.json
-
-      - name: Pack nugets
-        run: dotnet pack -c Release --no-build -p:PackageVersion=${{ steps.version.outputs.version }} --output ./artifacts
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuget-packages
-          path: ./artifacts/*.nupkg
-          retention-days: 7
-
-      - name: NuGet login (OIDC → temp API key)
-        uses: NuGet/login@v1
-        id: login
-        with:
-          user: ${{ secrets.NUGET_USER }}
-
-      - name: Push to NuGet
-        run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-  docs:
-    needs: publish
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+  release:
     permissions:
       contents: read
-      pages: write
       id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.x
-
-      - name: Generate the tool reference
-        run: dotnet run -c Release --project docs/generator -- docs/content
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install MkDocs and the markdown extensions
-        run: pip install mkdocs==1.6.1 pymdown-extensions==10.21.3
-
-      - name: Build the site
-        run: mkdocs build --strict -f docs/mkdocs.yml
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload the site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./docs/site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    uses: orldev/Snail.Sdk/.github/workflows/mcp-publish.yml@v1
+    with:
+      name: Snail.MCP.Figma
+      native: false
+      contract-variable: SNAIL_FIGMA_SERVER
+      version: ${{ inputs.version }}
+      push: ${{ github.event_name == 'push' || inputs.push }}
+    secrets: inherit

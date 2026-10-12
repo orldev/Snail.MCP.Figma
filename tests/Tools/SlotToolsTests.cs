@@ -1,17 +1,13 @@
-using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Tools;
-using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Slot tool parameters: addressing and property validation decided before the editor extension.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class SlotToolsTests
+public class SlotToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public SlotToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private SlotTools Slots() => new(_bridge.Gateway, NullLogger<SlotTools>.Instance);
 
@@ -24,7 +20,7 @@ public class SlotToolsTests
     {
         var fileKey = NewFileKey();
         var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         return plugin;
     }

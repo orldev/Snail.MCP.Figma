@@ -6,11 +6,9 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 
 /// <summary>Stage 2 definition of done: "move the node 10 pixels right" travels to the plugin and back.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class EditorSocketHubTests
+public class EditorSocketHubTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public EditorSocketHubTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -159,7 +157,7 @@ public class EditorSocketHubTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject
         {
@@ -184,7 +182,7 @@ public class EditorSocketHubTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "отступы гуляют" });
 
@@ -198,11 +196,11 @@ public class EditorSocketHubTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "передумал" });
         await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 1, "the remark did not arrive");
 
-        await plugin.SendEventAsync("REMARKS_CLEAR", new JsonObject());
+        await plugin.SendEventAsync("REMARKS_CLEAR", []);
 
         await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 0, "the queue was not taken back");
 
@@ -217,9 +215,9 @@ public class EditorSocketHubTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
-        await plugin.SendEventAsync("BUILD_STOP", new JsonObject());
+        await plugin.SendEventAsync("BUILD_STOP", []);
 
         await BridgeHostFixture.WaitUntilAsync(
             () => _bridge.Registry.Resolve(fileKey)?.Remarks.Count > 0,
@@ -263,7 +261,7 @@ public class EditorSocketHubTests
         await using var agentPlugin = await _bridge.ConnectPluginAsync(agentFile, "Agent file");
         await using var userPlugin = await _bridge.ConnectPluginAsync(userFile, "User file");
 
-        Assert.True(await _bridge.Registry.ClaimAsync(agentFile));
+        Assert.True(await _bridge.Registry.TryClaimAsync(agentFile));
 
         await userPlugin.SendEventAsync("SELECTION_CHANGE", new JsonObject { ["count"] = 1 });
         await userPlugin.SendEventAsync("PAGE_CHANGE", new JsonObject { ["pageId"] = "1:1", ["pageName"] = "Page 2" });

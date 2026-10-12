@@ -11,6 +11,12 @@ public sealed partial class ScssParser : ITokenParser
     [GeneratedRegex(@"^\$(?<name>[A-Za-z0-9_-]+)$")]
     private static partial Regex ReferencePattern();
 
+    [GeneratedRegex(@"//[^\n]*")]
+    private static partial Regex LineCommentPattern();
+
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex BlockCommentPattern();
+
     public string Format => "scss";
 
     public ParseResult Parse(string content, ParseContext context)
@@ -18,8 +24,8 @@ public sealed partial class ScssParser : ITokenParser
         var warnings = new List<string>();
         var set = context.Document.GetOrAddSet(context.SetName);
 
-        var stripped = Regex.Replace(content, @"//[^\n]*", string.Empty);
-        stripped = Regex.Replace(stripped, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        var stripped = LineCommentPattern().Replace(content, string.Empty);
+        stripped = BlockCommentPattern().Replace(stripped, string.Empty);
 
         foreach (Match match in VariablePattern().Matches(stripped))
         {

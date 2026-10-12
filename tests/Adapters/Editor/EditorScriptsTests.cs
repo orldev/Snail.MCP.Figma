@@ -4,10 +4,8 @@ using Snail.MCP.Figma.Adapters.Editor;
 namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 
 /// <summary>Editor read scripts are embedded resources: a missing file or a leftover placeholder would surface only inside the plugin at runtime.</summary>
-public class EditorScriptsTests
+public partial class EditorScriptsTests
 {
-    private static readonly Regex Placeholder = new("__[A-Z_]+__", RegexOptions.Compiled);
-
     [Fact]
     public void EveryScriptIsEmbeddedInTheAssembly()
     {
@@ -41,4 +39,7 @@ public class EditorScriptsTests
         Assert.Contains("function __ser(", EditorScripts.FileTree(1, 10));
         Assert.Contains("loadAllPagesAsync", EditorScripts.FileTree(2, 10));
     }
+
+    [GeneratedRegex("__[A-Z_]+__")]
+    private static partial Regex Placeholder { get; }
 }

@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+  </Configurations>
+  <Project Path="benchmarks/Snail.MCP.Figma.Benchmarks.csproj" />
+  <Project Path="src/Snail.MCP.Figma.csproj" />
+  <Project Path="tests/Snail.MCP.Figma.Tests.csproj" />
+</Solution>

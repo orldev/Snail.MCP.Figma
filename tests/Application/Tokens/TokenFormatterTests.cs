@@ -84,7 +84,7 @@ public class TokenFormatterTests
     [Fact]
     public void SplitByModeProducesOneFilePerMode()
     {
-        var result = TokenFormatters.Find("css-vars")!.Write(Sample(), new FormatOptions { SplitByMode = true });
+        var result = TokenFormatters.Find("css-vars")!.Write(Sample(), new FormatOptions { ShouldSplitByMode = true });
 
         Assert.Equal(2, result.Files.Count);
         Assert.Contains(result.Files, f => f.Path == "tokens-light.css");

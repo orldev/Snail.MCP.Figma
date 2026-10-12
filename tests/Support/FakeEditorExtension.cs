@@ -1,20 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Application.Documents;
-using Snail.MCP.Figma.Application.Ports;
-using Snail.MCP.Figma.Application.Snapshots;
 
 namespace Snail.MCP.Figma.Tests.Support;
 
@@ -28,7 +13,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
 
     public IReadOnlyList<JsonNode> Received
     {
-        get { lock (_gate) { return _received.ToArray(); } }
+        get { lock (_gate) { return [.. _received]; } }
     }
 
     /// <summary>How to answer a command: method name → result or error.</summary>
@@ -137,7 +122,11 @@ public sealed class FakeEditorExtension : IAsyncDisposable
             }
         }
 
-        _loop?.Cancel();
+        if (_loop is not null)
+        {
+            await _loop.CancelAsync();
+        }
+
         _socket.Dispose();
         _loop?.Dispose();
     }

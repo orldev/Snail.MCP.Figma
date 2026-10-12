@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Snail.MCP.Figma.Tests.Contracts;
 
 /// <summary>Every figma.* method our JS calls must exist in the vendored Plugin API typings, and deprecated methods may be used only with an explicit reason.</summary>
-public class PluginApiContractTests
+public partial class PluginApiContractTests
 {
     /// <summary>Deprecated methods we still call on purpose, with the reason.</summary>
     private static readonly Dictionary<string, string> DeprecatedAllowlist = new(StringComparer.Ordinal)
@@ -50,19 +50,15 @@ public class PluginApiContractTests
         sources.AddRange(Directory.EnumerateFiles(Path.Combine(root, "src", "Adapters", "Editor", "Scripts"), "*.js"));
         sources.AddRange(Directory.EnumerateFiles(Path.Combine(root, "src", "Tools"), "*.cs"));
 
-        var pattern = new Regex(@"\bfigma(\.[A-Za-z_][A-Za-z0-9_]*)+\s*\(", RegexOptions.Compiled);
-
-        return sources
-            .SelectMany(file => pattern.Matches(File.ReadAllText(file)).Select(match => match.Value.TrimEnd('(', ' ', '\t')))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        return [.. sources
+            .SelectMany(file => FigmaCallPattern.Matches(File.ReadAllText(file)).Select(match => match.Value.TrimEnd('(', ' ', '\t')))
+            .Distinct(StringComparer.Ordinal)];
     }
 
     /// <summary>Member name → still alive; a name is dead only when every declaration of it carries @deprecated.</summary>
     private static Dictionary<string, bool> Declarations()
     {
         var lines = File.ReadAllLines(Path.Combine(FindRepositoryRoot(), "tests", "Contracts", "Figma", "plugin-api.d.ts"));
-        var declaration = new Regex(@"^\s*(?:readonly\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*[(<:?]", RegexOptions.Compiled);
         var members = new Dictionary<string, bool>(StringComparer.Ordinal);
         var pendingDeprecated = false;
 
@@ -87,7 +83,7 @@ public class PluginApiContractTests
                 continue;
             }
 
-            if (declaration.Match(line) is { Success: true } match)
+            if (DeclarationPattern.Match(line) is { Success: true } match)
             {
                 var name = match.Groups[1].Value;
                 var alive = !pendingDeprecated;
@@ -118,4 +114,10 @@ public class PluginApiContractTests
 
         throw new InvalidOperationException("tests/Contracts/Figma was not found above the test binaries");
     }
+
+    [GeneratedRegex(@"\bfigma(\.[A-Za-z_][A-Za-z0-9_]*)+\s*\(")]
+    private static partial Regex FigmaCallPattern { get; }
+
+    [GeneratedRegex(@"^\s*(?:readonly\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*[(<:?]")]
+    private static partial Regex DeclarationPattern { get; }
 }

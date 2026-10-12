@@ -129,6 +129,6 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
 
         var items = rules.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        return items.Length == 0 ? null : new JsonArray(items.Select(r => (JsonNode)JsonValue.Create(r)!).ToArray());
+        return items.Length == 0 ? null : [.. items.Select(r => (JsonNode)JsonValue.Create(r)!)];
     }
 }

@@ -3,17 +3,11 @@ using Snail.MCP.Figma.Application.Ports;
 namespace Snail.MCP.Figma.Tests.Support;
 
 /// <summary>Fake Figma API that counts calls to prove the cache really saves requests.</summary>
-public sealed class FakePublishedSource : IPublishedDocumentSource, IRenderSource, IDocumentHistory, IDocumentCommentary, ILibraryCatalog, IApiIdentity
+public sealed class FakePublishedSource(JsonNode file, string version = "v1") : IPublishedDocumentSource, IRenderSource, IDocumentHistory, IDocumentCommentary, ILibraryCatalog, IApiIdentity
 {
-    private readonly JsonNode _file;
+    private readonly JsonNode _file = file;
 
-    public FakePublishedSource(JsonNode file, string version = "v1")
-    {
-        _file = file;
-        Version = version;
-    }
-
-    public string Version { get; set; }
+    public string Version { get; set; } = version;
 
     /// <summary>Tree of a specific node; without an entry the shared file is returned.</summary>
     public Dictionary<string, JsonNode> NodeDocuments { get; } = new(StringComparer.Ordinal);
@@ -25,7 +19,7 @@ public sealed class FakePublishedSource : IPublishedDocumentSource, IRenderSourc
     public int NodeCalls { get; private set; }
 
     /// <summary>Fail reads — how Figma behaves when quota is exhausted (429).</summary>
-    public bool FailFileRequests { get; set; }
+    public bool ShouldFailFileRequests { get; set; }
 
     private static PublishedSourceException RateLimited() => new(
         SourceFailure.RateLimited,
@@ -49,7 +43,7 @@ public sealed class FakePublishedSource : IPublishedDocumentSource, IRenderSourc
     {
         FileCalls++;
 
-        if (FailFileRequests)
+        if (ShouldFailFileRequests)
         {
             return Task.FromException<JsonNode>(RateLimited());
         }
@@ -61,7 +55,7 @@ public sealed class FakePublishedSource : IPublishedDocumentSource, IRenderSourc
     {
         NodeCalls++;
 
-        if (FailFileRequests)
+        if (ShouldFailFileRequests)
         {
             return Task.FromException<JsonNode>(RateLimited());
         }
@@ -123,14 +117,14 @@ public sealed class FakePublishedSource : IPublishedDocumentSource, IRenderSourc
     public List<IReadOnlyList<string>> ImageRequests { get; } = [];
 
     /// <summary>Fail rendering: how Figma behaves when the expensive bucket is exhausted.</summary>
-    public bool FailImageRequests { get; set; }
+    public bool ShouldFailImageRequests { get; set; }
 
     public Task<JsonNode> RenderAsync(string fileKey, IReadOnlyList<string> nodeIds, RenderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ImageCalls++;
-        ImageRequests.Add(nodeIds.ToArray());
+        ImageRequests.Add([.. nodeIds]);
 
-        if (FailImageRequests)
+        if (ShouldFailImageRequests)
         {
             return Task.FromException<JsonNode>(RateLimited());
         }

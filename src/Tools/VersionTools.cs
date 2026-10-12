@@ -1,10 +1,10 @@
-using System.Text.Json;
-using Snail.MCP.Figma.Application.Editor;
 using System.ComponentModel;
+using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Diff;
-using Snail.MCP.Figma.Tools.Prompts;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -242,12 +242,8 @@ public sealed class VersionTools(
                 FromMeta = fromMeta,
                 ToMeta = toMeta,
                 PageStructure = (JsonObject)diff.Payload["page_structure"]!,
-                ScopedNodes = (diff.Payload["scoped_nodes"] as JsonArray ?? [])
-                    .OfType<JsonObject>()
-                    .ToList(),
-                Notes = (diff.Payload["notes"] as JsonArray ?? [])
-                    .Select(note => note?.GetValue<string>() ?? string.Empty)
-                    .ToList(),
+                ScopedNodes = [.. (diff.Payload["scoped_nodes"] as JsonArray ?? []).OfType<JsonObject>()],
+                Notes = [.. (diff.Payload["notes"] as JsonArray ?? []).Select(note => note?.GetValue<string>() ?? string.Empty)],
             }, DiffModes.Normalize(mode));
 
             var payload = (JsonObject)diff.Payload.DeepClone();
@@ -307,7 +303,7 @@ public sealed class VersionTools(
                     "Check the node id and the version.");
             }
 
-            if (!TargetExists(startNode, targetComponentProperty, targetChildNodeId))
+            if (!HasTarget(startNode, targetComponentProperty, targetChildNodeId))
             {
                 return ToolResponse.Error(
                     "The target is absent at the start version — so it has not appeared yet or was already deleted.",
@@ -344,7 +340,7 @@ public sealed class VersionTools(
 
                 probes++;
 
-                if (node is not null && TargetExists(node, targetComponentProperty, targetChildNodeId))
+                if (node is not null && HasTarget(node, targetComponentProperty, targetChildNodeId))
                 {
                     oldestExistsIndex = Math.Max(oldestExistsIndex, middle);
                     low = middle + 1;
@@ -742,7 +738,7 @@ public sealed class VersionTools(
             }
             catch (PublishedSourceException ex)
             {
-                Logger.LogWarning("History paging stopped at page {Page}: {Message}", page, ex.Message);
+                Log.HistoryPagingStopped(Logger, page, ex.Message);
 
                 return (collected, apiCalls, true, ex.Message);
             }
@@ -826,7 +822,7 @@ public sealed class VersionTools(
             }
             catch (PublishedSourceException ex)
             {
-                Logger.LogWarning("Version metadata could not be read fully: {Message}", ex.Message);
+                Log.VersionMetadataIncomplete(Logger, ex.Message);
                 break;
             }
 
@@ -884,7 +880,7 @@ public sealed class VersionTools(
     private static bool IsCurrent(string versionId) =>
         string.Equals(versionId, CurrentSentinel, StringComparison.OrdinalIgnoreCase);
 
-    private static bool TargetExists(JsonNode node, string? componentProperty, string? childNodeId)
+    private static bool HasTarget(JsonNode node, string? componentProperty, string? childNodeId)
     {
         if (!string.IsNullOrWhiteSpace(componentProperty))
         {

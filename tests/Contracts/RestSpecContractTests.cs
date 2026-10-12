@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Snail.MCP.Figma.Tests.Contracts;
 
 /// <summary>Every REST route the gateway calls must exist in the vendored Figma OpenAPI spec; a red run after refreshing tests/Contracts/Figma means Figma changed something we use.</summary>
-public class RestSpecContractTests
+public partial class RestSpecContractTests
 {
     /// <summary>Operations the gateway is expected to construct; bump when an endpoint is added or removed.</summary>
     private const int ExpectedOperationCount = 19;
@@ -36,7 +36,7 @@ public class RestSpecContractTests
         var source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "Adapters", "Rest", "RestDocumentGateway.cs"));
         var operations = new HashSet<(string, string)>();
 
-        foreach (Match call in Regex.Matches(source, @"(Get|Post|Delete)Async\(\s*\$?""(/[^""]*)""|endpoint = \$""(/[^""]*)"""))
+        foreach (Match call in EndpointCallPattern.Matches(source))
         {
             var verb = call.Groups[1].Success
                 ? call.Groups[1].Value.ToUpperInvariant() switch { "GET" => "GET", "POST" => "POST", _ => "DELETE" }
@@ -112,14 +112,14 @@ public class RestSpecContractTests
                 break;
             }
 
-            if (Regex.Match(line, @"^  (/\S+):\s*$") is { Success: true } path)
+            if (SpecPathPattern.Match(line) is { Success: true } path)
             {
-                currentPath = Regex.Replace(path.Groups[1].Value, @"\{[^}]*\}", "{p}");
+                currentPath = PathParameterPattern.Replace(path.Groups[1].Value, "{p}");
 
                 continue;
             }
 
-            if (currentPath is not null && Regex.Match(line, @"^    (get|post|put|delete|patch):\s*$") is { Success: true } verb)
+            if (currentPath is not null && SpecVerbPattern.Match(line) is { Success: true } verb)
             {
                 operations.Add((verb.Groups[1].Value.ToUpperInvariant(), currentPath));
             }
@@ -146,4 +146,16 @@ public class RestSpecContractTests
 
         throw new InvalidOperationException("tests/Contracts/Figma was not found above the test binaries");
     }
+
+    [GeneratedRegex(@"(Get|Post|Delete)Async\(\s*\$?""(/[^""]*)""|endpoint = \$""(/[^""]*)""")]
+    private static partial Regex EndpointCallPattern { get; }
+
+    [GeneratedRegex(@"^  (/\S+):\s*$")]
+    private static partial Regex SpecPathPattern { get; }
+
+    [GeneratedRegex(@"\{[^}]*\}")]
+    private static partial Regex PathParameterPattern { get; }
+
+    [GeneratedRegex(@"^    (get|post|put|delete|patch):\s*$")]
+    private static partial Regex SpecVerbPattern { get; }
 }

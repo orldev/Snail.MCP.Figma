@@ -1,0 +1,20 @@
+name: documentation
+
+# The MkDocs site of docs/ on GitHub Pages, with the tool reference written again by the build, from every push to
+# the default branch.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: orldev/Snail.Sdk/.github/workflows/docs.yml@v1

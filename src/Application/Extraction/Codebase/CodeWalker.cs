@@ -1,8 +1,10 @@
 namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 
 /// <summary>One file that reached analysis.</summary>
+/// <param name="Path">Absolute path of the file.</param>
 /// <param name="RelativePath">Path from the walk root, always forward-slashed.</param>
 /// <param name="Extension">Lowercase extension with the dot.</param>
+/// <param name="SizeBytes">Size of the file in bytes.</param>
 public sealed record WalkedFile(string Path, string RelativePath, string Extension, long SizeBytes);
 
 /// <summary>What the walk skipped — goes into target statistics.</summary>
@@ -12,7 +14,7 @@ public sealed class WalkSkipped
 
     public int Ignored { get; set; }
 
-    public bool OverMaxFiles { get; set; }
+    public bool IsOverMaxFiles { get; set; }
 }
 
 public sealed record WalkResult(IReadOnlyList<WalkedFile> Files, WalkSkipped Skipped);
@@ -89,7 +91,7 @@ public static class CodeWalker
     {
         if (files.Count >= opts.MaxFiles)
         {
-            skipped.OverMaxFiles = true;
+            skipped.IsOverMaxFiles = true;
 
             return;
         }
@@ -114,7 +116,7 @@ public static class CodeWalker
         {
             if (files.Count >= opts.MaxFiles)
             {
-                skipped.OverMaxFiles = true;
+                skipped.IsOverMaxFiles = true;
 
                 return;
             }

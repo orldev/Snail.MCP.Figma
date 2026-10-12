@@ -1,0 +1,27 @@
+{
+  "intro": [
+    "Reads go through the Figma Desktop plugin while it runs in the file — unsaved edits visible, no API quota spent — and fall back to the REST API behind a snapshot cache; every write needs the plugin. The line under each tool says whether it may reach the REST API or works on the connected file only."
+  ],
+  "openWorld": "may reach the REST API",
+  "closedWorld": "the connected file only",
+  "families": [
+    { "type": "ReadTools", "slug": "reading", "title": "Reading" },
+    { "type": "WriteTools", "slug": "writing", "title": "Writing" },
+    { "type": "NodeTools", "slug": "nodes", "title": "Nodes" },
+    { "type": "ComponentTools", "slug": "components", "title": "Components" },
+    { "type": "VariableTools", "slug": "variables", "title": "Variables" },
+    { "type": "TokenTools", "slug": "design-tokens", "title": "Design tokens" },
+    { "type": "DesignCodeTools", "slug": "design-to-code", "title": "Design to code" },
+    { "type": "DesignSystemKitTools", "slug": "design-system-kit", "title": "Design system kit" },
+    { "type": "DesignSystemExtractionTools", "slug": "design-system-from-code", "title": "Design system from code" },
+    { "type": "VersionTools", "slug": "version-history", "title": "Version history" },
+    { "type": "CommentTools", "slug": "comments", "title": "Comments" },
+    { "type": "LibraryTools", "slug": "libraries", "title": "Libraries" },
+    { "type": "FigJamTools", "slug": "figjam", "title": "FigJam" },
+    { "type": "SlidesTools", "slug": "slides", "title": "Slides" },
+    { "type": "SlotTools", "slug": "slots", "title": "Slots" },
+    { "type": "QualityTools", "slug": "quality", "title": "Quality and annotations" },
+    { "type": "SessionTools", "slug": "session", "title": "Session and console" },
+    { "type": "DiagnosticsTools", "slug": "diagnostics", "title": "Diagnostics" }
+  ]
+}

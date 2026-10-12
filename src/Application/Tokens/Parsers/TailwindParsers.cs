@@ -34,6 +34,21 @@ public sealed partial class TailwindV3Parser : ITokenParser
     [GeneratedRegex(@"(extend\s*:\s*)?(?<key>colors|spacing|fontSize|borderRadius|boxShadow|fontFamily)\s*:\s*\{")]
     private static partial Regex SectionPattern();
 
+    [GeneratedRegex(@"//[^\n]*")]
+    private static partial Regex LineCommentPattern();
+
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex BlockCommentPattern();
+
+    [GeneratedRegex(@"'([^']*)'")]
+    private static partial Regex SingleQuotedStringPattern();
+
+    [GeneratedRegex(@"([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*)\s*:")]
+    private static partial Regex BareKeyPattern();
+
+    [GeneratedRegex(@",(\s*[}\]])")]
+    private static partial Regex TrailingCommaPattern();
+
     /// <summary>Tailwind config sections → path prefix and token type.</summary>
     private static readonly Dictionary<string, (string Prefix, string Type)> Sections = new(StringComparer.Ordinal)
     {
@@ -106,7 +121,7 @@ public sealed partial class TailwindV3Parser : ITokenParser
             }
             else
             {
-                var token = new Token { Path = path.ToArray(), Type = type };
+                var token = new Token { Path = [.. path], Type = type };
                 token.Values[context.DefaultMode] = DtcgParser.ReadValue(value);
                 set.Tokens.Add(token);
             }
@@ -151,11 +166,11 @@ public sealed partial class TailwindV3Parser : ITokenParser
     /// <summary>JS object literal → JSON: quotes keys, removes trailing commas and single quotes.</summary>
     internal static string ToJson(string javascript)
     {
-        var text = Regex.Replace(javascript, @"//[^\n]*", string.Empty);
-        text = Regex.Replace(text, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
-        text = Regex.Replace(text, @"'([^']*)'", "\"$1\"");
-        text = Regex.Replace(text, @"([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*)\s*:", "$1\"$2\":");
-        text = Regex.Replace(text, @",(\s*[}\]])", "$1");
+        var text = LineCommentPattern().Replace(javascript, string.Empty);
+        text = BlockCommentPattern().Replace(text, string.Empty);
+        text = SingleQuotedStringPattern().Replace(text, "\"$1\"");
+        text = BareKeyPattern().Replace(text, "$1\"$2\":");
+        text = TrailingCommaPattern().Replace(text, "$1");
 
         return text;
     }

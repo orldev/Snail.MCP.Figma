@@ -32,7 +32,7 @@ internal static class TextFormatterCore
 
                 var name = options.Prefix + TokenNaming.ToCssName(token.Path);
 
-                if (value.IsReference && renderReference is not null && !options.ResolveAliases)
+                if (value.IsReference && renderReference is not null && !options.ShouldResolveAliases)
                 {
                     var target = resolver.ReferenceTargetPath(value.Reference!);
 
@@ -93,7 +93,7 @@ public sealed class ScssFormatter : ITokenFormatter
         var resolver = new AliasResolver(document);
         var files = new List<GeneratedFile>();
 
-        var modes = options.SplitByMode ? document.AllModes : [TextFormatterCore.PrimaryMode(document)];
+        var modes = options.ShouldSplitByMode ? document.AllModes : [TextFormatterCore.PrimaryMode(document)];
 
         foreach (var mode in modes)
         {
@@ -107,7 +107,7 @@ public sealed class ScssFormatter : ITokenFormatter
                 builder.AppendLine($"${name}: {value};");
             }
 
-            var suffix = options.SplitByMode ? $"-{TokenNaming.Slugify(mode)}" : string.Empty;
+            var suffix = options.ShouldSplitByMode ? $"-{TokenNaming.Slugify(mode)}" : string.Empty;
             files.Add(new GeneratedFile($"{options.BaseFileName}{suffix}.scss", builder.ToString()));
         }
 
@@ -128,7 +128,7 @@ public sealed class LessFormatter : ITokenFormatter
         var resolver = new AliasResolver(document);
         var files = new List<GeneratedFile>();
 
-        var modes = options.SplitByMode ? document.AllModes : [TextFormatterCore.PrimaryMode(document)];
+        var modes = options.ShouldSplitByMode ? document.AllModes : [TextFormatterCore.PrimaryMode(document)];
 
         foreach (var mode in modes)
         {
@@ -142,7 +142,7 @@ public sealed class LessFormatter : ITokenFormatter
                 builder.AppendLine($"@{name}: {value};");
             }
 
-            var suffix = options.SplitByMode ? $"-{TokenNaming.Slugify(mode)}" : string.Empty;
+            var suffix = options.ShouldSplitByMode ? $"-{TokenNaming.Slugify(mode)}" : string.Empty;
             files.Add(new GeneratedFile($"{options.BaseFileName}{suffix}.less", builder.ToString()));
         }
 
@@ -209,7 +209,7 @@ public sealed class TailwindV3Formatter : ITokenFormatter
         var warnings = new List<string>();
         var resolver = new AliasResolver(document);
 
-        var resolveOptions = options with { ResolveAliases = true };
+        var resolveOptions = options with { ShouldResolveAliases = true };
         var primary = TextFormatterCore.PrimaryMode(document);
 
         var sections = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);

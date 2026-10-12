@@ -54,6 +54,33 @@ public static partial class ShowcaseMdx
     [GeneratedRegex(@"h([1-6])\b")]
     private static partial Regex HeadingLevelPattern();
 
+    [GeneratedRegex("display", RegexOptions.IgnoreCase)]
+    private static partial Regex DisplaySelectorPattern();
+
+    [GeneratedRegex("lead|subtitle", RegexOptions.IgnoreCase)]
+    private static partial Regex LeadSelectorPattern();
+
+    [GeneratedRegex("body|prose|text", RegexOptions.IgnoreCase)]
+    private static partial Regex BodySelectorPattern();
+
+    [GeneratedRegex("caption|eyebrow|overline", RegexOptions.IgnoreCase)]
+    private static partial Regex CaptionSelectorPattern();
+
+    [GeneratedRegex(@"(^|/)(font|text|type)(/|-)")]
+    private static partial Regex TypographyPathPattern();
+
+    [GeneratedRegex("font|text-")]
+    private static partial Regex FontOrTextPathPattern();
+
+    [GeneratedRegex(@"text|size|display|h\d|lead|caption", RegexOptions.IgnoreCase)]
+    private static partial Regex TypeScalePathPattern();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRunPattern();
+
+    [GeneratedRegex("<svg", RegexOptions.IgnoreCase)]
+    private static partial Regex SvgOpeningPattern();
+
     /// <summary>String into a JavaScript literal, like <c>JSON.stringify</c>.</summary>
     private static string Js(string? value) => JsonSerializer.Serialize(value ?? string.Empty, StringOptions);
 
@@ -285,11 +312,11 @@ public static partial class ShowcaseMdx
     /// <summary>Rank of a typography selector so the hierarchy reads top-down.</summary>
     private static int TypographyRank(string selector)
     {
-        if (Regex.IsMatch(selector, "display", RegexOptions.IgnoreCase)) return 0;
+        if (DisplaySelectorPattern().IsMatch(selector)) return 0;
         if (HeadingLevelPattern().Match(selector) is { Success: true } heading) return int.Parse(heading.Groups[1].Value);
-        if (Regex.IsMatch(selector, "lead|subtitle", RegexOptions.IgnoreCase)) return 7;
-        if (Regex.IsMatch(selector, "body|prose|text", RegexOptions.IgnoreCase)) return 8;
-        if (Regex.IsMatch(selector, "caption|eyebrow|overline", RegexOptions.IgnoreCase)) return 9;
+        if (LeadSelectorPattern().IsMatch(selector)) return 7;
+        if (BodySelectorPattern().IsMatch(selector)) return 8;
+        if (CaptionSelectorPattern().IsMatch(selector)) return 9;
 
         return 10;
     }
@@ -316,8 +343,8 @@ public static partial class ShowcaseMdx
                 var path = token.SlashPath;
 
                 return token.Type == TokenTypes.FontFamily
-                    || Regex.IsMatch(path, @"(^|/)(font|text|type)(/|-)")
-                    || Regex.IsMatch(path, "font|text-");
+                    || TypographyPathPattern().IsMatch(path)
+                    || FontOrTextPathPattern().IsMatch(path);
             })
             .ToList();
 
@@ -337,7 +364,7 @@ public static partial class ShowcaseMdx
 
             var sizes = fontTokens
                 .Where(t => t.Type != TokenTypes.FontFamily
-                    && Regex.IsMatch(t.SlashPath, @"text|size|display|h\d|lead|caption", RegexOptions.IgnoreCase))
+                    && TypeScalePathPattern().IsMatch(t.SlashPath))
                 .ToList();
 
             if (sizes.Count > 0)
@@ -440,18 +467,16 @@ public static partial class ShowcaseMdx
                 continue;
             }
 
-            if (!seen.Add(Regex.Replace(svg, @"\s+", " ")))
+            if (!seen.Add(WhitespaceRunPattern().Replace(svg, " ")))
             {
                 continue;
             }
 
             rendered++;
 
-            var sized = Regex.Replace(
+            var sized = SvgOpeningPattern().Replace(
                 svg,
-                "<svg",
-                "<svg style=\"width:100%;height:100%\" preserveAspectRatio=\"xMidYMid meet\"",
-                RegexOptions.IgnoreCase);
+                "<svg style=\"width:100%;height:100%\" preserveAspectRatio=\"xMidYMid meet\"");
 
             string Panel(string background) =>
                 $"      <div style={{{{ flex: 1, background: {Js(background)}, padding: 6, height: \"100%\", boxSizing: \"border-box\" }}}} dangerouslySetInnerHTML={{{{ __html: {Js(sized)} }}}} />";

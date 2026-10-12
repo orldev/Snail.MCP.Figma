@@ -101,6 +101,12 @@ public static partial class ComponentInventory
     [GeneratedRegex(@"(^|/)components/ui/")]
     private static partial Regex ShadcnPathPattern();
 
+    [GeneratedRegex(@"^[A-Z][\w$]*$")]
+    private static partial Regex ComponentNamePattern();
+
+    [GeneratedRegex(@"[^\w$]")]
+    private static partial Regex NonIdentifierCharacterPattern();
+
     /// <summary>Component definition found in one file.</summary>
     private sealed class Definition
     {
@@ -263,7 +269,7 @@ public static partial class ComponentInventory
 
                 var entry = vendorUsage.TryGetValue(name, out var existing)
                     ? existing
-                    : (Module: specifier, TagCount: 0, ImportCount: 0, Files: new List<string>());
+                    : (Module: specifier, TagCount: 0, ImportCount: 0, Files: []);
 
                 entry.TagCount += index.JsxTags.GetValueOrDefault(name);
                 entry.ImportCount++;
@@ -295,7 +301,7 @@ public static partial class ComponentInventory
             .Select(pair => new DsDuplicateGroup
             {
                 Name = pair.Key,
-                Files = pair.Value.Select(d => d.RelativePath).ToList(),
+                Files = [.. pair.Value.Select(d => d.RelativePath)],
             })
             .ToList();
 
@@ -443,7 +449,7 @@ public static partial class ComponentInventory
                 var name = part.Split(" as ")[0].Trim();
 
                 if (name.Length > 0
-                    && Regex.IsMatch(name, @"^[A-Z][\w$]*$")
+                    && ComponentNamePattern().IsMatch(name)
                     && Regex.IsMatch(text, $@"(?:function|const|class)\s+{Regex.Escape(name)}\b"))
                 {
                     Add(name, "named");
@@ -601,7 +607,7 @@ public static partial class ComponentInventory
 
         var baseName = relativePath.Split('/').Last();
         baseName = baseName.EndsWith(".astro", StringComparison.Ordinal) ? baseName[..^6] : baseName;
-        var name = Regex.Replace(baseName, @"[^\w$]", string.Empty);
+        var name = NonIdentifierCharacterPattern().Replace(baseName, string.Empty);
 
         if (name.Length == 0 || !char.IsUpper(name[0]))
         {

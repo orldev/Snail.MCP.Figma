@@ -21,7 +21,7 @@ public sealed class MinedVariable
     public string? Origin { get; init; }
 
     /// <summary>Mined from actual usage rather than declared explicitly.</summary>
-    public bool Inferred { get; init; }
+    public bool IsInferred { get; init; }
 
     public int? Frequency { get; init; }
 }
@@ -148,6 +148,30 @@ public static partial class CodeStyleMiner
 
     [GeneratedRegex(@"^(?:[\w-]+:)+")]
     private static partial Regex UtilityVariantPrefixPattern();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRunPattern();
+
+    [GeneratedRegex(@"^(?:bg|text|border|ring|fill|stroke|from|via|to|divide|outline|accent|caret|decoration)-([a-z]+)-(\d{2,3})$")]
+    private static partial Regex ColorUtilityPattern();
+
+    [GeneratedRegex(@"^(?:bg|text|border|ring|fill|stroke)-(white|black)$")]
+    private static partial Regex NamedColorUtilityPattern();
+
+    [GeneratedRegex(@"^(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y|space-x|space-y|size)-(\d+(?:\.\d+)?)$")]
+    private static partial Regex SpacingUtilityPattern();
+
+    [GeneratedRegex(@"^rounded-(xs|sm|md|lg|xl|2xl|3xl|4xl|full)$")]
+    private static partial Regex RadiusUtilityPattern();
+
+    [GeneratedRegex(@"^text-(xs|sm|base|lg|xl|\dxl)$")]
+    private static partial Regex TextSizeUtilityPattern();
+
+    [GeneratedRegex(@"^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$")]
+    private static partial Regex FontWeightUtilityPattern();
+
+    [GeneratedRegex(@"^shadow-(2xs|xs|sm|md|lg|xl|2xl)$")]
+    private static partial Regex ShadowUtilityPattern();
 
     /// <summary>CSS properties related to typography.</summary>
     private static readonly HashSet<string> TypographyProperties = new(StringComparer.Ordinal)
@@ -454,7 +478,7 @@ public static partial class CodeStyleMiner
 
     /// <summary>Contents of <c>&lt;style&gt;</c> blocks of a .astro / .vue / .svelte single-file component.</summary>
     public static List<string> ExtractStyleBlocks(string text) =>
-        StyleBlockPattern().Matches(text).Select(m => m.Groups[1].Value).ToList();
+        [.. StyleBlockPattern().Matches(text).Select(m => m.Groups[1].Value)];
 
     /// <summary>Typography rules from CSS: typographic selectors with at least one font property.</summary>
     public static List<MinedTypographyRule> MineTypographyStyles(string text, string relativePath)
@@ -468,7 +492,7 @@ public static partial class CodeStyleMiner
                 break;
             }
 
-            var selector = Regex.Replace(match.Groups[1].Value.Trim(), @"\s+", " ");
+            var selector = WhitespaceRunPattern().Replace(match.Groups[1].Value.Trim(), " ");
 
             if (selector.Length > 80 || !TypographySelectorPattern().IsMatch(selector))
             {
@@ -588,13 +612,11 @@ public static partial class CodeStyleMiner
             Value = value,
             Source = "tailwind utility usage",
             Origin = $"tailwind utility '{cls}' x{count} (de facto usage)",
-            Inferred = true,
+            IsInferred = true,
             Frequency = count,
         };
 
-        var color = Regex.Match(
-            cls,
-            @"^(?:bg|text|border|ring|fill|stroke|from|via|to|divide|outline|accent|caret|decoration)-([a-z]+)-(\d{2,3})$");
+        var color = ColorUtilityPattern().Match(cls);
 
         if (color.Success)
         {
@@ -603,7 +625,7 @@ public static partial class CodeStyleMiner
             return theme.TryGetValue(key, out var value) ? Make(key, value) : null;
         }
 
-        var namedColor = Regex.Match(cls, @"^(?:bg|text|border|ring|fill|stroke)-(white|black)$");
+        var namedColor = NamedColorUtilityPattern().Match(cls);
 
         if (namedColor.Success)
         {
@@ -612,9 +634,7 @@ public static partial class CodeStyleMiner
             return Make($"color-{name}", name == "white" ? "#ffffff" : "#000000");
         }
 
-        var spacing = Regex.Match(
-            cls,
-            @"^(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y|space-x|space-y|size)-(\d+(?:\.\d+)?)$");
+        var spacing = SpacingUtilityPattern().Match(cls);
 
         if (spacing.Success)
         {
@@ -625,7 +645,7 @@ public static partial class CodeStyleMiner
                 : null;
         }
 
-        var radius = Regex.Match(cls, @"^rounded-(xs|sm|md|lg|xl|2xl|3xl|4xl|full)$");
+        var radius = RadiusUtilityPattern().Match(cls);
 
         if (radius.Success)
         {
@@ -635,7 +655,7 @@ public static partial class CodeStyleMiner
             return value is null ? null : Make($"radius-{key}", value);
         }
 
-        var textSize = Regex.Match(cls, @"^text-(xs|sm|base|lg|xl|\dxl)$");
+        var textSize = TextSizeUtilityPattern().Match(cls);
 
         if (textSize.Success)
         {
@@ -644,7 +664,7 @@ public static partial class CodeStyleMiner
             return theme.TryGetValue($"text-{key}", out var value) ? Make($"font-size-{key}", value) : null;
         }
 
-        var weight = Regex.Match(cls, @"^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$");
+        var weight = FontWeightUtilityPattern().Match(cls);
 
         if (weight.Success)
         {
@@ -653,7 +673,7 @@ public static partial class CodeStyleMiner
             return theme.TryGetValue($"font-weight-{key}", out var value) ? Make($"font-weight-{key}", value) : null;
         }
 
-        var shadow = Regex.Match(cls, @"^shadow-(2xs|xs|sm|md|lg|xl|2xl)$");
+        var shadow = ShadowUtilityPattern().Match(cls);
 
         if (shadow.Success)
         {

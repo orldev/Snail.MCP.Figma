@@ -205,7 +205,7 @@ public class RestAdditionTests
 
         public IOpenDocument? LastTouched => null;
 
-        public Task<bool> ClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<bool> TryClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public IOpenDocument? Resolve(string? fileKey = null) => null;
     }

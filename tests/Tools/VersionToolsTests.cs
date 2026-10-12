@@ -1,18 +1,16 @@
 using Snail.MCP.Figma.Application.Diff;
-using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Version history tools over a fake REST: request cost and a pagination cursor that loses no versions.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class VersionToolsTests
+public class VersionToolsTests(BridgeHostFixture bridge)
 {
     private const string FileUrl = "https://www.figma.com/design/ABC123XYZ/Design-System";
 
-    private readonly BridgeHostFixture _bridge;
-
-    public VersionToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private VersionTools Tools(ScriptedPublishedSource api) => new(
         _bridge.Gateway,
@@ -33,7 +31,7 @@ public class VersionToolsTests
     }
 
     private static string[] Ids(JsonNode? versions) =>
-        (versions as JsonArray ?? []).Select(version => version!["id"]!.GetValue<string>()).ToArray();
+        [.. (versions as JsonArray ?? []).Select(version => version!["id"]!.GetValue<string>())];
 
     /// <summary>History of n versions, newest first; every second one is an unlabelled autosave.</summary>
     private static ScriptedPublishedSource WithHistory(int count, bool everySecondIsAutosave = true)

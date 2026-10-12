@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Tools.Prompts;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tools;
 

@@ -19,14 +19,14 @@ public sealed class LiteDbStoreHealth(
             var database = provider.GetDatabase();
 
             return new SnapshotStoreProbe(
-                Ok: true,
+                Succeeded: true,
                 NodeEntries: database.GetCollection<NodeSnapshot>(LiteDbCollections.Nodes).Count(),
                 ImageEntries: database.GetCollection<RenderSnapshot>(LiteDbCollections.Images).Count(),
                 Error: null);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "LiteDB cache failed to open");
+            Log.CacheNotOpened(logger, ex);
 
             return SnapshotStoreProbe.Failed(ex.Message);
         }

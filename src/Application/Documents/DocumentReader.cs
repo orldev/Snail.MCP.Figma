@@ -1,8 +1,7 @@
 using System.Globalization;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Application.Documents;
 
@@ -36,13 +35,11 @@ public sealed class DocumentReader(
 
             if (cached is not null && DateTimeOffset.UtcNow - cached.LastFetchedAt < _freshness)
             {
-                logger.LogInformation(
-                    "cache hit {FileKey}/{NodeId} variant={Variant} ({Bytes} bytes)",
-                    fileKey, nodeId, variant, cached.BytesOut);
+                Log.CacheHit(logger, fileKey, nodeId, variant, cached.BytesOut);
 
                 return new ReadResult(
                     JsonNode.Parse(cached.OptimizedJson) ?? new JsonObject(),
-                    FromCache: true,
+                    IsFromCache: true,
                     cached.BytesIn,
                     cached.BytesOut,
                     cached.FileVersion);
@@ -57,13 +54,11 @@ public sealed class DocumentReader(
         }
         catch (PublishedSourceException ex) when (cached is not null)
         {
-            logger.LogWarning(
-                "Figma unavailable ({Error}) — serving {FileKey}/{NodeId} from the cache of {Fetched:u}",
-                ex.Message, fileKey, nodeId, cached.LastFetchedAt);
+            Log.ServedFromCache(logger, ex.Message, fileKey, nodeId, cached.LastFetchedAt);
 
             return new ReadResult(
                 JsonNode.Parse(cached.OptimizedJson) ?? new JsonObject(),
-                FromCache: true,
+                IsFromCache: true,
                 cached.BytesIn,
                 cached.BytesOut,
                 cached.FileVersion,
@@ -75,30 +70,30 @@ public sealed class DocumentReader(
         switch (cacheOptions.Enabled)
         {
             case true:
-            {
-                if (fetched.Version is not null)
                 {
-                    await versions.RecordAsync(fileKey, fetched.Version, cancellationToken).ConfigureAwait(false);
-                }
-
-                await cache.SetAsync(
-                    new NodeSnapshot
+                    if (fetched.Version is not null)
                     {
-                        FileKey = fileKey,
-                        NodeId = nodeId,
-                        Variant = variant,
-                        FileVersion = fetched.Version?.Version,
-                        OptimizedJson = sanitized.Node.ToJsonString(),
-                        BytesIn = sanitized.BytesIn,
-                        BytesOut = sanitized.BytesOut,
-                    },
-                    cancellationToken).ConfigureAwait(false);
-                break;
-            }
+                        await versions.RecordAsync(fileKey, fetched.Version, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    await cache.SetAsync(
+                        new NodeSnapshot
+                        {
+                            FileKey = fileKey,
+                            NodeId = nodeId,
+                            Variant = variant,
+                            FileVersion = fetched.Version?.Version,
+                            OptimizedJson = sanitized.Node.ToJsonString(),
+                            BytesIn = sanitized.BytesIn,
+                            BytesOut = sanitized.BytesOut,
+                        },
+                        cancellationToken).ConfigureAwait(false);
+                    break;
+                }
         }
 
         return new ReadResult(
-            sanitized.Node, FromCache: false, sanitized.BytesIn, sanitized.BytesOut, fetched.Version?.Version);
+            sanitized.Node, IsFromCache: false, sanitized.BytesIn, sanitized.BytesOut, fetched.Version?.Version);
     }
 
     /// <summary>The whole file document, or its upper levels.</summary>
@@ -175,7 +170,7 @@ public sealed class DocumentReader(
 
     /// <summary>Snapshot variant: profile and limits shape the content, hence the cache key.</summary>
     internal static string BuildVariant(SanitizationRequest request) =>
-        $"{request.Profile}-d{request.MaxDepth?.ToString() ?? "all"}-n{request.MaxNodes?.ToString() ?? "all"}{(request.DeduplicateStyles ? "-dedup" : string.Empty)}";
+        $"{request.Profile}-d{request.MaxDepth?.ToString() ?? "all"}-n{request.MaxNodes?.ToString() ?? "all"}{(request.ShouldDeduplicateStyles ? "-dedup" : string.Empty)}";
 }
 
 /// <summary>Figma response together with the file version taken from the same envelope.</summary>
@@ -184,7 +179,7 @@ public readonly record struct FetchedSlice(JsonNode Node, DocumentVersion? Versi
 /// <summary>Read result with the cache-hit flag and metrics.</summary>
 public sealed record ReadResult(
     JsonNode Node,
-    bool FromCache,
+    bool IsFromCache,
     long BytesIn,
     long BytesOut,
     string? FileVersion,

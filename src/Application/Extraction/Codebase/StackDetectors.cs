@@ -179,7 +179,7 @@ public static partial class StackDetectors
             {
                 Name = "shadcn/ui",
                 Kind = "vendored",
-                Evidence = new[] { shadcnConfig, shadcnDirectory }.Where(x => x is not null).Select(x => x!).ToList(),
+                Evidence = [.. new[] { shadcnConfig, shadcnDirectory }.Where(x => x is not null).Select(x => x!)],
             });
         }
 

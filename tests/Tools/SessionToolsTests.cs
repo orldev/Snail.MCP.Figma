@@ -2,21 +2,18 @@ using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Adapters.Editor;
+using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools;
-using Snail.MCP.Figma.Application.Documents;
-
-using Snail.MCP.Figma.Application.Editor;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Session tools: the figma_execute_across_files fan-out, and the remark channel a human types into while the agent is elsewhere.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class SessionToolsTests
+public class SessionToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public SessionToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private SessionTools Tools() => new(
         _bridge.Gateway,
@@ -30,10 +27,9 @@ public class SessionToolsTests
 
     private static string Text(CallToolResult result) => Assert.IsType<TextContentBlock>(result.Content[0]).Text;
 
-    private static string[] ExecutedCode(FakeEditorExtension plugin) => plugin.Received
+    private static string[] ExecutedCode(FakeEditorExtension plugin) => [.. plugin.Received
         .Where(message => message["method"]?.GetValue<string>() == EditorCommands.ExecuteCode.Name)
-        .Select(message => message["params"]!["code"]!.GetValue<string>())
-        .ToArray();
+        .Select(message => message["params"]!["code"]!.GetValue<string>())];
 
     /// <summary>Waits until only this test's sessions remain in the registry; the fixture is shared per class.</summary>
     private Task OnlyOurSessionsAsync(int expected) => BridgeHostFixture.WaitUntilAsync(
@@ -46,7 +42,7 @@ public class SessionToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         _bridge.Registry.Resolve(fileKey)!.Remarks.Add(new BuildInterruption(
             "третий столбец выше остальных",
             [new JsonObject { ["id"] = "1:7", ["name"] = "Bar 3" }],
@@ -70,7 +66,7 @@ public class SessionToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var reading = Tools().GetRemarksAsync(waitMs: 5000);
 
         _ = Task.Run(async () =>
@@ -91,7 +87,7 @@ public class SessionToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var response = Parse(await Tools().GetRemarksAsync(waitMs: 120));
 
@@ -106,7 +102,7 @@ public class SessionToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
             new BuildInterruption("правь отступы", [], DateTimeOffset.UtcNow));
 
@@ -124,7 +120,7 @@ public class SessionToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var response = Parse(await Tools().GetRemarksAsync());
 
@@ -188,7 +184,7 @@ public class SessionToolsTests
         var other = NewFileKey();
         await using var pluginA = await _bridge.ConnectPluginAsync(target, "Web");
         await using var pluginB = await _bridge.ConnectPluginAsync(other, "Mobile");
-        await _bridge.Registry.ClaimAsync(target);
+        await _bridge.Registry.TryClaimAsync(target);
         await pluginA.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
         await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(target)!.Peers.Count == 1, "the peers did not arrive");
 
@@ -209,7 +205,7 @@ public class SessionToolsTests
         var other = NewFileKey();
         await using var pluginA = await _bridge.ConnectPluginAsync(target);
         await using var pluginB = await _bridge.ConnectPluginAsync(other);
-        await _bridge.Registry.ClaimAsync(target);
+        await _bridge.Registry.TryClaimAsync(target);
 
         var data = Parse(await Tools().ExecuteAcrossFilesAsync("return 1;", other))["data"]!;
 
@@ -299,7 +295,7 @@ public class SessionToolsTests
         var data = Parse(await Tools().ExecuteAcrossFilesAsync("return 1;", $"{connected},{closed}"))["data"]!;
 
         Assert.Equal(1, data["summary"]!["targeted"]!.GetValue<int>());
-        Assert.Equal([closed], data["missing_file_keys"]!.AsArray().Select(key => key!.GetValue<string>()).ToArray());
+        Assert.Equal([closed], [.. data["missing_file_keys"]!.AsArray().Select(key => key!.GetValue<string>())]);
     }
 
     [Fact]
@@ -366,7 +362,7 @@ public class SessionToolsTests
         {
             var expected = properties.EnumerateObject().Select(property => property.Name).Order().ToList();
 
-            Assert.Equal(expected, instance.EnumerateObject().Select(property => property.Name).Order().ToList());
+            Assert.Equal(expected, [.. instance.EnumerateObject().Select(property => property.Name).Order()]);
 
             foreach (var property in properties.EnumerateObject())
             {

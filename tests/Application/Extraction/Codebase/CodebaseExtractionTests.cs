@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Snail.MCP.Figma.Application.Extraction.Codebase;
 using Snail.MCP.Figma.Application.Tokens;
 
@@ -142,11 +143,9 @@ public sealed class SampleAppFixture : IDisposable
     }
 }
 
-public class CodeWalkerTests : IClassFixture<SampleAppFixture>
+public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public CodeWalkerTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     [Fact]
     public void IgnoredDirectoriesNeverReachTheScan()
@@ -164,7 +163,7 @@ public class CodeWalkerTests : IClassFixture<SampleAppFixture>
         var walk = CodeWalker.Walk(_app.Root, new WalkOptions { MaxFiles = 2 });
 
         Assert.True(walk.Files.Count <= 2);
-        Assert.True(walk.Skipped.OverMaxFiles);
+        Assert.True(walk.Skipped.IsOverMaxFiles);
     }
 
     [Fact]
@@ -176,11 +175,9 @@ public class CodeWalkerTests : IClassFixture<SampleAppFixture>
     }
 }
 
-public class StackDetectorTests : IClassFixture<SampleAppFixture>
+public class StackDetectorTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public StackDetectorTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     [Fact]
     public void FrameworkStylingAndVendorLayersAreRecognized()
@@ -200,11 +197,9 @@ public class StackDetectorTests : IClassFixture<SampleAppFixture>
     }
 }
 
-public class ComponentInventoryTests : IClassFixture<SampleAppFixture>
+public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public ComponentInventoryTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     private InventoryResult Build() => ComponentInventory.Build(CodeWalker.Walk(_app.Root).Files, targetIndex: 0);
 
@@ -391,11 +386,9 @@ public class CodeStyleMinerTests
     }
 }
 
-public class CodeTokenExtractorTests : IClassFixture<SampleAppFixture>
+public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public CodeTokenExtractorTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     private ExtractTokensResult Extract(int minFrequency = 4) =>
         CodeTokenExtractor.Extract(
@@ -481,11 +474,9 @@ public class CodeTokenExtractorTests : IClassFixture<SampleAppFixture>
     }
 }
 
-public class ProjectAnalyzerTests : IClassFixture<SampleAppFixture>
+public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public ProjectAnalyzerTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     [Fact]
     public void AnalysisPersistsAsAReadableManifest()
@@ -533,11 +524,9 @@ public class ProjectAnalyzerTests : IClassFixture<SampleAppFixture>
     }
 }
 
-public class ScaffolderTests : IClassFixture<SampleAppFixture>
+public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public ScaffolderTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     private (DsAnalysis Analysis, TokenDocument Document, string OutDir) Prepare()
     {
@@ -630,15 +619,16 @@ public class ScaffolderTests : IClassFixture<SampleAppFixture>
 
         Assert.Contains("export const Variant2xl: Story", story);
         Assert.Contains("export const DefaultVariant: Story", story);
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(story, @"export const Default: Story"));
+        Assert.Single(DefaultStoryPattern.Matches(story));
     }
+
+    [GeneratedRegex(@"export const Default: Story")]
+    private static partial Regex DefaultStoryPattern { get; }
 }
 
-public class ExtractionVerifierTests : IClassFixture<SampleAppFixture>
+public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<SampleAppFixture>
 {
-    private readonly SampleAppFixture _app;
-
-    public ExtractionVerifierTests(SampleAppFixture app) => _app = app;
+    private readonly SampleAppFixture _app = app;
 
     [Fact]
     public void FreshlyScaffoldedPackagePassesTheGate()
@@ -663,10 +653,10 @@ public class ExtractionVerifierTests : IClassFixture<SampleAppFixture>
             var status = ProjectAnalyzer.InitStatus(analysis);
             var report = ExtractionVerifier.Verify(outDir, analysis, status);
 
-            Assert.True(report.Passed, string.Join(" | ", report.Checks
+            Assert.True(report.HasPassed, string.Join(" | ", report.Checks
                 .Where(check => check.Status == "fail")
                 .Select(check => $"{check.Name}: {string.Join(", ", check.Details)}")));
-            Assert.True(report.FigmaRoundTripReady);
+            Assert.True(report.IsFigmaRoundTripReady);
         }
         finally
         {
@@ -684,7 +674,7 @@ public class ExtractionVerifierTests : IClassFixture<SampleAppFixture>
         {
             var report = ExtractionVerifier.Verify(outDir, analysis: null, status: null);
 
-            Assert.False(report.Passed);
+            Assert.False(report.HasPassed);
             Assert.Contains(report.Checks, check =>
                 check.Status == "fail" && check.Details.Any(d => d.Contains("figma_ds_extract_tokens", StringComparison.Ordinal)));
         }
@@ -712,7 +702,7 @@ public class ExtractionVerifierTests : IClassFixture<SampleAppFixture>
 
             var report = ExtractionVerifier.Verify(outDir, analysis: null, status: null);
 
-            Assert.False(report.Passed);
+            Assert.False(report.HasPassed);
             Assert.Contains(report.Checks, check =>
                 check.Name.Contains("reference resolves", StringComparison.Ordinal) && check.Status == "fail");
         }

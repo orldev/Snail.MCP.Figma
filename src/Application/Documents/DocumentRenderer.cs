@@ -1,5 +1,4 @@
 using System.Globalization;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 using Snail.MCP.Figma.Application.Snapshots;
 
 namespace Snail.MCP.Figma.Application.Documents;
@@ -66,7 +65,7 @@ public sealed class DocumentRenderer(
 
         if (misses.Count == 0)
         {
-            logger.LogDebug("Render {FileKey}: all {Count} nodes from cache, Figma not called", fileKey, fromCache.Count);
+            Log.RenderAllFromCache(logger, fileKey, fromCache.Count);
 
             return new ImageRenderResult(urls, fromCache, []);
         }
@@ -80,31 +79,31 @@ public sealed class DocumentRenderer(
         switch (response["images"])
         {
             case JsonObject images:
-            {
-                foreach (var nodeId in misses)
                 {
-                    if (images[nodeId]?.GetValue<string>() is not { Length: > 0 } url)
+                    foreach (var nodeId in misses)
                     {
-                        continue;
+                        if (images[nodeId]?.GetValue<string>() is not { Length: > 0 } url)
+                        {
+                            continue;
+                        }
+
+                        urls[nodeId] = url;
+                        fetched.Add(nodeId);
+
+                        await cache.SetAsync(
+                            new RenderSnapshot
+                            {
+                                FileKey = fileKey,
+                                NodeId = nodeId,
+                                Variant = variant,
+                                FileVersion = version,
+                                Url = url,
+                            },
+                            cancellationToken).ConfigureAwait(false);
                     }
 
-                    urls[nodeId] = url;
-                    fetched.Add(nodeId);
-
-                    await cache.SetAsync(
-                        new RenderSnapshot
-                        {
-                            FileKey = fileKey,
-                            NodeId = nodeId,
-                            Variant = variant,
-                            FileVersion = version,
-                            Url = url,
-                        },
-                        cancellationToken).ConfigureAwait(false);
+                    break;
                 }
-
-                break;
-            }
         }
 
         return new ImageRenderResult(urls, fromCache, fetched);
@@ -121,5 +120,5 @@ public sealed record ImageRenderResult(
     IReadOnlyCollection<string> Fetched)
 {
     /// <summary>No node required a Figma request.</summary>
-    public bool FullyFromCache => Fetched.Count == 0;
+    public bool IsFullyFromCache => Fetched.Count == 0;
 }

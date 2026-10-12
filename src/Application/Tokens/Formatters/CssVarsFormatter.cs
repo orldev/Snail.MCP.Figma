@@ -13,7 +13,7 @@ public sealed class CssVarsFormatter : ITokenFormatter
         var resolver = new AliasResolver(document);
         var files = new List<GeneratedFile>();
 
-        if (options is {SplitByMode: true, SplitByCollection: true})
+        if (options is { ShouldSplitByMode: true, ShouldSplitByCollection: true })
         {
             foreach (var set in document.Sets)
             {
@@ -26,7 +26,7 @@ public sealed class CssVarsFormatter : ITokenFormatter
                 }
             }
         }
-        else if (options.SplitByMode)
+        else if (options.ShouldSplitByMode)
         {
             foreach (var mode in document.AllModes)
             {
@@ -36,7 +36,7 @@ public sealed class CssVarsFormatter : ITokenFormatter
                     RenderSelector(sets, mode, SelectorFor(mode), options, resolver, warnings)));
             }
         }
-        else if (options.SplitByCollection)
+        else if (options.ShouldSplitByCollection)
         {
             foreach (var set in document.Sets)
             {
@@ -137,7 +137,7 @@ public sealed class CssVarsFormatter : ITokenFormatter
             return;
         }
 
-        if (value.IsReference && !options.ResolveAliases)
+        if (value.IsReference && !options.ShouldResolveAliases)
         {
             var target = resolver.ReferenceTargetPath(value.Reference!);
 
@@ -163,29 +163,29 @@ public sealed class CssVarsFormatter : ITokenFormatter
         switch (token.Type)
         {
             case TokenTypes.Typography:
-            {
-                foreach (var (field, rendered) in ValueRenderer.ExpandTypography(literal, options))
                 {
-                    builder.AppendLine($"  {name}-{TokenNaming.ToKebab(field)}: {rendered};");
-                }
-
-                return;
-            }
-            case TokenTypes.Shadow:
-            {
-                var shadow = ValueRenderer.RenderShadow(literal, options);
-
-                if (shadow is null)
-                {
-                    warnings.Add($"{token.DottedPath}: the shadow did not parse, skipping.");
+                    foreach (var (field, rendered) in ValueRenderer.ExpandTypography(literal, options))
+                    {
+                        builder.AppendLine($"  {name}-{TokenNaming.ToKebab(field)}: {rendered};");
+                    }
 
                     return;
                 }
+            case TokenTypes.Shadow:
+                {
+                    var shadow = ValueRenderer.RenderShadow(literal, options);
 
-                builder.AppendLine($"  {name}: {shadow};");
+                    if (shadow is null)
+                    {
+                        warnings.Add($"{token.DottedPath}: the shadow did not parse, skipping.");
 
-                return;
-            }
+                        return;
+                    }
+
+                    builder.AppendLine($"  {name}: {shadow};");
+
+                    return;
+                }
             default:
                 builder.AppendLine($"  {name}: {ValueRenderer.Render(literal, token.Type, options)};");
                 break;

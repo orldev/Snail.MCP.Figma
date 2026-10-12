@@ -701,7 +701,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         }
         catch (Exception ex) when (ex is EditorUnavailableException or EditorCommandException or TimeoutException or InvalidOperationException)
         {
-            Logger.LogWarning("Empty rectangle {NodeId} stayed behind after a failed placement: {Message}", nodeId, ex.Message);
+            Log.RectangleLeftBehind(Logger, nodeId, ex.Message);
         }
     }
 

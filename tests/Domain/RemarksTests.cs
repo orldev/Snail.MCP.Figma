@@ -45,7 +45,7 @@ public class RemarksTests
     {
         var remarks = new Remarks(10);
         var started = Stopwatch.StartNew();
-        var waiting = remarks.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        var waiting = remarks.TryWaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
 
         _ = Task.Run(async () =>
         {
@@ -62,7 +62,7 @@ public class RemarksTests
     {
         var remarks = new Remarks(10);
 
-        Assert.False(await remarks.WaitAsync(TimeSpan.FromMilliseconds(80), CancellationToken.None));
+        Assert.False(await remarks.TryWaitAsync(TimeSpan.FromMilliseconds(80), CancellationToken.None));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class RemarksTests
         var remarks = new Remarks(10);
         remarks.Add(Left(DateTimeOffset.UtcNow, "уже лежит"));
 
-        Assert.True(await remarks.WaitAsync(TimeSpan.FromMilliseconds(1), CancellationToken.None));
+        Assert.True(await remarks.TryWaitAsync(TimeSpan.FromMilliseconds(1), CancellationToken.None));
     }
 
     [Fact]

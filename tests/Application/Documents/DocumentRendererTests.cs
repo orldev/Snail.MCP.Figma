@@ -1,18 +1,16 @@
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Application.Documents;
 
 /// <summary>Render cache: a repeated "show the same node" must not spend the most expensive bucket, and the cache must not survive a node edit.</summary>
 [Collection(nameof(LiteDbFixture))]
-public class DocumentRendererTests
+public class DocumentRendererTests(LiteDbFixture cacheFixture)
 {
-    private readonly LiteDbFixture _cacheFixture;
-
-    public DocumentRendererTests(LiteDbFixture cacheFixture) => _cacheFixture = cacheFixture;
+    private readonly LiteDbFixture _cacheFixture = cacheFixture;
 
     private static string NewFileKey() => $"img{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -51,7 +49,7 @@ public class DocumentRendererTests
 
         Assert.Equal(1, api.ImageCalls);
         Assert.Equal(first.Urls["1:2"], second.Urls["1:2"]);
-        Assert.True(second.FullyFromCache);
+        Assert.True(second.IsFullyFromCache);
         Assert.Contains("1:2", second.FromCache);
     }
 
@@ -158,7 +156,7 @@ public class DocumentRendererTests
         var second = await renderer.RenderAsync(fileKey, ["1:2"], "png", 2);
 
         Assert.Equal(1, api.ImageCalls);
-        Assert.True(second.FullyFromCache);
+        Assert.True(second.IsFullyFromCache);
     }
 
     [Fact]

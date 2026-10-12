@@ -1,18 +1,16 @@
 using LiteDB;
 using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Adapters.Persistence;
 
 /// <summary>LiteDB has no expiration bundle, so our code sweeps; <see cref="LiteDbNodeSnapshotStore.SetAsync"/> swallows exceptions and a broken sweep would silently bloat the file forever.</summary>
 [Collection(nameof(LiteDbFixture))]
-public class LiteDbNodeSnapshotStoreTests
+public class LiteDbNodeSnapshotStoreTests(LiteDbFixture cacheFixture)
 {
-    private readonly LiteDbFixture _cacheFixture;
+    private readonly LiteDbFixture _cacheFixture = cacheFixture;
     private readonly string _fileKey = $"sweep-{Guid.NewGuid().ToString("N")[..8]}";
-
-    public LiteDbNodeSnapshotStoreTests(LiteDbFixture cacheFixture) => _cacheFixture = cacheFixture;
 
     private LiteDbNodeSnapshotStore BuildCache(int ttlHours) =>
         new(_cacheFixture.Database,

@@ -1,0 +1,5165 @@
+[
+  {
+    "name": "figma_get_file_data",
+    "description": "The structure of a Figma file and the document tree. CAUTION: it can eat a lot of tokens \u2014 start with depth=1. For component descriptions use figma_get_component. It fits best for learning what a file contains and finding the nodeId of the nodes you need. The response is already cleaned of vector geometry and defaults, repeated calls are served from the cache until the file changes in Figma.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Tree traversal depth. 1 is pages only, 2 is top-level frames.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        },
+        "maxNodes": {
+          "description": "Cap on the number of nodes in the response.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        },
+        "profile": {
+          "description": "Cleaning profile: aggressive (the default), balanced, raw. It affects the REST path only.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "Source: auto (the default \u2014 the plugin when a live session for the file exists, otherwise REST), rest (Figma REST only: the last SAVED state, spends quota), plugin (the plugin only).",
+          "type": "string",
+          "default": "auto"
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_component",
+    "description": "Metadata of a single node or component: name, type, description, component properties, the children it holds. This is the right tool for the questions \u0027what is this component\u0027 and \u0027which properties does it have\u0027. For a picture use figma_get_component_image, for the full file tree use figma_get_file_data.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027. The dashed form from a link is accepted too.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Traversal depth of the node subtree. The default 4 is enough to see what a component is made of.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        },
+        "profile": {
+          "description": "Cleaning profile: aggressive (the default), balanced, raw. It affects the REST path only.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "Source: auto (the default \u2014 the plugin when a live session for the file exists, otherwise REST), rest (Figma REST only: the last SAVED state, spends quota), plugin (the plugin only).",
+          "type": "string",
+          "default": "auto"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_variables",
+    "description": "Figma variables (design tokens): colors, spacing, typography, multi-mode ones (Light/Dark) included. It returns a summary by collection and the list of variables. Note: the Variables REST API is available on the Enterprise plan only \u2014 on other plans the call comes back with a clear 403, and the tokens have to be taken through the plugin. For styles (not variables) use figma_get_styles.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "includePublished": {
+          "description": "Add the published variables of the library, not just the local ones.",
+          "type": "boolean",
+          "default": false
+        },
+        "format": {
+          "description": "Format: \u0027summary\u0027 (the default, the summary only), \u0027full\u0027 (every variable).",
+          "type": "string",
+          "default": "summary"
+        },
+        "namePattern": {
+          "description": "Keep only the variables whose name contains the substring.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "Source: auto (the default \u2014 the plugin when a live session for the file exists, otherwise REST), rest (Figma REST only: the last SAVED state, spends quota), plugin (the plugin only). The plugin works on any plan, Variables REST is Enterprise-only.",
+          "type": "string",
+          "default": "auto"
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_file_meta",
+    "description": "Name, last-modified time, author of the last edit and editor type of a file \u2014 without downloading the document. The cheap way to ask \u0027did anything change?\u0027 before spending the expensive file read. REST only, one request from the light bucket.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_styles",
+    "description": "The styles of a file: color, text, effect and grid styles. These are styles, not variables \u2014 for variables call figma_get_variables.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "Source: auto (the default \u2014 the plugin when a live session for the file exists, otherwise REST), rest (Figma REST only: the last SAVED state, spends quota), plugin (the plugin only).",
+          "type": "string",
+          "default": "auto"
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_component_image",
+    "description": "Renders a node into a picture (PNG, JPG, SVG, PDF). Needed on requests like \u0027show me\u0027, \u0027a screenshot\u0027, \u0027what does it look like\u0027. For component data use figma_get_component. The source is chosen automatically: the Figma Desktop plugin \u2192 the cache \u2192 Figma REST. The plugin and the cache spend no Figma quota at all, and the plugin additionally shows the state right now, unsaved edits included. The response carries a source field: cache/figma-api give a link in data.url (it lives 30 days), plugin gives a path to a file on disk in data.image.path (open the file to see the picture). With deliver=both a picture taken through the plugin also comes back as image content, for a caller that cannot open a path on this machine.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "format": {
+          "description": "Format: png (the default), jpg, svg, pdf.",
+          "type": "string",
+          "default": "png"
+        },
+        "scale": {
+          "description": "Render scale, from 0.01 to 4.",
+          "type": "number",
+          "default": 2
+        },
+        "source": {
+          "description": "Source: auto (the default \u2014 the cache, then the plugin, then REST), rest (Figma REST only, spends quota), plugin (the plugin only).",
+          "type": "string",
+          "default": "auto"
+        },
+        "deliver": {
+          "description": "What comes back: path (the default) saves the picture beside the server and answers with the file path, which suits a human working in the same machine; both answers with the path AND the picture itself as image content, which is what a caller in another process or container needs, since a path there opens nothing. Only PNG and JPG travel as content, and only up to 2 MB \u2014 a bigger one still comes back as a path.",
+          "type": "string",
+          "default": "path"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_file_for_plugin",
+    "description": "The structure of a file without visual properties: ids, names, types, component links and plugin data only. Needed when developing plugins and when only the hierarchy matters. Noticeably lighter than figma_get_file_data.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used in this session.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Tree traversal depth, at most 5.",
+          "type": "integer",
+          "default": 3
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_selection",
+    "description": "What is selected in Figma right now in the target file: the ids, names, types and sizes of the nodes. This is the right first step for \u0027move this\u0027 and \u0027change the selected one\u0027 \u2014 the nodeId comes from the response. While no target is chosen it reports the file the human touched last, with its fileKey. Requires a running Snail Bridge plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_move_node",
+    "description": "Moves a node. The x and y coordinates are relative to the parent, exactly as the Figma Plugin API understands them. To move it \u002710 pixels to the right\u0027, first read the current position (figma_get_component or figma_get_selection) and add the offset to it. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "x": {
+          "description": "New X coordinate relative to the parent.",
+          "type": "number"
+        },
+        "y": {
+          "description": "New Y coordinate relative to the parent.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "nodeId",
+        "x",
+        "y"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_resize_node",
+    "description": "Resizes a node. With withConstraints=true Figma recalculates the nested elements by their constraints \u2014 usually that is what you want for frames. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "width": {
+          "description": "New width in pixels.",
+          "type": "number"
+        },
+        "height": {
+          "description": "New height in pixels.",
+          "type": "number"
+        },
+        "withConstraints": {
+          "description": "Recalculate the children by their constraints.",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "nodeId",
+        "width",
+        "height"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_fills",
+    "description": "Sets the fills of a node. The fills format is an array of Figma Paint in JSON, for example [{\u0022type\u0022:\u0022SOLID\u0022,\u0022color\u0022:{\u0022r\u0022:1,\u0022g\u0022:0,\u0022b\u0022:0},\u0022opacity\u0022:1}]. Channel components are fractions from 0 to 1, not 0-255. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "fills": {
+          "description": "Array of Paint as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "fills"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_text",
+    "description": "Changes the text in a TEXT node. Careful: when the node belongs to a component instance and the text is driven by a component property, the edit may not apply \u2014 use figma_set_instance_properties then. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "TEXT node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "text": {
+          "description": "New text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "text"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_execute",
+    "description": "Runs arbitrary JavaScript in the Figma plugin sandbox: the whole figma object (Plugin API) is available. The universal tool for what the specialised commands do not cover. The code runs as the body of an async function; return a value with return. The asynchronous Figma methods (loadFontAsync, getNodeByIdAsync, loadAllPagesAsync) must be awaited. The code runs in the target file: the one figma_navigate chose, or the only connected one. With several files connected and none chosen the call refuses and lists them. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "JavaScript code. Example: const n = await figma.getNodeByIdAsync(\u00271:2\u0027); return n.name;",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "description": "Execution timeout in milliseconds.",
+          "type": "integer",
+          "default": 15000
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_execute_steps",
+    "description": "Runs short scripts one after another, so a layout grows element by element instead of appearing all at once, and a failure names the step that caused it instead of the whole batch. Each step is a figma_execute body, and each runs on its own: declarations do not survive between steps, so carry what the next step needs on globalThis. Up to 60 steps in one call; globals live on afterwards, so a longer build continues in the next call. Prefer this over one large figma_execute: the sandbox parser chokes on a big nested expression, and there the error says nothing about where. The human can step in from the plugin panel while it runs: the answer then carries stopped=true, their remark and what they had selected, and the steps that did not run are simply sent again once the remark is dealt with. A remark left BEFORE this call does not stop it: that one waits for figma_get_remarks. Build into ONE frame created by the first step: undo cannot merge the steps back together, so a single container is what makes the whole build undoable by deleting it. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "description": "JSON array of code strings, run in order: [\u0022globalThis.card = figma.createFrame();\u0022, \u0022globalThis.card.resize(320, 180);\u0022].",
+          "type": "string"
+        },
+        "delayMs": {
+          "description": "Pause between steps in milliseconds, up to 2000. 0 runs as fast as the bridge allows; 100 to 200 reads as a build a human can follow.",
+          "type": "integer",
+          "default": 0
+        },
+        "stopOnError": {
+          "description": "Stop at the first failing step, which is the default, or run the rest and report every failure.",
+          "type": "boolean",
+          "default": true
+        },
+        "timeoutMs": {
+          "description": "Execution timeout of a single step in milliseconds.",
+          "type": "integer",
+          "default": 15000
+        }
+      },
+      "required": [
+        "steps"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_selection_colors",
+    "description": "Every color used in the current selection, with the styles they come from \u2014 the quick token audit: select a screen, see which paints are loose values instead of styles or variables. Returns null-ish when nothing is selected. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_sort_styles",
+    "description": "Reorders the local styles panel: alphabetically by default, or by an explicit comma-separated id list. styleType is PAINT, TEXT, EFFECT or GRID; ids come from figma_get_styles. Folder prefixes (Brand/\u2026) sort with their names. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "styleType": {
+          "description": "Style type: PAINT, TEXT, EFFECT or GRID.",
+          "type": "string"
+        },
+        "order": {
+          "description": "Comma-separated style ids in the desired order; empty sorts alphabetically.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "styleType"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_commit_undo",
+    "description": "Closes the current undo group: everything changed since the previous commit becomes a single Ctrl\u002BZ step for the human working in the same file. Call it after a finished batch of mutations, not after every small edit. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_style",
+    "description": "Creates a local style. styleType is PAINT, TEXT, EFFECT or GRID; properties is JSON with the style contents: paints for PAINT, fontName/fontSize/lineHeight and the other text fields for TEXT, effects for EFFECT, layoutGrids for GRID. A slash in the name makes a folder: Brand/Primary. Existing styles are read by figma_get_styles. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "styleType": {
+          "description": "Style type: PAINT, TEXT, EFFECT or GRID.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Style name; a slash makes a folder: Brand/Primary.",
+          "type": "string"
+        },
+        "properties": {
+          "description": "Style contents as JSON, keyed by type: paints, text fields, effects or layoutGrids.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "styleType",
+        "name"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_status",
+    "description": "The state of the bridge to Figma: whether the plugin is connected, which files are visible, which of them is the target of the commands and which other agents work there. Call it first when the write tools answer \u0027the plugin is not connected\u0027.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "description": "true on success; a failure comes as text with ok false, error and hint.",
+          "type": "boolean"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "connected": {
+              "description": "Whether at least one plugin session is open.",
+              "type": "boolean"
+            },
+            "activeFileKey": {
+              "description": "Key of the target file; null when no file is bound.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "othersHere": {
+              "description": "Names of the other agents bound to the target file.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "connectionId": {
+                    "description": "Identity of the plugin connection.",
+                    "type": "string"
+                  },
+                  "fileKey": {
+                    "description": "Key of the file, as in its URL.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "fileName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "currentPage": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "editorType": {
+                    "description": "figma, figjam or slides.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "pluginVersion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "connectedAt": {
+                    "description": "ISO 8601 instant the plugin connected.",
+                    "type": "string"
+                  },
+                  "open": {
+                    "description": "Whether the connection is still open.",
+                    "type": "boolean"
+                  },
+                  "target": {
+                    "description": "Whether this file is where the commands of this server go.",
+                    "type": "boolean"
+                  },
+                  "othersHere": {
+                    "description": "Names of the other agents bound to this file.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "connectionId",
+                  "fileKey",
+                  "fileName",
+                  "currentPage",
+                  "editorType",
+                  "pluginVersion",
+                  "connectedAt",
+                  "open",
+                  "target",
+                  "othersHere"
+                ]
+              }
+            }
+          },
+          "required": [
+            "connected",
+            "activeFileKey",
+            "othersHere",
+            "files"
+          ]
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_clone_node",
+    "description": "Copies a node next to the original. The response carries the id of the copy. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_node",
+    "description": "Deletes a node together with everything inside it. The operation is irreversible. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_rename_node",
+    "description": "Renames a node (a layer in the layers panel). Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        },
+        "newName": {
+          "description": "New name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "newName"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_strokes",
+    "description": "Sets the strokes of a node. The strokes format is an array of Figma Paint in JSON, color components from 0 to 1: [{\u0022type\u0022:\u0022SOLID\u0022,\u0022color\u0022:{\u0022r\u0022:0,\u0022g\u0022:0,\u0022b\u0022:0}}]. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        },
+        "strokes": {
+          "description": "Array of Paint as a JSON string.",
+          "type": "string"
+        },
+        "strokeWeight": {
+          "description": "Stroke weight in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId",
+        "strokes"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_image_fill",
+    "description": "Puts an image into a node as a fill. Give it filePath and the server reads the picture from disk itself; give it imageData and the bytes come as base64 without the data: prefix, at the cost of carrying them through the context. scaleMode: FILL (the default), FIT, CROP, TILE. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, or several separated by commas.",
+          "type": "string"
+        },
+        "imageData": {
+          "description": "Image as base64. Pass either imageData or filePath.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "filePath": {
+          "description": "Absolute path to a picture on the machine running the server; ~ is expanded. The server reads the file and sends the bytes over the bridge itself, so the picture never travels through the context \u2014 this is the way to place one at full resolution instead of shrinking it to fit a base64 argument. PNG, JPG, GIF and WebP up to 10 MB.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "scaleMode": {
+          "description": "Scale mode: FILL, FIT, CROP, TILE.",
+          "type": "string",
+          "default": "FILL"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_child",
+    "description": "Creates a node inside a parent. nodeType: FRAME, RECTANGLE, ELLIPSE, TEXT, LINE, VECTOR and so on. properties is JSON with the properties of the new node: {\u0022name\u0022:\u0022Button\u0022,\u0022width\u0022:120,\u0022height\u0022:40,\u0022x\u0022:0,\u0022y\u0022:0,\u0022characters\u0022:\u0022Text\u0022}. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "parentId": {
+          "description": "Id of the parent \u2014 a frame, a group or a page.",
+          "type": "string"
+        },
+        "nodeType": {
+          "description": "Type of the node to create.",
+          "type": "string"
+        },
+        "properties": {
+          "description": "Properties of the new node as a JSON string.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "parentId",
+        "nodeType"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_description",
+    "description": "Sets the description of a component or a style \u2014 what designers see in the assets panel. Markdown is supported through descriptionMarkdown. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the node \u2014 a component, a variant set or a style.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description text.",
+          "type": "string"
+        },
+        "descriptionMarkdown": {
+          "description": "Markdown version of the description, when markup is needed.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId",
+        "description"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_instance_properties",
+    "description": "Changes the properties of a component instance: TEXT, BOOLEAN, INSTANCE_SWAP, VARIANT. This is the right way to change the contents of an instance \u2014 editing a text node inside it directly may silently do nothing. The properties format is JSON: {\u0022Label\u0022:\u0022Buy\u0022,\u0022Show Icon\u0022:true}. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the INSTANCE node.",
+          "type": "string"
+        },
+        "properties": {
+          "description": "Properties as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "properties"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_page",
+    "description": "Creates a page in the document; makeCurrent switches the editor to it right away. Nodes are then created on it with figma_create_child. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the new page.",
+          "type": "string"
+        },
+        "makeCurrent": {
+          "description": "Switch the editor to the new page right away.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_node_from_svg",
+    "description": "Imports SVG markup as a frame with vector children \u2014 the way to bring an icon from code into Figma. Appends to the parent node, or to the current page when parentId is empty; x and y are relative to the parent. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "svg": {
+          "description": "SVG markup, the full \u003Csvg\u003E...\u003C/svg\u003E element.",
+          "type": "string"
+        },
+        "parentId": {
+          "description": "Id of the parent frame or page; empty appends to the current page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "description": "Name of the created frame.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X relative to the parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y relative to the parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "svg"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_place_image",
+    "description": "Places a raster image into the file as a rectangle with an image fill, sized to the source. Three ways in: filePath, which the server reads from disk and is the way to place a photograph at full resolution; base64, which carries the bytes through the context and suits an icon; and url, which Figma downloads itself and only from a host the plugin manifest allows, so a link to a local file server will not do. PNG, JPG, GIF, WebP up to 4096x4096. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "URL of the image; Figma downloads it itself, and only from hosts the plugin manifest allows.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "base64": {
+          "description": "Raw image bytes as base64; it travels through the context, so use it for icons and filePath for photographs.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "filePath": {
+          "description": "Absolute path to a picture on the machine running the server; ~ is expanded. The server reads the file and sends the bytes over the bridge itself, so the picture never travels through the context \u2014 this is the way to place one at full resolution instead of shrinking it to fit a base64 argument. PNG, JPG, GIF and WebP up to 10 MB.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "parentId": {
+          "description": "Id of the parent frame or page; empty appends to the current page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "description": "Name of the created rectangle.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X relative to the parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y relative to the parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_node_from_jsx",
+    "description": "Builds a node tree from one declarative JSON spec \u2014 the bulk way to create layouts, faster than a chain of figma_create_child calls. Components: AutoLayout, Frame, Text, Rectangle, Ellipse, Line, SVG, Image, Fragment; children hold nested specs or strings for text. Style ids and instances are not supported here. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "spec": {
+          "description": "Node tree as JSON: {\u0022type\u0022:\u0022AutoLayout\u0022,\u0022props\u0022:{\u0022fill\u0022:\u0022#F00\u0022,\u0022padding\u0022:20},\u0022children\u0022:[{\u0022type\u0022:\u0022Text\u0022,\u0022props\u0022:{\u0022fontSize\u0022:24},\u0022children\u0022:[\u0022Hello\u0022]}]}. Components: AutoLayout, Frame, Text, Rectangle, Ellipse, Line, SVG, Image, Fragment.",
+          "type": "string"
+        },
+        "parentId": {
+          "description": "Id of the parent frame or page; empty appends to the current page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "spec"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_boolean_operation",
+    "description": "Combines vector shapes: UNION, SUBTRACT, INTERSECT, EXCLUDE make a boolean group, FLATTEN bakes into one vector. Node order matters for SUBTRACT \u2014 the first node is the base. The icon-work primitive. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "description": "Operation: UNION, SUBTRACT, INTERSECT, EXCLUDE or FLATTEN.",
+          "type": "string"
+        },
+        "nodeIds": {
+          "description": "Comma-separated node ids; the order matters for SUBTRACT.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the resulting node.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "operation",
+        "nodeIds"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_group_nodes",
+    "description": "Wraps nodes into a group under the first node\u0027s parent. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeIds": {
+          "description": "Comma-separated ids of the nodes to group.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the group.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeIds"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ungroup_node",
+    "description": "Dissolves a group or frame, releasing its children into the parent; returns the freed ids. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the group or frame to dissolve.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_search_components",
+    "description": "Searches components in the open file by a substring of the name. Returns the ids and keys needed by figma_instantiate_component. Ids live only inside the current session \u2014 do not reuse them from past conversations. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "description": "Substring of the name. Empty returns every component of the file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "description": "Maximum number of results.",
+          "type": "integer",
+          "default": 50
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_instantiate_component",
+    "description": "Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id (nodeId). Take keys and ids from figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "componentKey": {
+          "description": "Component key from a library.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "nodeId": {
+          "description": "Id of the component node in the current file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "parentId": {
+          "description": "Id of the parent to put the instance into.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "position": {
+          "description": "Position as JSON {\u0022x\u0022:0,\u0022y\u0022:0}.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "overrides": {
+          "description": "Instance property values as JSON.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "variant": {
+          "description": "Set variant as JSON, for example {\u0022Size\u0022:\u0022Large\u0022}.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_component_set",
+    "description": "Builds a component set out of existing components or from a property matrix. componentIds is a JSON array of ids; properties is JSON of the form {\u0022Size\u0022:[\u0022S\u0022,\u0022M\u0022],\u0022State\u0022:[\u0022Default\u0022,\u0022Hover\u0022]}. Large matrices take a while to build \u2014 the timeout grows with the number of variants. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Set name.",
+          "type": "string"
+        },
+        "componentIds": {
+          "description": "Component ids as a JSON array.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "properties": {
+          "description": "Property matrix as JSON.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_analyze_component_set",
+    "description": "Breaks a variant set down: which property axes exist, which combinations are there and which are missing. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the COMPONENT_SET node.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_arrange_component_set",
+    "description": "Lays the variants inside a set out in a grid: rows are the first property axis, columns the second. Makes a set readable after variants were added in bulk. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the COMPONENT_SET node.",
+          "type": "string"
+        },
+        "columnGap": {
+          "description": "Horizontal gap between variants.",
+          "type": "number",
+          "default": 24
+        },
+        "rowGap": {
+          "description": "Vertical gap between variants.",
+          "type": "number",
+          "default": 24
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_component_property",
+    "description": "Adds a property to a component. type: TEXT, BOOLEAN, INSTANCE_SWAP, VARIANT, SLOT. Every type except SLOT needs a default value. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the component or variant set.",
+          "type": "string"
+        },
+        "propertyName": {
+          "description": "Property name, for example \u0027Label\u0027.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Type: TEXT, BOOLEAN, INSTANCE_SWAP, VARIANT, SLOT.",
+          "type": "string"
+        },
+        "defaultValue": {
+          "description": "Default value. For BOOLEAN it is true/false, for VARIANT the variant name.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "variantOptions": {
+          "description": "Comma-separated value options for VARIANT.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId",
+        "propertyName",
+        "type"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_edit_component_property",
+    "description": "Changes the default value of a component property. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Component id.",
+          "type": "string"
+        },
+        "propertyName": {
+          "description": "Property name.",
+          "type": "string"
+        },
+        "newValue": {
+          "description": "New default value.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "propertyName",
+        "newValue"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_component_property",
+    "description": "Deletes a component property. Every instance loses the matching override. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Component id.",
+          "type": "string"
+        },
+        "propertyName": {
+          "description": "Property name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "propertyName"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_component_details",
+    "description": "Reads a component straight from the plugin instead of REST: the current state of the file is visible, unsaved edits included. deep=true returns the tree with variable bindings, reactions and constraints. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        },
+        "deep": {
+          "description": "Deep breakdown with styles, tokens and states.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_variable_collection",
+    "description": "Creates a variable collection \u2014 a container of tokens with modes (themes). The collection is created first, then variables are put into it with figma_create_variable. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Collection name, for example \u0027Colors\u0027 or \u0027Spacing\u0027.",
+          "type": "string"
+        },
+        "initialModeName": {
+          "description": "Name of the first mode. By default Figma calls it \u0027Mode 1\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "additionalModes": {
+          "description": "Additional modes, comma-separated, for example \u0027Dark, High Contrast\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_variable_collection",
+    "description": "Deletes a variable collection together with all its variables. The operation is irreversible. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "description": "Collection id, for example \u0027VariableCollectionId:1:2\u0027.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "collectionId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_variable",
+    "description": "Creates a variable in a collection. resolvedType: COLOR, FLOAT, STRING or BOOLEAN. A color in valuesByMode is set by the string \u0027#RRGGBB\u0027. Name hierarchy is made with a slash: \u0027color/brand/primary\u0027. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Variable name, for example \u0027color/brand/primary\u0027.",
+          "type": "string"
+        },
+        "collectionId": {
+          "description": "Collection id.",
+          "type": "string"
+        },
+        "resolvedType": {
+          "description": "Type: COLOR, FLOAT, STRING, BOOLEAN.",
+          "type": "string"
+        },
+        "valuesByMode": {
+          "description": "Values per mode, JSON of the form {\u00221:0\u0022:\u0022#FF0000\u0022,\u00221:1\u0022:\u0022#0000FF\u0022}.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "description": {
+          "description": "Variable description.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "collectionId",
+        "resolvedType"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_update_variable",
+    "description": "Changes the value of a variable in a specific mode. A color is set by the string \u0027#RRGGBB\u0027, a number by a number, a reference to another variable by its id. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "variableId": {
+          "description": "Variable id, for example \u0027VariableID:1:23\u0027.",
+          "type": "string"
+        },
+        "modeId": {
+          "description": "Mode id, for example \u00271:0\u0027.",
+          "type": "string"
+        },
+        "value": {
+          "description": "New value: \u0027#FF0000\u0027, a number, true/false or JSON.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variableId",
+        "modeId",
+        "value"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_variable",
+    "description": "Deletes a variable. When it is used somewhere Figma refuses \u2014 remove the bindings first. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "variableId": {
+          "description": "Variable id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variableId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_rename_variable",
+    "description": "Renames a variable. Slashes in the name define the group hierarchy. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "variableId": {
+          "description": "Variable id.",
+          "type": "string"
+        },
+        "newName": {
+          "description": "New name, for example \u0027color/brand/primary\u0027.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variableId",
+        "newName"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_variable_description",
+    "description": "Sets the description of a variable \u2014 designers see it in the variables panel. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "variableId": {
+          "description": "Variable id.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variableId",
+        "description"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_mode",
+    "description": "Adds a mode to a collection \u2014 this is how themes (Dark) and breakpoints (Mobile) are made. The number of modes is limited by the Figma plan. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "description": "Collection id.",
+          "type": "string"
+        },
+        "modeName": {
+          "description": "Mode name, for example \u0027Dark\u0027.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "collectionId",
+        "modeName"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_rename_mode",
+    "description": "Renames a mode of a collection. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "description": "Collection id.",
+          "type": "string"
+        },
+        "modeId": {
+          "description": "Mode id.",
+          "type": "string"
+        },
+        "newName": {
+          "description": "New mode name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "collectionId",
+        "modeId",
+        "newName"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_token_values",
+    "description": "Reads variables straight from the plugin, bypassing REST. It works on any Figma plan, unlike figma_get_variables. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "refresh": {
+          "description": "Re-read the data in the plugin before reading.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_batch_create_variables",
+    "description": "Creates many variables in one collection at once: noticeably faster than one by one. The variables format is a JSON array: [{\u0022name\u0022:\u0022color/bg\u0022,\u0022resolvedType\u0022:\u0022COLOR\u0022,\u0022valuesByMode\u0022:{\u00221:0\u0022:\u0022#FFFFFF\u0022}}]. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "description": "Collection id.",
+          "type": "string"
+        },
+        "variables": {
+          "description": "Array of variable descriptions as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "collectionId",
+        "variables"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_batch_update_variables",
+    "description": "Updates the values of many variables in one call. The updates format is a JSON array: [{\u0022variableId\u0022:\u0022VariableID:1:2\u0022,\u0022modeId\u0022:\u00221:0\u0022,\u0022value\u0022:\u0022#FF0000\u0022}]. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "updates": {
+          "description": "Array of updates as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "updates"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_setup_design_tokens",
+    "description": "Rolls out the foundation of a design system in one call: it creates a collection with the modes you need and fills it with variables. The tokens format is a JSON array, the same as in figma_batch_create_variables. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collectionName": {
+          "description": "Collection name, for example \u0027Design Tokens\u0027.",
+          "type": "string"
+        },
+        "tokens": {
+          "description": "Array of variable descriptions as a JSON string.",
+          "type": "string"
+        },
+        "initialModeName": {
+          "description": "Name of the first mode, for example \u0027Light\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "additionalModes": {
+          "description": "Additional modes, comma-separated, for example \u0027Dark\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "collectionName",
+        "tokens"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_export_tokens",
+    "description": "Exports Figma variables into code. Formats: dtcg, tokens-studio, css-vars, tailwind-v4, tailwind-v3, scss, less, ts-module, json-flat, json-nested, style-dictionary-v3. The data source is chosen automatically: when the plugin is running the variables come from it (works on any plan), otherwise through the Variables REST API (Enterprise only). It returns the file contents \u2014 writing them to disk is up to you.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "description": "Output format.",
+          "type": "string",
+          "default": "dtcg"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "prefix": {
+          "description": "Prefix of the token names, for example \u0027ds-\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "splitByMode": {
+          "description": "A separate file per mode.",
+          "type": "boolean",
+          "default": false
+        },
+        "splitByCollection": {
+          "description": "A separate file per collection.",
+          "type": "boolean",
+          "default": false
+        },
+        "resolveAliases": {
+          "description": "Unfold references into final values.",
+          "type": "boolean",
+          "default": false
+        },
+        "colorFormat": {
+          "description": "Color format: hex, hex8, rgba, hsl, oklch.",
+          "type": "string",
+          "default": "hex"
+        },
+        "sizeUnit": {
+          "description": "Size unit: px, rem, pt, dp.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "remBase": {
+          "description": "Base font size for converting px into rem.",
+          "type": "number",
+          "default": 16
+        },
+        "modeMap": {
+          "description": "Mode renaming, JSON of the form {\u0022Light\u0022:\u0022light\u0022,\u0022Dark\u0022:\u0022dark\u0022}.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_import_tokens",
+    "description": "Reads tokens from code and pushes them into Figma variables. content is the file contents, format is how to parse it (dtcg, tokens-studio, css-vars, scss, tailwind-v4, tailwind-v3, json-flat, json-nested, style-dictionary-v3). dryRun=true (the default) only shows the plan of changes without changing anything. Writing requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "description": "Contents of the token file.",
+          "type": "string"
+        },
+        "format": {
+          "description": "Source format. Empty means detect it from the file name.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "fileName": {
+          "description": "File name \u2014 the format is guessed from it.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "collectionName": {
+          "description": "Name of the Figma collection to push the tokens into.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "dryRun": {
+          "description": "Only show the plan, change nothing.",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_convert_tokens",
+    "description": "Converts tokens from one format into another without touching Figma. Useful for handing the same system out in CSS, Tailwind and TypeScript.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "description": "Contents of the source file.",
+          "type": "string"
+        },
+        "fromFormat": {
+          "description": "Source format.",
+          "type": "string"
+        },
+        "toFormat": {
+          "description": "Target format.",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "Prefix of the token names.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "colorFormat": {
+          "description": "Color format: hex, hex8, rgba, hsl, oklch.",
+          "type": "string",
+          "default": "hex"
+        },
+        "sizeUnit": {
+          "description": "Size unit: px, rem, pt, dp.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "content",
+        "fromFormat",
+        "toFormat"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_component_for_development",
+    "description": "Component data for implementing it in code: the tree with variable bindings, sizes, auto layout and text properties, plus a ready reconstruction specification. Call it on requests like \u0027build this\u0027 or \u0027make a React component\u0027. When the plugin is running the data comes from it \u2014 it is fresher than REST. For metadata alone figma_get_component is enough, for a picture use figma_get_component_image.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, for example \u00271:234\u0027.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the file. Needed only when the plugin is not running.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Tree traversal depth.",
+          "type": "integer",
+          "default": 4
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_component_for_development_deep",
+    "description": "The same as figma_get_component_for_development, but with a deep breakdown through the plugin: states, reactions, slots, Dev Mode annotations. Slower and heavier \u2014 take it when the plain breakdown was not enough. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_extract_style_values",
+    "description": "Pulls token-like values out of the DESIGN \u2014 colors, typography, spacing, radii \u2014 and collapses duplicates. Works on any Figma plan, unlike figma_get_variables. A good starting point when the file has no variables yet. Not to be confused with figma_ds_extract_tokens: that one mines tokens from the CODEBASE.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "nodeId": {
+          "description": "Id of the root node. Empty means the whole file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Traversal depth.",
+          "type": "integer",
+          "default": 8
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_check_design_parity",
+    "description": "Compares a component in Figma with what is implemented in code. codeSpec is JSON with what you read out of the sources: {\u0022fills\u0022:[\u2026],\u0022fontSize\u0022:14,\u0022paddingLeft\u0022:16,\u0022variants\u0022:[\u2026]}. Returns a conformance score and the list of mismatches on both sides. Read the component code first.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the component node in Figma.",
+          "type": "string"
+        },
+        "codeSpec": {
+          "description": "Code-side data as a JSON string.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the file. Needed only when the plugin is not running.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId",
+        "codeSpec"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_generate_component_doc",
+    "description": "Assembles component documentation in Markdown: contents, variants, colors, typography, spacing, the Figma description and the annotations. codeInfo is optional JSON with data from the sources (props, CVA variants, file paths); it lands in the code section.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the component node.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the file. Needed only when the plugin is not running.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "codeInfo": {
+          "description": "Code-side data as a JSON string.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_design_system_kit",
+    "description": "The MAIN tool for capturing a design system: it replaces separate calls to figma_get_styles, figma_get_variables and figma_get_component. It returns tokens, components and styles in one response with adaptive compression to the size of the system. Inside are the visual specifications of the components (exact colors, spacing, typography, layout), token values per mode and resolved style values. Take it instead of the separate tools so the context does not overflow. Variant specifications are delta-encoded: the base variant carries the full visualSpec, its neighbours only the differences. Variables are read through the plugin and work on any plan; the Variables REST API is the fallback and needs Enterprise.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file or its key. Optional if the file has already been used.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "include": {
+          "description": "Which sections to include, comma-separated: tokens, components, styles. Empty means all three.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "componentIds": {
+          "description": "Comma-separated ids of specific components. Empty means every published one.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "includeImages": {
+          "description": "Add links to component images. Noticeably slower.",
+          "type": "boolean",
+          "default": false
+        },
+        "format": {
+          "description": "Response size: full is everything, summary drops variant specifications, compact keeps only names, types and properties. It is compressed further automatically when the response is too large.",
+          "type": "string",
+          "default": "full"
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_analyze",
+    "description": "The first step of design system extraction: it breaks down the codebase of a production application. It detects the framework (React/Next/Astro/Angular/Web Components), the styling approaches (Tailwind v3/v4, CSS Modules, SCSS, Emotion, styled-components) and the vendor layers (shadcn/ui, Radix, MUI, Chakra and the rest); it collects a component inventory with a classification (vendored / wrapped / pure-vendor / bespoke), the props contract, the real usage count (the porting rank), the prop values seen at call sites (variant inference) and duplicate detection. Several targets means the shared design language of several applications at once. The full manifest is written to \u003CoutDir\u003E/.extraction/analysis.json, the response carries a summary.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "description": "Application roots, comma-separated or as a JSON array. Absolute paths are safer: the server working directory is not your project.",
+          "type": "string"
+        },
+        "outDir": {
+          "description": "Where the design system package will be generated. Defaults to \u0027\u003Cfirst target\u003E/design-system\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "include": {
+          "description": "Substrings of relative paths: when set, only matching files are scanned.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "exclude": {
+          "description": "Substrings of relative paths to skip. node_modules, dist, .next and the like are always skipped.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "maxFiles": {
+          "description": "Cap on the number of files per target.",
+          "type": "integer",
+          "default": 5000
+        }
+      },
+      "required": [
+        "targets"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_extract_tokens",
+    "description": "Mines design tokens FROM THE CODEBASE into canonical DTCG (plus, optionally, CSS variables, Tailwind, SCSS, TypeScript). It starts with what is declared: the :root and @theme custom properties (light and dark themes become modes of one token), SCSS variables, tailwind.config values, shadcn HSL triples; then it promotes repeated raw values (colors, spacing, radii, font sizes) above the frequency threshold. Every token carries its origin in $extensions: file, line, confidence, frequency. The names are structural, as found \u2014 semantic renaming is a separate pass with the team. The result is immediately usable by figma_import_tokens. Requires a figma_ds_analyze run over the same outDir. Values are pulled out of the DESIGN by a different tool \u2014 figma_extract_style_values.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "The directory used in figma_ds_analyze: .extraction/analysis.json is read from it.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "targets": {
+          "description": "Scan these roots instead of the targets from the manifest. Rarely needed.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "formats": {
+          "description": "Comma-separated file formats under \u003CoutDir\u003E/tokens/. dtcg is always written.",
+          "type": "string",
+          "default": "dtcg,css-vars"
+        },
+        "minFrequency": {
+          "description": "How many times a raw value must occur to become a token.",
+          "type": "integer",
+          "default": 4
+        },
+        "write": {
+          "description": "Write files to disk. false is a dry run and returns the document in the response.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_scaffold",
+    "description": "Assembles the scaffold of a design system package in outDir from a finished analysis and tokens: package.json (the application framework goes into peer dependencies), the src/components layout, token files through the shared formatter engine, MDX showcases (tokens, typography, icons) and a README with the workflow. Storybook itself is NOT installed: after the scaffold run \u0060npm create storybook@latest\u0060 in outDir \u2014 its CLI detects the framework and installs the current version itself. By default it only fills gaps: existing files are skipped unless force is passed. Token files are always refreshed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "The directory used in figma_ds_analyze and figma_ds_extract_tokens.",
+          "type": "string"
+        },
+        "packageName": {
+          "description": "npm package name of the design system, for example \u0027@acme/design-system\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "framework": {
+          "description": "Scaffold framework. Defaults to the first one the analysis found. Storybook has no .astro renderer: for astro the workshop is built on react-vite.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "formats": {
+          "description": "Comma-separated token file formats.",
+          "type": "string",
+          "default": "dtcg,css-vars"
+        },
+        "force": {
+          "description": "Overwrite scaffold files that already exist.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "outDir"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_setup_storybook",
+    "description": "Wires a freshly installed Storybook workshop to the extracted design system. Run it AFTER \u0060npm create storybook@latest\u0060 in outDir. It generates .storybook/preview.css (a Tailwind entry point with the mined tokens, the @theme utility map of the source application, its @utility, @layer base and @font-face, with a dark variant covering both .dark and [data-theme]), copies self-hosted fonts into staticDirs and edits main.js (the tailwind plugin for vite and the automatic JSX runtime \u2014 without it stories fail on \u0027React is not defined\u0027) and preview.jsx (the preview.css import plus a theme panel with the mined modes). Running it again is safe; everything that cannot be fixed safely comes back as a list of manual steps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "Directory of the design system package with a freshly installed .storybook.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outDir"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_extract_component",
+    "description": "Breaks ONE component of the inventory down deeply for porting: the source (with a size cap), the local import closure (relative imports worth following), the props contract, the variants seen at call sites, the classification against the vendor, the styling touchpoints (classes, CSS module imports, custom properties in use) and a ready CSF3 story scaffold with variant stories taken from real usage. Next you port the component into \u003CoutDir\u003E/src/components/\u003CName\u003E/ and record the progress with figma_ds_status.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "The directory used in figma_ds_analyze.",
+          "type": "string"
+        },
+        "component": {
+          "description": "Component name from the inventory: see topByUsage in the figma_ds_analyze response or the manifest itself.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outDir",
+        "component"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_verify",
+    "description": "Deterministic checks of the extracted design system package \u2014 the gate before handover or the trip into Figma. It checks: tokens.json parses as DTCG and every alias resolves (importable); the generated token files carry no quoted CSS functional expressions (they kill transitions); every var() consumed in component and preview CSS resolves in the workshop; every component directory has a story file and an index barrel; every portable component of the inventory has a status. It also reports the readiness of the return trip into Figma with the exact figma_import_tokens call.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "Design system package directory.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outDir"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_ds_status",
+    "description": "Reads and updates the progress of design system porting. It lives in \u003CoutDir\u003E/.extraction/status.json, so long work survives session boundaries. A call with outDir alone returns a summary; pass component and status to record the state of a component.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "outDir": {
+          "description": "The directory used in figma_ds_analyze.",
+          "type": "string"
+        },
+        "component": {
+          "description": "Component name from the inventory. Empty just reads the progress.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "status": {
+          "description": "New status: pending, in-progress, ported, skipped.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "notes": {
+          "description": "Why it was skipped, what was merged, what to watch out for.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "storyFile": {
+          "description": "Relative path of the story file once it is written.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "outDir"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_file_versions",
+    "description": "The version history of a file with metadata: label, description, author, time. It walks the pages itself up to maxVersions. By default it returns named versions only \u2014 autosaves are skipped; includeAutosaves=true shows every saved state. To continue, pass the next_cursor from the previous response. The token needs the file_versions:read scope (OAuth) or the Versions Read permission on a personal token.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "includeAutosaves": {
+          "description": "Include autosaves \u2014 versions without a label.",
+          "type": "boolean",
+          "default": false
+        },
+        "maxVersions": {
+          "description": "How many versions to return, at most 200.",
+          "type": "integer",
+          "default": 50
+        },
+        "cursor": {
+          "description": "Cursor from next_cursor of the previous response.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_file_at_version",
+    "description": "The file or individual nodes as they were at a past version. The response has the same shape as figma_get_file_data, only the snapshot is bound to a version. Version ids come from figma_get_file_versions. nodeIds and depth shrink the response noticeably.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "versionId": {
+          "description": "Version id from figma_get_file_versions.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "nodeIds": {
+          "description": "Comma-separated node ids. Empty means the whole file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "depth": {
+          "description": "Tree traversal depth. Empty means unlimited.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "versionId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_diff_versions",
+    "description": "Compares two versions of a file. It always returns the cheap page structure comparison (added, removed, renamed) \u2014 that is two API requests. componentIds adds a breakdown of specific nodes at depth 2: children that appeared and disappeared, name and description changes, changes of componentPropertyDefinitions on a COMPONENT_SET and of variable bindings \u2014 two requests per node. toVersion=\u0027current\u0027 compares against the current state. When componentIds is not passed, the current selection in Figma is used. REST does not show description and annotation edits in version snapshots \u2014 they are collected from the plugin event buffer while it is connected.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fromVersion": {
+          "description": "The earlier version to compare from.",
+          "type": "string"
+        },
+        "toVersion": {
+          "description": "The later version. \u0027current\u0027 is the current state.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "componentIds": {
+          "description": "Comma-separated node ids for the detailed comparison.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "mode": {
+          "description": "Detail level: summary, standard, detailed.",
+          "type": "string",
+          "default": "standard"
+        }
+      },
+      "required": [
+        "fromVersion",
+        "toVersion"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_changes_since_version",
+    "description": "The same as figma_diff_versions, only the second version is always the current one. Handy for the question \u0027what changed since the last sync with the code\u0027.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sinceVersion": {
+          "description": "The version the current state is compared against.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "componentIds": {
+          "description": "Comma-separated node ids for the detailed comparison.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "mode": {
+          "description": "Detail level: summary, standard, detailed.",
+          "type": "string",
+          "default": "standard"
+        }
+      },
+      "required": [
+        "sinceVersion"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_generate_changelog",
+    "description": "A changelog between two versions in Markdown \u2014 ready text for release notes, a pull request or an MDX page. On top of the version comparison it adds authors and dates, for which it makes one cheap request to the version list. It returns both the markdown and the structured data. toVersion=\u0027current\u0027 compares against the current state.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fromVersion": {
+          "description": "The earlier version.",
+          "type": "string"
+        },
+        "toVersion": {
+          "description": "The later version. \u0027current\u0027 is the current state.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "componentIds": {
+          "description": "Comma-separated node ids for the per-component section.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "mode": {
+          "description": "Detail level: summary, standard, detailed.",
+          "type": "string",
+          "default": "standard"
+        }
+      },
+      "required": [
+        "fromVersion",
+        "toVersion"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_blame_node",
+    "description": "Finds the version an edit appeared in \u2014 the answer to \u0027who added this and when\u0027. It walks the history by binary search: about log2(N) requests instead of N. It returns the version metadata: label, author, time. Autosaves are included by default \u2014 the attribution is more precise that way; the Figma system user shows up on scheduled snapshots and is marked attribution_certainty=\u0027system_attributed\u0027. Pass EXACTLY ONE of targetComponentProperty or targetChildNodeId.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id, usually a COMPONENT_SET. Empty takes the first node of the current selection.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "targetComponentProperty": {
+          "description": "Key from componentPropertyDefinitions, for example \u0027Disabled#1:2\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "targetChildNodeId": {
+          "description": "Child id \u2014 when it first appeared under the node.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "startVersion": {
+          "description": "The version to walk back from. The current one by default.",
+          "type": "string",
+          "default": "current"
+        },
+        "maxVersionsToWalk": {
+          "description": "How many versions to look back through, from 2 to 500.",
+          "type": "integer",
+          "default": 200
+        },
+        "includeAutosaves": {
+          "description": "Include autosaves in the search.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_save_version",
+    "description": "Saves a named checkpoint into the file\u0027s version history \u2014 the anchor for figma_diff_versions and figma_generate_changelog. Call it after a finished batch of agent work, so the history reads like a changelog instead of autosaves. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "Title of the version checkpoint.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Optional description shown in the history panel.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_comments",
+    "description": "File comments: discussion threads with the author, the text, the time and the node the comment is pinned to. includeResolved=true also shows resolved threads.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "description": "Link to the Figma file. Optional if the file has already been used.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "asMarkdown": {
+          "description": "Return comment text as Markdown.",
+          "type": "boolean",
+          "default": false
+        },
+        "includeResolved": {
+          "description": "Include resolved threads.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_post_comment",
+    "description": "Leaves a comment in the file, optionally pinned to a node. Fits after figma_check_design_parity, when the code is the source of truth and the designer has to hear about the mismatch. replyToCommentId turns the comment into a reply in an existing thread. @ mentions are a Figma UI feature: in the text they stay plain words.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Comment text.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "nodeId": {
+          "description": "Id of the node to pin the comment to.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate of the point on the canvas. Works together with nodeId.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate of the point on the canvas. Works together with nodeId.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "replyToCommentId": {
+          "description": "Id of the comment being replied to.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "message"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_comment",
+    "description": "Deletes a comment by id. figma_get_comments provides the ids.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "commentId": {
+          "description": "Comment id.",
+          "type": "string"
+        },
+        "fileUrl": {
+          "description": "Link to the Figma file.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "commentId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_library_component_by_key",
+    "description": "The full property definitions, variants and visual specifications of ONE published library component by its key \u2014 the 40-character hexadecimal string from figma_search_components. Take it when you already have the key and need to know which properties and variants the component offers before inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: for a set you must insert the key of the VARIANT from variants[], not the key of the set itself.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "componentKey": {
+          "description": "Component key.",
+          "type": "string"
+        },
+        "includeVisualSpecs": {
+          "description": "Include visual specifications of the variants.",
+          "type": "boolean",
+          "default": true
+        },
+        "format": {
+          "description": "Response size: full or summary.",
+          "type": "string",
+          "default": "full"
+        }
+      },
+      "required": [
+        "componentKey"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_library_variables",
+    "description": "Variables from the team libraries the current file subscribes to: which tokens \u2014 colors, spacing, sizes, strings, flags \u2014 are available at all, without a link to the library file and without an enterprise plan. It works through the plugin: exactly the libraries connected in the current file are visible. Next the variable key goes into figma_import_library_variable. The filters compare substrings case-insensitively. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "libraryName": {
+          "description": "Filter by library name.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "collectionName": {
+          "description": "Filter by collection name inside the library.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "resolvedType": {
+          "description": "Filter by type: COLOR, FLOAT, STRING, BOOLEAN.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_import_library_variable",
+    "description": "Imports one variable from a subscribed library into the current file. After the import the variable is addressed locally by the returned id and fits any tool that binds variables to nodes. Calling it again returns the same id. The key comes from figma_get_library_variables \u2014 it is not an id. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "variableKey": {
+          "description": "Variable key from figma_get_library_variables.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variableKey"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_library_style_by_key",
+    "description": "Metadata of a published library style by its key: name, type, description and where it lives (fileKey plus nodeId). The symmetric counterpart of figma_get_library_component_by_key. Costs one REST request; draft and unpublished styles are not visible here.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "styleKey": {
+          "description": "Style key.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "styleKey"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_search_team_components",
+    "description": "Searches the published components of a whole team library by name or description substring \u2014 unlike figma_search_components, which only sees the currently open file. Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; paginate with nextCursor. Costs REST requests.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "teamIdOrUrl": {
+          "description": "Team id, or a figma.com link containing /team/{id}/.",
+          "type": "string"
+        },
+        "query": {
+          "description": "Substring of the component name or description. Empty returns the whole page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "includeComponentSets": {
+          "description": "Also search component sets.",
+          "type": "boolean",
+          "default": true
+        },
+        "pageSize": {
+          "description": "Page size per kind, 1-1000.",
+          "type": "integer",
+          "default": 100
+        },
+        "after": {
+          "description": "Pagination cursor from the previous response.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "teamIdOrUrl"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_sticky",
+    "description": "Creates a sticky note on a FigJam board. Colors: YELLOW, BLUE, GREEN, PINK, ORANGE, PURPLE, RED, LIGHT_GRAY, GRAY (YELLOW by default). Works in FigJam files only. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "description": "Sticky text.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Sticky color.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate on the canvas.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate on the canvas.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_stickies",
+    "description": "Creates a batch of stickies in one go \u2014 this is how a board is filled from structured data (meeting notes, brainstorm ideas). stickies is a JSON array of the form [{\u0022text\u0022:\u0022Idea\u0022,\u0022color\u0022:\u0022BLUE\u0022,\u0022x\u0022:0,\u0022y\u0022:0}], at most 200 items. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "stickies": {
+          "description": "Array of stickies as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stickies"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_connector",
+    "description": "Connects two nodes with a line: this is how flowcharts, diagrams and relation maps are built. The nodes must already be on the board \u2014 take the ids from the creation results. Magnets: AUTO (the default), TOP, BOTTOM, LEFT, RIGHT \u2014 they set the attachment point. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startNodeId": {
+          "description": "Id of the start node.",
+          "type": "string"
+        },
+        "endNodeId": {
+          "description": "Id of the end node.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Label on the connector.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "startMagnet": {
+          "description": "Magnet on the start node.",
+          "type": "string",
+          "default": "AUTO"
+        },
+        "endMagnet": {
+          "description": "Magnet on the end node.",
+          "type": "string",
+          "default": "AUTO"
+        }
+      },
+      "required": [
+        "startNodeId",
+        "endNodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_shape_with_text",
+    "description": "Creates a shape with a label: a flowchart node, a process step, a diagram element. Types: ROUNDED_RECTANGLE (the default), DIAMOND, ELLIPSE, TRIANGLE_UP, TRIANGLE_DOWN, PARALLELOGRAM_RIGHT, PARALLELOGRAM_LEFT, ENG_DATABASE, ENG_QUEUE, ENG_FILE, ENG_FOLDER. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "description": "Label on the shape.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "shapeType": {
+          "description": "Shape type.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "description": "Width in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "height": {
+          "description": "Height in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "fillColor": {
+          "description": "Fill color in hex, for example \u0027#E1F5EE\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "strokeColor": {
+          "description": "Stroke color in hex.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "fontSize": {
+          "description": "Label font size in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "strokeDashPattern": {
+          "description": "Stroke dash pattern as comma-separated numbers, for example \u002710,5\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_section",
+    "description": "Creates a section \u2014 a container for grouping board contents. To put elements inside it, set their coordinates within the section bounds and call appendChild through figma_execute. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Section name.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "description": "Width in pixels.",
+          "type": "number",
+          "default": 1000
+        },
+        "height": {
+          "description": "Height in pixels.",
+          "type": "number",
+          "default": 800
+        },
+        "fillColor": {
+          "description": "Fill color in hex.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_table",
+    "description": "Creates a table on the board: comparison matrices, structured data. data is a JSON array of arrays of strings, one per table row, for example [[\u0022What\u0022,\u0022Who\u0022],[\u0022Design\u0022,\u0022Ann\u0022]]. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "rows": {
+          "description": "Number of rows.",
+          "type": "integer"
+        },
+        "columns": {
+          "description": "Number of columns.",
+          "type": "integer"
+        },
+        "data": {
+          "description": "Cell contents as a JSON string.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "rows",
+        "columns"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_create_code_block",
+    "description": "Creates a code block on the board \u2014 for code snippets, configuration examples and technical notes. language, for example \u0027JAVASCRIPT\u0027, \u0027PYTHON\u0027, \u0027TYPESCRIPT\u0027, \u0027JSON\u0027, \u0027HTML\u0027, \u0027CSS\u0027. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Block contents.",
+          "type": "string"
+        },
+        "language": {
+          "description": "Highlighting language.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_auto_arrange",
+    "description": "Lays board nodes out in a grid, a row or a column \u2014 handy after creating elements in bulk. nodeIds is comma-separated ids, at most 500. layout: grid, horizontal, vertical. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeIds": {
+          "description": "Comma-separated node ids.",
+          "type": "string"
+        },
+        "layout": {
+          "description": "Layout type: grid, horizontal, vertical.",
+          "type": "string",
+          "default": "grid"
+        },
+        "spacing": {
+          "description": "Gap between nodes in pixels.",
+          "type": "number",
+          "default": 40
+        },
+        "columns": {
+          "description": "Number of columns for the grid. Defaults to the square root of the node count.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeIds"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_get_board_contents",
+    "description": "Reads the contents of a board: stickies, shapes, connectors, tables, code blocks and sections with their text and coordinates. Call it to learn what is already on the board, or to pull structured data out of it. nodeTypes is a comma-separated filter: STICKY, SHAPE_WITH_TEXT, CONNECTOR, TABLE, CODE_BLOCK, SECTION, FRAME, TEXT. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeTypes": {
+          "description": "Comma-separated node types. Empty means all of them.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "maxNodes": {
+          "description": "Cap on the number of nodes in the response.",
+          "type": "integer",
+          "default": 500
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figjam_get_connections",
+    "description": "Returns the relation graph of a board: which connectors join which nodes and with which labels. This is how a flowchart is read as a structure rather than as a picture. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_list_slides",
+    "description": "The list of presentation slides: ids, names, grid positions and the skip flag. Works in Figma Slides files only. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_slide_content",
+    "description": "The content tree of a slide: texts, shapes and frames with their properties. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id, for example \u00271:23\u0027.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_slide_grid",
+    "description": "The two-dimensional slide grid: how the slides are laid out in rows and columns. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_slide_transition",
+    "description": "The current transition settings of a slide: style, duration, easing curve. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_focused_slide",
+    "description": "The slide currently open in single-slide mode. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_slide",
+    "description": "Creates an empty slide. Its grid position can be set by row and column. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "row": {
+          "description": "Row index in the grid, zero-based.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        },
+        "col": {
+          "description": "Column index in the grid, zero-based.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_delete_slide",
+    "description": "Deletes a slide from the presentation. The action is destructive \u2014 it is undone only through undo in Figma. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Id of the slide to delete.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_duplicate_slide",
+    "description": "Duplicates a slide. The copy lands next to the original. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_reorder_slides",
+    "description": "Rearranges the slides into a new grid. grid is a JSON array of arrays of ids, each nested array being one grid row: [[\u00221:2\u0022,\u00221:3\u0022],[\u00221:4\u0022]]. The action is destructive: the order is replaced entirely. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "grid": {
+          "description": "New grid as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grid"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_slide_transition",
+    "description": "Sets the transition of a slide. style: NONE, DISSOLVE, SLIDE_FROM_LEFT/RIGHT/TOP/BOTTOM, PUSH_FROM_LEFT/RIGHT/TOP/BOTTOM, MOVE_FROM_LEFT/RIGHT/TOP/BOTTOM, SLIDE_OUT_TO_LEFT/RIGHT/TOP/BOTTOM, MOVE_OUT_TO_LEFT/RIGHT/TOP/BOTTOM, SMART_ANIMATE. curve: LINEAR, EASE_IN, EASE_OUT, EASE_IN_AND_OUT, GENTLE, QUICK, BOUNCY, SLOW. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        },
+        "style": {
+          "description": "Transition style.",
+          "type": "string"
+        },
+        "duration": {
+          "description": "Duration in seconds, from 0.01 to 10.",
+          "type": "number",
+          "default": 0.4
+        },
+        "curve": {
+          "description": "Easing curve.",
+          "type": "string",
+          "default": "EASE_IN_AND_OUT"
+        }
+      },
+      "required": [
+        "slideId",
+        "style"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_skip_slide",
+    "description": "Turns skipping a slide in presentation mode on and off. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        },
+        "skip": {
+          "description": "true skips it, false shows it.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "slideId",
+        "skip"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_text_to_slide",
+    "description": "Adds text to a slide: font, color, alignment and the rest of the formatting. width enables line wrapping. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        },
+        "text": {
+          "description": "Text.",
+          "type": "string"
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": "number",
+          "default": 100
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": "number",
+          "default": 100
+        },
+        "fontSize": {
+          "description": "Font size in pixels.",
+          "type": "number",
+          "default": 24
+        },
+        "fontFamily": {
+          "description": "Font family, for example \u0027Manrope\u0027, \u0027IBM Plex Sans\u0027.",
+          "type": "string",
+          "default": "Inter"
+        },
+        "fontStyle": {
+          "description": "Font style, for example \u0027Bold\u0027, \u0027SemiBold\u0027, \u0027Medium\u0027.",
+          "type": "string",
+          "default": "Regular"
+        },
+        "color": {
+          "description": "Text color in hex, for example \u0027#FFFFFF\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "textAlign": {
+          "description": "Alignment: LEFT, CENTER, RIGHT.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "description": "Width of the text block \u2014 it enables line wrapping.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "lineHeight": {
+          "description": "Line height in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "letterSpacing": {
+          "description": "Letter spacing in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "textCase": {
+          "description": "Case: ORIGINAL, UPPER, LOWER, TITLE.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "slideId",
+        "text"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_shape_to_slide",
+    "description": "Adds a rectangle or an ellipse to a slide. shapeType: RECTANGLE or ELLIPSE. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        },
+        "shapeType": {
+          "description": "Shape type: RECTANGLE or ELLIPSE.",
+          "type": "string"
+        },
+        "x": {
+          "description": "X coordinate.",
+          "type": "number"
+        },
+        "y": {
+          "description": "Y coordinate.",
+          "type": "number"
+        },
+        "width": {
+          "description": "Width in pixels.",
+          "type": "number"
+        },
+        "height": {
+          "description": "Height in pixels.",
+          "type": "number"
+        },
+        "fillColor": {
+          "description": "Fill color in hex, for example \u0027#FF5733\u0027.",
+          "type": "string",
+          "default": "#CCCCCC"
+        }
+      },
+      "required": [
+        "slideId",
+        "shapeType",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_slide_background",
+    "description": "Sets the slide background: it creates or updates a rectangle covering the whole slide. color is hex of the form \u0027#181818\u0027. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Background color in hex.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId",
+        "color"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_slides_view_mode",
+    "description": "Switches the presentation view: mode is \u0027grid\u0027 or \u0027single-slide\u0027. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "description": "View mode: grid or single-slide.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_focus_slide",
+    "description": "Moves to a slide in single-slide mode. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slideId": {
+          "description": "Slide id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slideId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_create_slot",
+    "description": "Creates a SlotNode inside a component and at the same time defines a linked property of type SLOT with the same name (renaming the slot renames the property). It works on a standalone COMPONENT and on the variants inside a COMPONENT_SET \u2014 call it once per variant then. GRID layout on slots is forbidden. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the COMPONENT node to add the slot to.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Slot layer name, for example \u0027Content\u0027 or \u0027Footer\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "description": "Initial width in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "height": {
+          "description": "Initial height in pixels.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "layoutMode": {
+          "description": "Auto layout mode of the slot: NONE, HORIZONTAL, VERTICAL. GRID is not supported.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_slots",
+    "description": "The list of slots of a component, a component set or an instance: ids, names, property keys, sizes and the current contents. Call it on an instance before figma_append_to_slot to learn the slot names. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the COMPONENT, COMPONENT_SET or INSTANCE node.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_append_to_slot",
+    "description": "Puts content into an instance slot: it either clones sourceNodeId there or creates a new node by nodeType (FRAME, RECTANGLE, ELLIPSE, TEXT, LINE, POLYGON, STAR, VECTOR). A slot is addressed directly by slotId or by the pair instanceId \u002B slotName. Widgets, stickies and bare ComponentNodes do not go into a slot. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slotId": {
+          "description": "SlotNode id \u2014 from figma_get_slots.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "instanceId": {
+          "description": "Instance id. Works together with slotName.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "slotName": {
+          "description": "Slot layer name on the instance, for example \u0027Content\u0027.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sourceNodeId": {
+          "description": "The node to clone into the slot.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "nodeType": {
+          "description": "Type of the new node instead of cloning.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "properties": {
+          "description": "Properties of the node being created as JSON: {\u0022name\u0022:\u0022\u2026\u0022,\u0022text\u0022:\u0022\u2026\u0022,\u0022width\u0022:100}.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "clone": {
+          "description": "With sourceNodeId: clone (true) or move (false).",
+          "type": "boolean",
+          "default": true
+        },
+        "clearExisting": {
+          "description": "Delete the previous slot contents before inserting.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_reset_slot",
+    "description": "Clears a slot, returning it to its default state. It is addressed the same way as figma_append_to_slot: slotId or instanceId \u002B slotName. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slotId": {
+          "description": "SlotNode id.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "instanceId": {
+          "description": "Instance id. Works together with slotName.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "slotName": {
+          "description": "Slot layer name on the instance.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_slot_property",
+    "description": "The manual alternative to figma_create_slot: it defines a property of type SLOT and binds it to an already existing frame. The frame must be a direct child of the component (of its variant, for a set), must not use GRID layout and must not sit inside another slot. preferredValues is a JSON array of the form [{\u0022type\u0022:\u0022COMPONENT\u0022,\u0022key\u0022:\u0022\u2026\u0022}]. For new slots figma_create_slot is better. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the COMPONENT or COMPONENT_SET node.",
+          "type": "string"
+        },
+        "propertyName": {
+          "description": "Slot property name, for example \u0027Content\u0027.",
+          "type": "string"
+        },
+        "frameNodeId": {
+          "description": "Id of the frame that becomes the content area of the slot.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of the slot property.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "preferredValues": {
+          "description": "Preferred components for the contents, a JSON array.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId",
+        "propertyName",
+        "frameNodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_lint_design",
+    "description": "Checks a subtree for the usual defects: values off the tokens, detached styles, elements hugging instead of filling, inconsistent spacing. rules is a comma-separated list of rules; empty means every rule. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the root node. Empty means the whole current page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rules": {
+          "description": "Comma-separated rules.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "maxDepth": {
+          "description": "Maximum traversal depth.",
+          "type": "integer",
+          "default": 10
+        },
+        "maxFindings": {
+          "description": "Cap on the number of findings.",
+          "type": "integer",
+          "default": 100
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_audit_component_accessibility",
+    "description": "Accessibility audit of a component: text contrast, tap target sizes, presence of text alternatives. targetSize is the minimum interactive area size in pixels (44 per WCAG). Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Id of the component or frame.",
+          "type": "string"
+        },
+        "targetSize": {
+          "description": "Minimum size of tap targets in pixels.",
+          "type": "integer",
+          "default": 44
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_annotations",
+    "description": "Developer annotations on a node \u2014 the notes a designer left for the implementation. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id. Empty means the whole page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_annotations",
+    "description": "Puts annotations on a node. annotations is a JSON array: [{\u0022label\u0022:\u0022Spacing\u0022,\u0022labelMarkdown\u0022:\u0022\u2026\u0022}]. See the categories in figma_get_annotation_categories. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id.",
+          "type": "string"
+        },
+        "annotations": {
+          "description": "Array of annotations as a JSON string.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "annotations"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_annotation_categories",
+    "description": "The annotation categories defined in the file. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_add_annotation_category",
+    "description": "Creates an annotation category. color is one of yellow, orange, red, pink, violet, blue, teal, green. The categories that already exist come from figma_get_annotation_categories. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "Label of the category.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Color: yellow, orange, red, pink, violet, blue, teal or green.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "color"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_list_open_files",
+    "description": "Shows every Figma file the plugin is currently running in, which of them is the target of the commands, and which other agents work in each. Useful when several files are open and commands go to the wrong one.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "description": "true on success; a failure comes as text with ok false, error and hint.",
+          "type": "boolean"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "connectionId": {
+                    "description": "Identity of the plugin connection.",
+                    "type": "string"
+                  },
+                  "fileKey": {
+                    "description": "Key of the file, as in its URL.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "fileName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "currentPage": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "editorType": {
+                    "description": "figma, figjam or slides.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "pluginVersion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "connectedAt": {
+                    "description": "ISO 8601 instant the plugin connected.",
+                    "type": "string"
+                  },
+                  "open": {
+                    "description": "Whether the connection is still open.",
+                    "type": "boolean"
+                  },
+                  "target": {
+                    "description": "Whether this file is where the commands of this server go.",
+                    "type": "boolean"
+                  },
+                  "othersHere": {
+                    "description": "Names of the other agents bound to this file.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "connectionId",
+                  "fileKey",
+                  "fileName",
+                  "currentPage",
+                  "editorType",
+                  "pluginVersion",
+                  "connectedAt",
+                  "open",
+                  "target",
+                  "othersHere"
+                ]
+              }
+            },
+            "activeFileKey": {
+              "description": "Key of the target file; null when no file is bound.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "files",
+            "activeFileKey"
+          ]
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_navigate",
+    "description": "Selects the file the following commands will go to, by a link to a Figma file or its key. The target then stays put: a human switching files in Figma does not move it, only another figma_navigate does. With several files connected and no target chosen, the write tools refuse and list the files \u2014 this call is the answer. The response names the other agents working in the same file, so the agent can keep to its own page or section.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fileUrlOrKey": {
+          "description": "Link to the Figma file or its key.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fileUrlOrKey"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_execute_across_files",
+    "description": "Runs the same JavaScript IN SEVERAL Figma files AT ONCE \u2014 in parallel, without moving the target. For auditing and editing across a multi-file design system: one check runs over every file and the results are compared with each other \u2014 instead of switching the active file and calling figma_execute one by one. In every file the code runs in that file\u0027s own plugin sandbox, with the same figma object as figma_execute. The targets must be named explicitly: fileKeys (the list from figma_list_open_files) or allFiles=true. Requires a running plugin in every target file.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "JavaScript code, the same as in figma_execute. Example: return figma.root.children.length;",
+          "type": "string"
+        },
+        "fileKeys": {
+          "description": "Comma-separated keys of the target files. They come from figma_list_open_files.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "allFiles": {
+          "description": "Run it over EVERY connected file. Requires explicit consent: the code will reach the target file too.",
+          "type": "boolean",
+          "default": false
+        },
+        "timeoutMs": {
+          "description": "Per-file timeout in milliseconds, at most 30000. A slow file does not hold the others back.",
+          "type": "integer",
+          "default": 10000
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_reconnect",
+    "description": "Re-reads the list of connected files and reports the target. Call it when the server keeps aiming at a file that is already closed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_reload_plugin",
+    "description": "Reloads the plugin UI in Figma. It helps when the plugin stopped answering. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_console_logs",
+    "description": "The latest console lines from the plugin sandbox. Needed to understand why figma_execute failed or what exactly the plugin did.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "description": "How many of the latest lines to return.",
+          "type": "integer",
+          "default": 50
+        },
+        "level": {
+          "description": "Keep only the lines of this level: log, info, warn, error.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_remarks",
+    "description": "Reads what the human typed in the plugin panel: their words plus the layers they had selected. THIS IS THE CHANNEL FOR the case where the build is finished, the human looked at it and found a defect \u2014 call it after finishing a build and before starting the next task, because a remark left while nothing was running reaches nobody otherwise. Reading TAKES the remarks: the same one never comes back, so act on it in the same turn. A remark typed WHILE figma_execute_steps was running is not here \u2014 that one stops the build and comes back in its own answer. waitMs holds the call open until somebody writes, up to 60000 ms: nothing in MCP lets a server wake an agent, so a wait here is the only way to hear the human within a second rather than at the next turn. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "waitMs": {
+          "description": "How long to hold the call open when nothing is waiting yet, in milliseconds, up to 60000. 0 answers straight away; waiting is how the agent hears the human within a second instead of at its next turn.",
+          "type": "integer",
+          "default": 0
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_clear_console",
+    "description": "Clears the console buffer, both on the server and in the plugin. Handy before a new figma_execute run.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_watch_console",
+    "description": "Waits for new lines to appear in the plugin console up to the given timeout. Needed when an edit runs asynchronously and the result arrives with a delay.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "timeoutSeconds": {
+          "description": "How many seconds to wait for new lines.",
+          "type": "integer",
+          "default": 10
+        },
+        "minEntries": {
+          "description": "Wait for at least this many new lines.",
+          "type": "integer",
+          "default": 1
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_export_node",
+    "description": "Exports a node through the live editor: SVG returns the markup itself, PDF/PNG/JPG are saved to disk and the path is returned. With deliver=both a PNG or JPG also comes back as image content, which is what a caller outside this machine needs, since the path opens nothing there. No REST quota is spent \u2014 this replaces the paid /v1/images render for files open in Figma Desktop. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id; a page id works too.",
+          "type": "string"
+        },
+        "format": {
+          "description": "Format: SVG, PDF, PNG or JPG.",
+          "type": "string",
+          "default": "SVG"
+        },
+        "scale": {
+          "description": "Render scale for PNG and JPG.",
+          "type": "number",
+          "default": 1
+        },
+        "deliver": {
+          "description": "What comes back: path (the default) saves the picture beside the server and answers with the file path, which suits a human working in the same machine; both answers with the path AND the picture itself as image content, which is what a caller in another process or container needs, since a path there opens nothing. Only PNG and JPG travel as content, and only up to 2 MB \u2014 a bigger one still comes back as a path.",
+          "type": "string",
+          "default": "path"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_active_users",
+    "description": "Who is in the file right now: the token owner (me) and the other live collaborators with their multiplayer colors. Useful before heavy mutations \u2014 a human working in the same file deserves figma_commit_undo batches and gentler pacing. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_notify",
+    "description": "Shows a toast inside the Figma window \u2014 the way to tell the human at the canvas that a batch of work is done or needs their eyes. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "description": "Toast text shown in the Figma window.",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "description": "How long it stays, in milliseconds.",
+          "type": "integer",
+          "default": 4000
+        },
+        "isError": {
+          "description": "Style the toast as an error.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "message"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_scroll_to_node",
+    "description": "Scrolls the user\u0027s viewport to a node, switching pages when needed; select=true also selects it. Call it after creating something so the human sees the result without hunting for it. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id to bring into view.",
+          "type": "string"
+        },
+        "select": {
+          "description": "Also select the node.",
+          "type": "boolean",
+          "default": false
+        },
+        "zoom": {
+          "description": "Zoom level after centering; empty keeps the fitted zoom.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_set_file_thumbnail",
+    "description": "Makes a frame the file cover shown in the project browser; an empty nodeId resets to the default. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node whose render becomes the file cover; empty resets to the default.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_take_screenshot",
+    "description": "Captures a node or the current page straight from the plugin. Unlike figma_get_component_image, it shows the state RIGHT NOW, including edits made a moment ago \u2014 so this is the tool that verifies the result of a mutation. By default the picture is saved to disk and the response carries the file path (image.path) and the metadata: open the file to see it. Pass deliver=both and the picture comes back as image content as well \u2014 the way to look at it from another process, at the cost of carrying the bytes in the answer. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "Node id. Empty captures the current page.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "format": {
+          "description": "Format: PNG (the default), JPG, SVG.",
+          "type": "string",
+          "default": "PNG"
+        },
+        "scale": {
+          "description": "Render scale.",
+          "type": "number",
+          "default": 1
+        },
+        "deliver": {
+          "description": "What comes back: path (the default) saves the picture beside the server and answers with the file path, which suits a human working in the same machine; both answers with the path AND the picture itself as image content, which is what a caller in another process or container needs, since a path there opens nothing. Only PNG and JPG travel as content, and only up to 2 MB \u2014 a bigger one still comes back as a path.",
+          "type": "string",
+          "default": "path"
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "figma_get_text_styles",
+    "description": "The text styles of a file read through the plugin: name, size, weight, line height. Requires the plugin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  },
+  {
+    "name": "csharp_diagnose",
+    "description": "Self-check of the Snail.MCP.Figma server: the active configuration, the presence of the Snail Bridge JS plugin and the state of the cache. Call it when you suspect the server is misconfigured.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "probeDatabase": {
+          "description": "Open the cache file and check that it reads.",
+          "type": "boolean",
+          "default": false
+        },
+        "probeToken": {
+          "description": "Call GET /v1/me to prove the Figma token actually works; costs one cheap request.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "skill": null
+  }
+]

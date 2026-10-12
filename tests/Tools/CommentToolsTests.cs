@@ -1,19 +1,15 @@
-using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Application.Documents;
-using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Comment tool behaviour over the published source: resolved threads, pinning, escaping.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class CommentToolsTests
+public class CommentToolsTests(BridgeHostFixture bridge)
 {
     private const string FileUrl = "https://www.figma.com/design/ABC123XYZ/Design-System";
 
-    private readonly BridgeHostFixture _bridge;
-
-    public CommentToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private CommentTools Comments(FakePublishedSource api) => new(
         _bridge.Gateway, api, new ActiveDocumentTracker(), NullLogger<CommentTools>.Instance);

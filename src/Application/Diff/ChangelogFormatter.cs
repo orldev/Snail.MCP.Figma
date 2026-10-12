@@ -480,7 +480,5 @@ public static partial class ChangelogFormatter
     }
 
     private static List<string> NotesOf(JsonObject node) =>
-        (node["notes"] as JsonArray ?? [])
-            .Select(note => note?.GetValue<string>() ?? string.Empty)
-            .ToList();
+        [.. (node["notes"] as JsonArray ?? []).Select(note => note?.GetValue<string>() ?? string.Empty)];
 }

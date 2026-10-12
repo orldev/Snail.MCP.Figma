@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Snail.MCP.Figma.Tests.Contracts;
 
 /// <summary>Pins the test double of the variables payload to the bundle: the day code.js changes what it sends, the sample the other tests trust stops being the truth, and this is where that shows.</summary>
-public class VariablesPayloadContractTests
+public partial class VariablesPayloadContractTests
 {
     private static readonly string Bundle = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "plugin", "code.js"));
 
@@ -16,7 +16,7 @@ public class VariablesPayloadContractTests
 
         Assert.True(body.Success, $"{serializer} was not found in plugin/code.js");
 
-        var serialized = Regex.Matches(body.Groups["fields"].Value, @"^\s*(\w+):", RegexOptions.Multiline)
+        var serialized = FieldPattern.Matches(body.Groups["fields"].Value)
             .Select(match => match.Groups[1].Value)
             .ToList();
 
@@ -30,8 +30,8 @@ public class VariablesPayloadContractTests
     [Fact]
     public void BothSectionsLeaveTheBundleAsArrays()
     {
-        Assert.Equal(2, Regex.Matches(Bundle, @"\bvariables:\s*variables\.map\(").Count);
-        Assert.Equal(2, Regex.Matches(Bundle, @"\bvariableCollections:\s*collections\.map\(").Count);
+        Assert.Equal(2, VariablesMapPattern.Matches(Bundle).Count);
+        Assert.Equal(2, CollectionsMapPattern.Matches(Bundle).Count);
     }
 
     private static JsonObject SampleItem(string serializer) =>
@@ -53,4 +53,13 @@ public class VariablesPayloadContractTests
 
         throw new InvalidOperationException("the plugin folder was not found above the test binaries");
     }
+
+    [GeneratedRegex(@"^\s*(\w+):", RegexOptions.Multiline)]
+    private static partial Regex FieldPattern { get; }
+
+    [GeneratedRegex(@"\bvariables:\s*variables\.map\(")]
+    private static partial Regex VariablesMapPattern { get; }
+
+    [GeneratedRegex(@"\bvariableCollections:\s*collections\.map\(")]
+    private static partial Regex CollectionsMapPattern { get; }
 }

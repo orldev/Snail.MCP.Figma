@@ -1,9 +1,8 @@
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Http;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 
@@ -46,7 +45,7 @@ public sealed class EditorSocketHub(
 
         if (!IsAllowedOrigin(origin))
         {
-            logger.LogWarning("Rejected WebSocket connection from origin {Origin}", origin);
+            Log.OriginRejected(logger, origin);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
             return;
@@ -65,7 +64,7 @@ public sealed class EditorSocketHub(
         }
         catch (WebSocketException ex)
         {
-            logger.LogInformation("Plugin connection closed: {Message}", ex.Message);
+            Log.ConnectionClosed(logger, ex.Message);
         }
         finally
         {
@@ -94,7 +93,7 @@ public sealed class EditorSocketHub(
                     return;
                 }
 
-                payload.Write(buffer, 0, received.Count);
+                await payload.WriteAsync(buffer.AsMemory(0, received.Count), cancellationToken).ConfigureAwait(false);
             }
             while (!received.EndOfMessage);
 
@@ -113,7 +112,7 @@ public sealed class EditorSocketHub(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not parse a plugin message ({Length} bytes)", text.Length);
+            Log.MessageNotParsed(logger, ex, text.Length);
 
             return;
         }
@@ -199,7 +198,7 @@ public sealed class EditorSocketHub(
                 break;
 
             default:
-                logger.LogDebug("Unhandled plugin event: {Type}", type);
+                Log.EventUnhandled(logger, type);
                 break;
         }
     }
@@ -212,9 +211,7 @@ public sealed class EditorSocketHub(
 
         if (registry.ActiveFileKey != session.FileKey)
         {
-            logger.LogInformation(
-                "A remark from {FileKey} was left for another agent: this one works in {Target}",
-                session.FileKey, registry.ActiveFileKey ?? "no file yet");
+            Log.RemarkForAnotherAgent(logger, session.FileKey, registry.ActiveFileKey ?? "no file yet");
 
             return;
         }
@@ -223,7 +220,7 @@ public sealed class EditorSocketHub(
             data?["remark"]?.GetValue<string>(),
             data?["nodes"] as JsonArray is { } selected ? [.. selected.Select(node => node!.DeepClone())] : [],
             DateTimeOffset.UtcNow));
-        logger.LogInformation("The human stepped into the build in {FileKey}", session.FileKey);
+        Log.HumanSteppedIn(logger, session.FileKey);
         await session.PublishRemarksWaitingAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -233,7 +230,7 @@ public sealed class EditorSocketHub(
 
         if (string.IsNullOrWhiteSpace(fileKey))
         {
-            logger.LogWarning("FILE_INFO without fileKey — session stays unidentified");
+            Log.FileInfoWithoutKey(logger);
 
             return;
         }
@@ -246,9 +243,7 @@ public sealed class EditorSocketHub(
 
         if (ExpectedPluginVersion is { } expected && session.PluginVersion != expected)
         {
-            logger.LogInformation(
-                "Plugin {Running} differs from the installed bundle {Installed} — showing the update banner",
-                session.PluginVersion, expected);
+            Log.PluginOutdated(logger, session.PluginVersion, expected);
             await session.SendAsync(EditorWireProtocol.PluginUpdateAvailable(), cancellationToken).ConfigureAwait(false);
         }
     }

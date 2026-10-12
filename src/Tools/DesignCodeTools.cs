@@ -1,12 +1,11 @@
 using System.ComponentModel;
-using System.Text;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Application.Sanitization;
-using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.MCP.Figma.Application.Documents;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -108,7 +107,7 @@ public sealed class DesignCodeTools(
                         Profile = SanitizationProfile.Balanced,
                         MaxDepth = depth,
                         MaxNodes = 5000,
-                        DeduplicateStyles = false,
+                        ShouldDeduplicateStyles = false,
                     },
                     ct).ConfigureAwait(false);
 
@@ -214,7 +213,7 @@ public sealed class DesignCodeTools(
             }
             catch (Exception ex) when (ex is EditorCommandException or TimeoutException or EditorUnavailableException)
             {
-                Logger.LogInformation("Plugin did not return node {NodeId}, reading through REST: {Message}", nodeId, ex.Message);
+                Log.NodeReadThroughRest(Logger, nodeId, ex.Message);
             }
         }
 
@@ -228,7 +227,7 @@ public sealed class DesignCodeTools(
                 Profile = SanitizationProfile.Balanced,
                 MaxDepth = depth,
                 MaxNodes = sanitizationOptions.DefaultMaxNodes * 4,
-                DeduplicateStyles = false,
+                ShouldDeduplicateStyles = false,
             },
             cancellationToken).ConfigureAwait(false);
 

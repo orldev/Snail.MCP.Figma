@@ -1,17 +1,13 @@
-using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Tools;
-using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>FigJam tool parameters: validation, id normalisation and JSON packing decided before the editor extension.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class FigJamToolsTests
+public class FigJamToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public FigJamToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private FigJamTools FigJam() => new(_bridge.Gateway, NullLogger<FigJamTools>.Instance);
 
@@ -37,7 +33,7 @@ public class FigJamToolsTests
     {
         var fileKey = NewFileKey();
         var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         return plugin;
     }
@@ -151,6 +147,6 @@ public class FigJamToolsTests
         await FigJam().AutoArrangeAsync("1:1,1:2");
 
         var sent = SentParameters(plugin, EditorCommands.ExecuteCode.Name)!;
-        Assert.Equal(["1:1", "1:2"], sent["nodeIds"]!.AsArray().Select(id => id!.GetValue<string>()).ToArray());
+        Assert.Equal(["1:1", "1:2"], [.. sent["nodeIds"]!.AsArray().Select(id => id!.GetValue<string>())]);
     }
 }

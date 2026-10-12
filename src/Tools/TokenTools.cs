@@ -1,11 +1,11 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Tokens;
 using Snail.MCP.Figma.Application.Tokens.Formatters;
 using Snail.MCP.Figma.Application.Tokens.Parsers;
-using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.MCP.Figma.Application.Documents;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -60,9 +60,9 @@ public sealed class TokenTools(
             var options = new FormatOptions
             {
                 Prefix = prefix ?? string.Empty,
-                SplitByMode = splitByMode,
-                SplitByCollection = splitByCollection,
-                ResolveAliases = resolveAliases || !TokenFormatters.SupportsAliases(formatter.Format),
+                ShouldSplitByMode = splitByMode,
+                ShouldSplitByCollection = splitByCollection,
+                ShouldResolveAliases = resolveAliases || !TokenFormatters.SupportsAliases(formatter.Format),
                 ColorFormat = colorFormat,
                 SizeUnit = sizeUnit,
                 RemBase = remBase,
@@ -86,7 +86,7 @@ public sealed class TokenTools(
                     .Select(set => (JsonNode)new JsonObject
                     {
                         ["name"] = set.Name,
-                        ["modes"] = new JsonArray(set.Modes.Select(m => (JsonNode)JsonValue.Create(m)!).ToArray()),
+                        ["modes"] = ToJsonArray(set.Modes),
                         ["tokens"] = set.Tokens.Count,
                     })
                     .ToArray()),
@@ -183,7 +183,7 @@ public sealed class TokenTools(
             var result = formatter.Write(parsed.Document, new FormatOptions
             {
                 Prefix = prefix ?? string.Empty,
-                ResolveAliases = !TokenFormatters.SupportsAliases(formatter.Format),
+                ShouldResolveAliases = !TokenFormatters.SupportsAliases(formatter.Format),
                 ColorFormat = colorFormat,
                 SizeUnit = sizeUnit,
             });
@@ -200,7 +200,7 @@ public sealed class TokenTools(
                         ["content"] = file.Content,
                     })
                     .ToArray()),
-                ["warnings"] = ToJsonArray(parsed.Warnings.Concat(result.Warnings).ToArray()),
+                ["warnings"] = ToJsonArray([.. parsed.Warnings, .. result.Warnings]),
             }));
         }, cancellationToken);
 
@@ -225,7 +225,7 @@ public sealed class TokenTools(
             }
             catch (Exception ex) when (ex is EditorCommandException or TimeoutException or EditorUnavailableException)
             {
-                Logger.LogInformation("Plugin did not return variables, trying REST: {Message}", ex.Message);
+                Log.VariablesTriedThroughRest(Logger, ex.Message);
             }
         }
 
@@ -237,7 +237,7 @@ public sealed class TokenTools(
         }
         catch (PublishedSourceException ex)
         {
-            Logger.LogWarning("Variables REST unavailable: {Message}", ex.Message);
+            Log.VariablesRestUnavailable(Logger, ex.Message);
 
             return (null, "unavailable");
         }
@@ -251,15 +251,14 @@ public sealed class TokenTools(
             .Select(set => (JsonNode)new JsonObject
             {
                 ["name"] = set.Name,
-                ["modes"] = new JsonArray(set.Modes.Select(m => (JsonNode)JsonValue.Create(m)!).ToArray()),
+                ["modes"] = ToJsonArray(set.Modes),
                 ["tokens"] = new JsonArray(set.Tokens
                     .Take(50)
                     .Select(token => (JsonNode)new JsonObject
                     {
                         ["path"] = token.SlashPath,
                         ["type"] = token.Type,
-                        ["values"] = new JsonObject(token.Values
-                            .Select(pair => KeyValuePair.Create(pair.Key, (JsonNode?)JsonValue.Create(pair.Value.AsText())))),
+                        ["values"] = ValuesByMode(token),
                     })
                     .ToArray()),
                 ["truncated"] = set.Tokens.Count > 50,
@@ -348,5 +347,9 @@ public sealed class TokenTools(
             $"Available: {string.Join(", ", supported)}");
 
     private static JsonArray ToJsonArray(IReadOnlyList<string> values) =>
-        new(values.Select(value => (JsonNode)JsonValue.Create(value)!).ToArray());
+        [.. values.Select(value => (JsonNode)JsonValue.Create(value)!)];
+
+    /// <summary>A token's value in each mode, as the plan shows it.</summary>
+    private static JsonObject ValuesByMode(Token token) =>
+        new(token.Values.Select(pair => KeyValuePair.Create(pair.Key, (JsonNode?)JsonValue.Create(pair.Value.AsText()))));
 }

@@ -289,7 +289,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
 
         var items = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        return items.Length == 0 ? null : new JsonArray(items.Select(i => (JsonNode)JsonValue.Create(i)!).ToArray());
+        return items.Length == 0 ? null : [.. items.Select(i => (JsonNode)JsonValue.Create(i)!)];
     }
 
     /// <summary>Variable values arrive as strings; numbers and booleans are recognized so the plugin does not get "12" instead of 12.</summary>

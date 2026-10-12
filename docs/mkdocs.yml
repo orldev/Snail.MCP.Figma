@@ -6,8 +6,8 @@ repo_name: orldev/Snail.MCP.Figma
 edit_uri: ""
 
 # Everything about the site lives next to this file: content/ holds the pages
-# (tools/ and schemas/ in it are generated), theme/ the templates, generator/
-# the tool-reference generator; the build lands in site/.
+# (tools/ and schemas/ in it are written by `dotnet build src -p:SnailReference=true`,
+# with the families of tools.json), theme/ the templates; the build lands in site/.
 docs_dir: content
 site_dir: site
 

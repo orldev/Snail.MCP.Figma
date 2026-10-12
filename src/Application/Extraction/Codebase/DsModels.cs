@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -60,6 +61,7 @@ public sealed class DsPropEntry
     /// <summary>Type as written in source, best-effort by regex.</summary>
     public string? Type { get; set; }
 
+    [SuppressMessage("Snail", "S3L0008", Justification = "required is a field of the manifests written into the analysed project and of the answers of figma_ds_* tools; the next run reads them back.")]
     public bool Required { get; set; }
 
     public string? DefaultValue { get; set; }

@@ -1,0 +1,14 @@
+<Project>
+
+    <!-- The build — language, nullable, docs, analyzers, warnings as errors — is Snail.Sdk's (global.json). -->
+
+    <!--
+        Migration debt: CS1591, a public member of src without its XML summary (678 members on 2026-10-12, measured on
+        Snail.Sdk 0.1.0-local.10). Writing them is a pass over the whole server of its own, not a part of the move; each
+        one documented lowers the count, and the entry goes when it reaches zero.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+</Project>

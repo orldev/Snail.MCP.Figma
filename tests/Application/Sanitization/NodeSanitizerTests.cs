@@ -1,5 +1,5 @@
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Sanitization;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Application.Sanitization;
 
@@ -138,7 +138,7 @@ public class NodeSanitizerTests
         var result = Create().Sanitize(SampleTree(6), new SanitizationRequest
         {
             Profile = SanitizationProfile.Aggressive,
-            DeduplicateStyles = true,
+            ShouldDeduplicateStyles = true,
         });
 
         Assert.Equal(1, result.StylesDeduplicated);
@@ -165,7 +165,7 @@ public class NodeSanitizerTests
             }),
         };
 
-        var result = Create().Sanitize(tree, new SanitizationRequest { DeduplicateStyles = true });
+        var result = Create().Sanitize(tree, new SanitizationRequest { ShouldDeduplicateStyles = true });
 
         Assert.Equal(0, result.StylesDeduplicated);
         Assert.Null(result.Node["$styles"]);

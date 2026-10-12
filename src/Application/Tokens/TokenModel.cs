@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Snail.MCP.Figma.Application.Tokens;
 
 /// <summary>DTCG token types kept as strings, not an enum: the spec grows and unknown types must pass through.</summary>
@@ -231,13 +233,11 @@ public sealed class TokenDocument
 }
 
 /// <summary>Name normalization for CSS, files and references.</summary>
-public static class TokenNaming
+public static partial class TokenNaming
 {
     /// <summary>Lowercase, everything non-alphanumeric becomes a dash.</summary>
     public static string Slugify(string value) =>
-        System.Text.RegularExpressions.Regex
-            .Replace(value.Trim().ToLowerInvariant(), "[^a-z0-9]+", "-")
-            .Trim('-');
+        NonSlugCharacterPattern().Replace(value.Trim().ToLowerInvariant(), "-").Trim('-');
 
     /// <summary>Path into a CSS variable name: <c>["color","primary"]</c> → <c>color-primary</c>.</summary>
     public static string ToCssName(IReadOnlyList<string> path) =>
@@ -245,7 +245,7 @@ public static class TokenNaming
 
     /// <summary>camelCase → kebab-case, for composite sub-fields.</summary>
     public static string ToKebab(string value) =>
-        System.Text.RegularExpressions.Regex.Replace(value, "([a-z0-9])([A-Z])", "$1-$2").ToLowerInvariant();
+        CamelHumpPattern().Replace(value, "$1-$2").ToLowerInvariant();
 
     /// <summary>Path into a JavaScript identifier for ts-module.</summary>
     public static string ToCamel(IReadOnlyList<string> path)
@@ -263,4 +263,10 @@ public static class TokenNaming
 
         return char.IsDigit(name[0]) ? $"_{name}" : name;
     }
+
+    [GeneratedRegex("[^a-z0-9]+")]
+    private static partial Regex NonSlugCharacterPattern();
+
+    [GeneratedRegex("([a-z0-9])([A-Z])")]
+    private static partial Regex CamelHumpPattern();
 }

@@ -15,7 +15,7 @@ public sealed class OpenDocumentRegistry(
 
     private string? _targetFileKey;
 
-    public IReadOnlyCollection<EditorSession> Sessions => _byFileKey.Values.ToArray();
+    public IReadOnlyCollection<EditorSession> Sessions => [.. _byFileKey.Values];
 
     IReadOnlyCollection<IOpenDocument> IOpenDocuments.Sessions => Sessions;
 
@@ -39,13 +39,11 @@ public sealed class OpenDocumentRegistry(
         session.FileName = fileName;
         _byFileKey[fileKey] = session;
 
-        logger.LogInformation(
-            "Plugin connected: file {FileName} ({FileKey}), {Count} sessions total",
-            fileName, fileKey, _byFileKey.Count);
+        Log.PluginConnected(logger, fileName, fileKey, _byFileKey.Count);
 
         if (_targetFileKey is null && _byFileKey.Count == 1)
         {
-            await ClaimAsync(fileKey, cancellationToken).ConfigureAwait(false);
+            await TryClaimAsync(fileKey, cancellationToken).ConfigureAwait(false);
 
             return;
         }
@@ -65,7 +63,7 @@ public sealed class OpenDocumentRegistry(
             return;
         }
 
-        logger.LogInformation("Plugin disconnected: {FileKey}, {Count} sessions left", fileKey, _byFileKey.Count);
+        Log.PluginDisconnected(logger, fileKey, _byFileKey.Count);
 
         if (_targetFileKey != fileKey)
         {
@@ -76,12 +74,12 @@ public sealed class OpenDocumentRegistry(
 
         if (_byFileKey.Keys.ToArray() is [var only])
         {
-            await ClaimAsync(only, cancellationToken).ConfigureAwait(false);
+            await TryClaimAsync(only, cancellationToken).ConfigureAwait(false);
         }
     }
 
     /// <summary>Claims the file as the target and tells both panels: the new one that the agent is here, the old one that it left.</summary>
-    public async Task<bool> ClaimAsync(string fileKey, CancellationToken cancellationToken = default)
+    public async Task<bool> TryClaimAsync(string fileKey, CancellationToken cancellationToken = default)
     {
         if (!_byFileKey.TryGetValue(fileKey, out var session))
         {
@@ -152,7 +150,7 @@ public sealed class OpenDocumentRegistry(
 
         _targetFileKey = session.FileKey;
         activeFile.Remember(session.FileKey!, session.FileName);
-        logger.LogInformation("Target file: {FileName} ({FileKey})", session.FileName, session.FileKey);
+        Log.TargetChosen(logger, session.FileName, session.FileKey);
     }
 
     /// <summary>Tells the panel of a file adopted inside a synchronous resolve; a lost notice only delays the panel until the first command arrives.</summary>
@@ -164,7 +162,7 @@ public sealed class OpenDocumentRegistry(
         }
         catch (Exception ex) when (ex is WebSocketException or ObjectDisposedException or InvalidOperationException)
         {
-            logger.LogDebug(ex, "The panel of {FileKey} could not be told the agent is here", session.FileKey);
+            Log.PanelNotTold(logger, ex, session.FileKey);
         }
     }
 

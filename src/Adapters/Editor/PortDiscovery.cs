@@ -14,18 +14,24 @@ public static class PortDiscovery
         {
             if (IsAvailable(port))
             {
-                logger?.LogInformation("WebSocket hub will use port {Port}", port);
+                if (logger is not null)
+                {
+                    Log.PortChosen(logger, port);
+                }
 
                 return port;
             }
 
-            logger?.LogDebug("Port {Port} is busy, trying the next one", port);
+            if (logger is not null)
+            {
+                Log.PortBusy(logger, port);
+            }
         }
 
-        logger?.LogWarning(
-            "All ports {Start}–{End} are busy: the WRITE channel will not start. " +
-            "Usually these are other server instances — close the extra ones.",
-            options.PortRangeStart, options.PortRangeEnd);
+        if (logger is not null)
+        {
+            Log.PortsExhausted(logger, options.PortRangeStart, options.PortRangeEnd);
+        }
 
         return null;
     }

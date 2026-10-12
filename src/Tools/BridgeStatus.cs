@@ -1,14 +1,17 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Snail.MCP.Figma.Tools;
 
 /// <summary>The success envelope of a tool that advertises an output schema.</summary>
 /// <remarks>A host that turns tools into code stubs takes the return type from this schema. A failure is the same envelope with <c>ok</c> false, <c>error</c> and <c>hint</c>, sent as text only, so it never has to conform.</remarks>
+[SuppressMessage("Snail", "S3L0008", Justification = "ok is the field of the output schema every tool with one advertises, which clients already read.")]
 public sealed record Answer<T>(
     [property: Description("true on success; a failure comes as text with ok false, error and hint.")] bool Ok,
     T Data);
 
 /// <summary>One Figma file with the plugin running in it.</summary>
+[SuppressMessage("Snail", "S3L0008", Justification = "open and target are fields of the output schema of figma_get_status and figma_list_open_files, which clients already read.")]
 public sealed record ConnectedFile(
     [property: Description("Identity of the plugin connection.")] string ConnectionId,
     [property: Description("Key of the file, as in its URL.")] string? FileKey,
@@ -22,6 +25,7 @@ public sealed record ConnectedFile(
     [property: Description("Names of the other agents bound to this file.")] IReadOnlyList<string> OthersHere);
 
 /// <summary>What figma_get_status answers: the bridge, the target and the company in it.</summary>
+[SuppressMessage("Snail", "S3L0008", Justification = "connected is a field of the output schema of figma_get_status, which clients already read.")]
 public sealed record BridgeStatus(
     [property: Description("Whether at least one plugin session is open.")] bool Connected,
     [property: Description("Key of the target file; null when no file is bound.")] string? ActiveFileKey,

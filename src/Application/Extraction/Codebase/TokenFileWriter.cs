@@ -62,7 +62,7 @@ public static class TokenFileWriter
             {
                 var result = formatter.Write(document, new FormatOptions
                 {
-                    ResolveAliases = !TokenFormatters.SupportsAliases(formatter.Format),
+                    ShouldResolveAliases = !TokenFormatters.SupportsAliases(formatter.Format),
                 });
 
                 warnings.AddRange(result.Warnings);
@@ -90,10 +90,9 @@ public static class TokenFileWriter
 
     /// <summary>Mode names for the Storybook theme toolbar: lowercase, base mode first.</summary>
     public static List<string> ModeNames(TokenDocument document) =>
-        (document.Sets.FirstOrDefault()?.Modes ?? ["Default"])
+        [.. (document.Sets.FirstOrDefault()?.Modes ?? ["Default"])
             .Select(mode => mode.ToLowerInvariant())
-            .Where(mode => mode != "default")
-            .ToList();
+            .Where(mode => mode != "default")];
 
     /// <summary>First token value as a string — how the showcase sees it.</summary>
     public static string FirstLiteral(Token token)

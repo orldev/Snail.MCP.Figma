@@ -46,7 +46,7 @@ public sealed class SiblingDiscovery(
             return;
         }
 
-        logger.LogDebug("Sibling servers alive on ports {Ports}", string.Join(", ", alive));
+        Log.SiblingsAlive(logger, string.Join(", ", alive));
 
         foreach (var session in registry.Sessions)
         {
@@ -56,7 +56,7 @@ public sealed class SiblingDiscovery(
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                logger.LogDebug("Could not push PORTS_ALIVE to {ConnectionId}: {Message}", session.ConnectionId, ex.Message);
+                Log.PortsNotPushed(logger, session.ConnectionId, ex.Message);
             }
         }
     }

@@ -20,7 +20,7 @@ public sealed class IdleShutdownWatcher(
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                
+
                 if (documents.HasConnection)
                 {
                     activity.Touch();
@@ -32,7 +32,7 @@ public sealed class IdleShutdownWatcher(
 
                 if (idleFor < options.IdleTimeout) continue;
 
-                logger.LogWarning("No MCP tool has been called for {IdleFor}; the process looks orphaned, shutting down", idleFor);
+                Log.IdleShutdown(logger, idleFor);
                 appLifetime.StopApplication();
 
                 return;

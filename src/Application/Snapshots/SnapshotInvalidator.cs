@@ -31,9 +31,7 @@ public sealed class SnapshotInvalidator(
         }
 
         var removed = await cache.InvalidateNodesAsync(fileKey, changedNodeIds, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug(
-            "DOCUMENT_CHANGE {FileKey}: {Changed} nodes, {Removed} documents removed",
-            fileKey, changedNodeIds.Count, removed);
+        Log.DocumentChanged(logger, fileKey, changedNodeIds.Count, removed);
     }
 
     /// <summary>After a plugin write: invalidates the nodes and their ancestors, since Auto Layout reflows upwards.</summary>

@@ -1,6 +1,6 @@
 using LiteDB;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 
@@ -39,16 +39,14 @@ public sealed class LiteDbRenderSnapshotStore(
 
             if (cached.ExpiresAt <= DateTimeOffset.UtcNow)
             {
-                logger.LogDebug("Render cache {FileKey}/{NodeId} expired — miss", fileKey, nodeId);
+                Log.RenderExpired(logger, fileKey, nodeId);
 
                 return Task.FromResult<RenderSnapshot?>(null);
             }
 
             if (currentFileVersion is not null && cached.FileVersion is not null && cached.FileVersion != currentFileVersion)
             {
-                logger.LogDebug(
-                    "Render {FileKey}/{NodeId} was made on version {Cached}, current is {Current} — miss",
-                    fileKey, nodeId, cached.FileVersion, currentFileVersion);
+                Log.RenderOutdated(logger, fileKey, nodeId, cached.FileVersion, currentFileVersion);
 
                 return Task.FromResult<RenderSnapshot?>(null);
             }
@@ -57,7 +55,7 @@ public sealed class LiteDbRenderSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Render cache read failed, falling back to Figma");
+            Log.RenderReadFailed(logger, ex);
 
             return Task.FromResult<RenderSnapshot?>(null);
         }
@@ -84,7 +82,7 @@ public sealed class LiteDbRenderSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Storing the render link in the cache failed");
+            Log.RenderWriteFailed(logger, ex);
         }
 
         return Task.CompletedTask;
@@ -124,7 +122,7 @@ public sealed class LiteDbRenderSnapshotStore(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Render invalidation failed");
+            Log.RenderInvalidationFailed(logger, ex);
 
             return Task.FromResult(0);
         }
@@ -146,14 +144,14 @@ public sealed class LiteDbRenderSnapshotStore(
 
             if (removed > 0)
             {
-                logger.LogInformation("Render cache of file {FileKey} dropped, {Count} removed", fileKey, removed);
+                Log.RenderCacheDropped(logger, fileKey, removed);
             }
 
             return Task.FromResult(removed);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Dropping the render cache failed");
+            Log.RenderCacheNotDropped(logger, ex);
 
             return Task.FromResult(0);
         }

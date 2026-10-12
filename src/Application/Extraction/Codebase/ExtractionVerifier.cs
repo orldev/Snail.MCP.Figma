@@ -17,11 +17,11 @@ public sealed class VerifyCheck
 
 public sealed class VerifyReport
 {
-    public bool Passed { get; set; }
+    public bool HasPassed { get; set; }
 
     public List<VerifyCheck> Checks { get; init; } = [];
 
-    public bool FigmaRoundTripReady { get; set; }
+    public bool IsFigmaRoundTripReady { get; set; }
 
     public List<string> FigmaRoundTripHow { get; init; } = [];
 }
@@ -55,7 +55,7 @@ public static partial class ExtractionVerifier
             {
                 Name = name,
                 Status = outcome,
-                Details = (details ?? []).Take(MaxDetails).ToList(),
+                Details = [.. (details ?? []).Take(MaxDetails)],
             });
 
         var tokensPath = Path.Combine(outDir, "tokens", "tokens.json");
@@ -199,12 +199,12 @@ public static partial class ExtractionVerifier
             Add("porting coverage", "skip", ["the analysis or progress manifest is missing"]);
         }
 
-        report.Passed = report.Checks.All(check => check.Status != "fail");
+        report.HasPassed = report.Checks.All(check => check.Status != "fail");
 
         var pending = status?.Components.Values.Any(e =>
             e.Status is DsPortStatuses.Pending or DsPortStatuses.InProgress) ?? false;
 
-        report.FigmaRoundTripReady = report.Passed && tokensExist;
+        report.IsFigmaRoundTripReady = report.HasPassed && tokensExist;
         report.FigmaRoundTripHow.AddRange(
         [
             "Ask the team: does code lead (we stop at this Storybook package) or does design lead (we mirror into Figma)?",

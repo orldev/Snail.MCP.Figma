@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using ModelContextProtocol.Protocol;
-using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Tools;
@@ -11,11 +10,9 @@ namespace Snail.MCP.Figma.Tests.Tools;
 
 /// <summary>Plugin-API tools built on EXECUTE_CODE: parameters must land in the script as data, never as code.</summary>
 [Collection(nameof(BridgeHostFixture))]
-public class PluginScriptToolsTests
+public class PluginScriptToolsTests(BridgeHostFixture bridge)
 {
-    private readonly BridgeHostFixture _bridge;
-
-    public PluginScriptToolsTests(BridgeHostFixture bridge) => _bridge = bridge;
+    private readonly BridgeHostFixture _bridge = bridge;
 
     private static string NewFileKey() => $"ps{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -79,7 +76,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["committed"] = true }, c => code = c);
 
@@ -104,7 +101,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin,
             new JsonObject { ["id"] = "S:1", ["name"] = "Brand/Primary", ["styleType"] = "PAINT" },
@@ -125,7 +122,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject { ["__error"] = "Cannot write to node" });
 
         var response = Parse(await Write().CreateStyleAsync("TEXT", "Body"));
@@ -139,7 +136,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["id"] = "7:0", ["name"] = "Icons" }, c => code = c);
 
@@ -165,7 +162,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin,
             new JsonObject { ["id"] = "9:1", ["name"] = "icon", ["width"] = 24, ["height"] = 24, ["parentId"] = "1:2" },
@@ -195,7 +192,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin,
             new JsonObject { ["id"] = "c1", ["label"] = "Handoff", ["color"] = "teal", ["isPreset"] = false },
@@ -232,7 +229,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var (_, codes) = Recording(plugin);
 
         var response = Parse(await Write().ExecuteStepsAsync("""["first();", "second();", "third();"]"""));
@@ -248,7 +245,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var (_, codes) = Recording(plugin, failingStep: 2);
 
         var response = Parse(await Write().ExecuteStepsAsync("""["first();", "second();", "third();"]"""));
@@ -267,7 +264,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var answers = new Queue<JsonNode?>([JsonValue.Create(42), JsonValue.Create("two")]);
 
         plugin.Handlers[EditorCommands.ExecuteCode.Name] = _ =>
@@ -286,7 +283,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var (_, codes) = Recording(plugin, failingStep: 2);
 
         var response = Parse(await Write().ExecuteStepsAsync("""["a();", "b();", "c();"]""", stopOnError: false));
@@ -302,7 +299,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         Recording(plugin);
 
         var started = Stopwatch.StartNew();
@@ -318,7 +315,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var codes = new List<string>();
 
@@ -358,7 +355,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         Recording(plugin);
 
         var response = Parse(await Write().ExecuteStepsAsync("""["a();", "b();", "c();"]"""));
@@ -378,7 +375,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         Recording(plugin, failingStep: 2);
 
         var response = Parse(await Write().ExecuteStepsAsync("""["first();", "second();", "third();"]"""));
@@ -398,7 +395,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         Recording(plugin);
         _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
             new BuildInterruption("отступы гуляют", [], DateTimeOffset.UtcNow.AddSeconds(-1)));
@@ -447,7 +444,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["format"] = "SVG", ["svg"] = "<svg/>", ["length"] = 6 }, c => code = c);
 
@@ -464,7 +461,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var pixel = Convert.ToBase64String([137, 80, 78, 71]);
         AnswerScript(plugin, new JsonObject { ["format"] = "PNG", ["base64"] = pixel, ["byteLength"] = 4 });
 
@@ -482,7 +479,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         var pixel = Convert.ToBase64String([137, 80, 78, 71]);
         AnswerScript(plugin, new JsonObject { ["format"] = "PNG", ["base64"] = pixel, ["byteLength"] = 4 });
 
@@ -506,7 +503,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject
         {
             ["format"] = "PNG",
@@ -541,7 +538,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject
         {
             ["me"] = new JsonObject { ["name"] = "orldev", ["sessionId"] = 1 },
@@ -573,7 +570,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin,
             new JsonObject { ["id"] = "5:1", ["width"] = 200, ["height"] = 100, ["imageHash"] = "h1", ["parentId"] = "0:1" },
@@ -593,7 +590,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
 
         var scripts = new List<string>();
 
@@ -641,7 +638,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject { ["id"] = "7:2", ["parentId"] = "0:1" });
         plugin.Errors[EditorCommands.SetImageFill.Name] = "Image fill applied to 0 node(s)";
 
@@ -660,7 +657,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         plugin.Handlers[EditorCommands.SetImageFill.Name] = _ =>
             new JsonObject { ["success"] = true, ["imageHash"] = "hash-2", ["updatedCount"] = 2 };
 
@@ -686,7 +683,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         plugin.Handlers[EditorCommands.SetImageFill.Name] = _ =>
             new JsonObject { ["success"] = false, ["error"] = "in createImage: Image is too large" };
 
@@ -701,7 +698,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject { ["id"] = "7:3", ["parentId"] = "0:1" });
         plugin.Handlers[EditorCommands.SetImageFill.Name] = _ =>
             new JsonObject { ["success"] = false, ["error"] = "in createImage: Image is too large" };
@@ -732,7 +729,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin,
             new JsonObject { ["id"] = "6:1", ["name"] = "card", ["type"] = "FRAME", ["width"] = 240, ["height"] = 80 },
@@ -761,7 +758,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["versionId"] = "123", ["title"] = "Sprint 4" }, c => code = c);
 
@@ -786,7 +783,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["shown"] = true }, c => code = c);
 
@@ -803,7 +800,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["centered"] = "1:2", ["page"] = "Icons", ["zoom"] = 1.5 }, c => code = c);
 
@@ -820,7 +817,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["thumbnail"] = null }, c => code = c);
 
@@ -845,7 +842,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["id"] = "9:9", ["type"] = "BOOLEAN_OPERATION", ["name"] = "icon" }, c => code = c);
 
@@ -861,7 +858,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["id"] = "7:7", ["name"] = "grp", ["children"] = 2 }, c => code = c);
 
@@ -884,7 +881,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         AnswerScript(plugin, new JsonObject
         {
             ["paints"] = new JsonArray(new JsonObject { ["type"] = "SOLID" }),
@@ -902,7 +899,7 @@ public class PluginScriptToolsTests
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.ClaimAsync(fileKey);
+        await _bridge.Registry.TryClaimAsync(fileKey);
         string? code = null;
         AnswerScript(plugin, new JsonObject { ["sorted"] = 3, ["first"] = "A", ["last"] = "C" }, c => code = c);
 

@@ -29,7 +29,7 @@ public static class ToolResponse
         Ok(read.Node, envelope =>
         {
             envelope["fileKey"] = fileKey;
-            envelope["source"] = read.FromCache ? (read.IsStale ? "cache-stale" : "cache") : "figma-api";
+            envelope["source"] = read.IsFromCache ? (read.IsStale ? "cache-stale" : "cache") : "figma-api";
             envelope["fileVersion"] = read.FileVersion;
 
             if (read.IsStale)

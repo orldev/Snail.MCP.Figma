@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Application.Extraction;
-using Snail.MCP.Figma.Application.Editor;
-using Snail.MCP.Figma.Tools.Prompts;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Extraction;
+using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -83,11 +83,7 @@ public sealed class DesignSystemKitTools(
                     "For the full specifications of specific components call the tool again with componentIds and format='full'.";
             }
 
-            Logger.LogInformation(
-                "The design system kit was compressed: {Original} KB → {Compressed} KB, level {Level}",
-                DesignSystemKit.FormatKb(sizeKb),
-                DesignSystemKit.FormatKb(compressedKb),
-                level);
+            Log.KitCompressed(Logger, DesignSystemKit.FormatKb(sizeKb), DesignSystemKit.FormatKb(compressedKb), level);
 
             return ToolResponse.Ok(compressed);
         }, cancellationToken);
@@ -114,7 +110,7 @@ public sealed class DesignSystemKitTools(
                 }
                 catch (Exception ex) when (ex is EditorCommandException or TimeoutException or EditorUnavailableException)
                 {
-                    Logger.LogInformation("Plugin did not return variables, trying REST: {Message}", ex.Message);
+                    Log.VariablesTriedThroughRest(Logger, ex.Message);
                 }
             }
 
@@ -129,7 +125,7 @@ public sealed class DesignSystemKitTools(
         }
         catch (Exception ex) when (ex is PublishedSourceException or EditorCommandException or TimeoutException or EditorUnavailableException)
         {
-            Logger.LogWarning("Tokens not received: {Message}", ex.Message);
+            Log.KitTokensMissing(Logger, ex.Message);
             errors.Add(new JsonObject { ["section"] = "tokens", ["message"] = ex.Message });
         }
     }
@@ -212,12 +208,8 @@ public sealed class DesignSystemKitTools(
             if (componentIds.Count > 0)
             {
                 var wanted = new HashSet<string>(componentIds, StringComparer.Ordinal);
-                targetComponents = standalone
-                    .Where(c => c?["node_id"]?.GetValue<string>() is { } id && wanted.Contains(id))
-                    .ToList();
-                targetSets = allSets
-                    .Where(s => s?["node_id"]?.GetValue<string>() is { } id && wanted.Contains(id))
-                    .ToList();
+                targetComponents = [.. standalone.Where(c => c?["node_id"]?.GetValue<string>() is { } id && wanted.Contains(id))];
+                targetSets = [.. allSets.Where(s => s?["node_id"]?.GetValue<string>() is { } id && wanted.Contains(id))];
             }
 
             var nodeIds = targetSets.Concat(targetComponents)
@@ -310,7 +302,7 @@ public sealed class DesignSystemKitTools(
         }
         catch (PublishedSourceException ex)
         {
-            Logger.LogWarning("Components not received: {Message}", ex.Message);
+            Log.KitComponentsMissing(Logger, ex.Message);
             errors.Add(new JsonObject { ["section"] = "components", ["message"] = ex.Message });
         }
     }
@@ -369,7 +361,7 @@ public sealed class DesignSystemKitTools(
             }
             catch (PublishedSourceException ex)
             {
-                Logger.LogWarning("Node batch could not be read: {Message}", ex.Message);
+                Log.KitNodeBatchMissing(Logger, ex.Message);
             }
         }
 
@@ -406,7 +398,7 @@ public sealed class DesignSystemKitTools(
         }
         catch (PublishedSourceException ex)
         {
-            Logger.LogWarning("Component images not received: {Message}", ex.Message);
+            Log.KitImagesMissing(Logger, ex.Message);
             errors.Add(new JsonObject { ["section"] = "component_images", ["message"] = ex.Message });
         }
     }
@@ -466,7 +458,7 @@ public sealed class DesignSystemKitTools(
         }
         catch (PublishedSourceException ex)
         {
-            Logger.LogWarning("Styles not received: {Message}", ex.Message);
+            Log.KitStylesMissing(Logger, ex.Message);
             errors.Add(new JsonObject { ["section"] = "styles", ["message"] = ex.Message });
         }
     }
@@ -542,9 +534,7 @@ public sealed class DesignSystemKitTools(
     private static List<string> ParseIds(string? ids) =>
         string.IsNullOrWhiteSpace(ids)
             ? []
-            : ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(NodeId.Normalize)
-                .ToList();
+            : [.. ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(NodeId.Normalize)];
 
     private static List<string> DescribeSections(JsonObject kit)
     {

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Adapters.Editor;
 
 namespace Snail.MCP.Figma.Tests.Adapters.Editor;
