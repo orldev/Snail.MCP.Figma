@@ -1,9 +1,8 @@
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Http;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
-using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Application.Snapshots;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 

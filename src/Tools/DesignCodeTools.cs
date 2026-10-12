@@ -1,12 +1,11 @@
 using System.ComponentModel;
-using System.Text;
 using ModelContextProtocol.Server;
-using Snail.MCP.Figma.Configuration;
+using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Application.Sanitization;
-using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.MCP.Figma.Application.Documents;
 
 namespace Snail.MCP.Figma.Tools;
 

@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using ModelContextProtocol.Protocol;
-using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Tools;

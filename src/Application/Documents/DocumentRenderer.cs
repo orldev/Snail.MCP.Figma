@@ -1,5 +1,4 @@
 using System.Globalization;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 using Snail.MCP.Figma.Application.Snapshots;
 
 namespace Snail.MCP.Figma.Application.Documents;

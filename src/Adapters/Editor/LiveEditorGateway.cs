@@ -1,4 +1,3 @@
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Snapshots;
 

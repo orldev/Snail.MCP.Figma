@@ -1,7 +1,4 @@
-using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Tools;
-using Snail.MCP.Figma.Application.Documents;
-using Snail.MCP.Figma.Application.Editor;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
