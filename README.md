@@ -313,8 +313,8 @@ dotnet test
 - Docs: `dotnet build src -p:SnailReference=true` regenerates the tool reference from the built server
   (Snail.Sdk; families and titles in `docs/tools.json`), `mkdocs serve -f docs/mkdocs.yml` previews the site
   (`pip install -r docs/requirements.txt`); the theme is our own and lives in `docs/theme/`.
-- Release: a `v*` tag runs the tests, syncs the version in `.mcp/server.json`, pushes the package to NuGet
-  and deploys the documentation.
+- Workflows call the shared ones of Snail.Sdk. Release: a `v*` tag runs the tests, syncs the version in
+  `.mcp/server.json` and pushes the package to NuGet; every push to `master` deploys the documentation.
 
 Repository layout:
 

@@ -1,8 +1,8 @@
-name: Release to NuGet
+name: release to NuGet
 
-# The framework-dependent tool package, the same file in every Snail server but for its names: a v* tag releases; run
-# by hand, it builds and checks the package and pushes only when asked to. The plugin bridge runs on ASP.NET Core, so
-# the server is not native.
+# The shared server release of Snail.Sdk (docs/publishing.md): one framework-dependent tool package, as the plugin
+# bridge runs on ASP.NET Core, asked over stdio before it is pushed; .mcp/server.json takes the version. A v* tag
+# releases; run by hand, it builds and checks the package and pushes only when asked to. The site is docs.yml's.
 
 on:
   push:
@@ -21,124 +21,15 @@ permissions:
   contents: read
 
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      value: ${{ steps.version.outputs.value }}
-    steps:
-      - id: version
-        env:
-          GIVEN: ${{ inputs.version }}
-        run: |
-          version="${GIVEN:-${GITHUB_REF_NAME#v}}"
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::'$version' is not a version"
-            exit 1
-          fi
-          echo "value=$version" >> "$GITHUB_OUTPUT"
-
-  pack:
-    needs: version
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      VERSION: ${{ needs.version.outputs.value }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10.x
-
-      - run: dotnet test -c Release
-
-      - name: Version in the registry manifest
-        run: jq --arg v "$VERSION" '.version = $v | .packages[].version = $v' .mcp/server.json > server.json.tmp && mv server.json.tmp .mcp/server.json
-
-      - name: Pack
-        run: dotnet pack src -c Release -p:PackageVersion="$VERSION" -o artifacts/packages
-
-      # The program as the package carries it, started and asked over stdio.
-      - name: Answers over stdio
-        run: |
-          dotnet publish src -c Release -o artifacts/published
-          SNAIL_FIGMA_SERVER="$GITHUB_WORKSPACE/artifacts/published/Snail.MCP.Figma.dll" \
-            dotnet test tests -c Release --filter "FullyQualifiedName~StdioContract"
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: packages
-          path: artifacts/packages/*.nupkg
-          retention-days: 7
-
-  push:
-    needs: [version, pack]
-    if: github.event_name == 'push' || inputs.push
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: packages
-          path: artifacts/packages
-
-      - name: NuGet login (OIDC, a key for this run only)
-        uses: NuGet/login@v1
-        id: login
-        with:
-          user: ${{ secrets.NUGET_USER }}
-
-      - name: Push
-        env:
-          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
-        run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-  docs:
-    needs: push
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+  release:
     permissions:
       contents: read
-      pages: write
       id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10.x
-
-      - name: Generate the tool reference
-        run: dotnet run -c Release --project docs/generator -- docs/content
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install MkDocs and the markdown extensions
-        run: pip install mkdocs==1.6.1 pymdown-extensions==10.21.3
-
-      - name: Build the site
-        run: mkdocs build --strict -f docs/mkdocs.yml
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload the site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./docs/site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    uses: orldev/Snail.Sdk/.github/workflows/mcp-publish.yml@v1
+    with:
+      name: Snail.MCP.Figma
+      native: false
+      contract-variable: SNAIL_FIGMA_SERVER
+      version: ${{ inputs.version }}
+      push: ${{ github.event_name == 'push' || inputs.push }}
+    secrets: inherit
