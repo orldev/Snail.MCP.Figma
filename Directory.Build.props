@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- Migration debt: rules of the shared .editorconfig this repository does not meet yet (CS1591: 1254 members,
+       CS1573: 9 parameters, CS1574: 1 cref; not yet enforced by this build: IDE0055: 141 lines, IDE0305: 49 and
+       IDE0028: 16 collection expressions), removed when it moves onto Snail.Sdk (Toolkit/Snail.Sdk/docs/standard.md). -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574</NoWarn>
+  </PropertyGroup>
+
+</Project>
