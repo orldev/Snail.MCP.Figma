@@ -95,16 +95,18 @@ window for its folder. Claude Code opens with that revision and falls back to `i
 server refuses it (`-32022`) and each window gets a session of its own. A call filter serves each tool call as its session's agent, and services built once,
 such as the gateway, ask the roster whose call is in hand each time rather than holding an agent. The agent is named
 after the first folder its client lists as an MCP root, otherwise after the client's name, otherwise `agent N`. Two
-sessions of one project are `Keynex` and `Keynex 2`.
+sessions of one project — a second conversation, or a window that reconnected before its old session timed out — are
+`Keynex` and `Keynex 2` in the server's log, and one agent everywhere else: the panel shows the project once, its
+remarks wait in one queue that whichever session reads first takes, and neither session lists the other among the
+agents working beside it.
 
-**Commands take turns.** The plugin runs on Figma's one plugin thread and starts every command it is given, awaiting
-each one's Figma calls in between, so a few reads overlap well. Each agent has a lane per file: up to three of its
-reads in flight together, and a write alone. A write waits for the agent's reads in flight and holds back the reads
-sent after it, which must see it, and reloading the plugin counts as a write because it ends every command in flight.
-One agent's burst cannot push another agent's short read behind a dozen of its own. The timeout starts when a command
-leaves its agent's queue. An agent whose session ends
-gives up the commands still waiting. A connection that drops fails its waits at once instead of letting them run
-into their timeouts.
+**Commands take turns.** The plugin runs on Figma's one plugin thread and starts every command it is given. The
+router keeps one command per agent in flight per file, so one agent's long script cannot push another's short read
+behind a dozen of its own. The timeout starts when a command leaves its agent's queue, so it is never spent waiting
+in the plugin behind the agent's own earlier commands. Letting a few reads of one agent overlap was tried and gained
+nothing: Figma renders one export at a time, and three screenshots took as long together as one after another. An
+agent whose session ends gives up the commands still waiting. A connection that drops fails its waits at once
+instead of letting them run into their timeouts.
 
 **Failure stays where it happened.** A plugin message the hub cannot read is logged and skipped, never allowed to
 end the connection every agent in that file shares. A background service that fails is left stopped rather than
