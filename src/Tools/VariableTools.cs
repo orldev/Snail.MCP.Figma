@@ -166,7 +166,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    failed.Add(new JsonObject { ["item"] = item?.DeepClone(), ["error"] = "the name field is missing" });
+                    failed.Add((JsonNode)new JsonObject { ["item"] = item?.DeepClone(), ["error"] = "the name field is missing" });
                     continue;
                 }
 
@@ -185,7 +185,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
                 }
                 catch (EditorCommandException ex)
                 {
-                    failed.Add(new JsonObject { ["name"] = name, ["error"] = ex.Message });
+                    failed.Add((JsonNode)new JsonObject { ["name"] = name, ["error"] = ex.Message });
                 }
             }
 
@@ -229,7 +229,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
                 }
                 catch (EditorCommandException ex)
                 {
-                    failed.Add(new JsonObject { ["item"] = item?.DeepClone(), ["error"] = ex.Message });
+                    failed.Add((JsonNode)new JsonObject { ["item"] = item?.DeepClone(), ["error"] = ex.Message });
                 }
             }
 

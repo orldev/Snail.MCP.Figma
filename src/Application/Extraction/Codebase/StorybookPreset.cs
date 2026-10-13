@@ -530,7 +530,7 @@ public static partial class StorybookPreset
 
         try
         {
-            return JsonSerializer.Deserialize<List<string>>(raw, DsJson.Options);
+            return JsonSerializer.Deserialize(raw, DsJson.Info<List<string>>());
         }
         catch (JsonException)
         {
@@ -544,7 +544,7 @@ public static partial class StorybookPreset
 
         foreach (var mode in modes)
         {
-            var quoted = JsonSerializer.Serialize(mode);
+            var quoted = ScriptLiteral.Of(mode);
             items.AppendLine($"          {{ value: {quoted}, title: {quoted} }},");
         }
 
@@ -554,7 +554,7 @@ public static partial class StorybookPreset
             "// so generated tokens (.dark) and rules copied verbatim from the app",
             "// ([data-theme='...']) both apply.",
             "const withTheme = (Story, context) => {",
-            $"  const theme = context.globals.theme ?? {JsonSerializer.Serialize(modes[0])};",
+            $"  const theme = context.globals.theme ?? {ScriptLiteral.Of(modes[0])};",
             "  return (",
             "    <div className={theme === \"dark\" ? \"dark\" : undefined} data-theme={theme}",
             "      style={{ background: \"var(--sl-bg, var(--bg, inherit))\", color: \"var(--sl-fg, var(--fg, inherit))\", padding: 32, minHeight: \"100vh\", boxSizing: \"border-box\" }}>",
@@ -577,7 +577,7 @@ public static partial class StorybookPreset
             "      },",
             "    },",
             "  },",
-            $"  initialGlobals: {{ theme: {JsonSerializer.Serialize(modes[0])} }},",
+            $"  initialGlobals: {{ theme: {ScriptLiteral.Of(modes[0])} }},",
             "  decorators: [withTheme],",
         ]);
 

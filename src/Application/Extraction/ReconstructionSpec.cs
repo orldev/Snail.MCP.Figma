@@ -129,7 +129,7 @@ public static class ReconstructionSpec
             if (type == "SOLID")
             {
                 var color = paint["color"];
-                result.Add(new JsonObject
+                result.Add((JsonNode)new JsonObject
                 {
                     ["type"] = "SOLID",
                     ["color"] = new JsonObject
@@ -144,7 +144,7 @@ public static class ReconstructionSpec
             }
             else if (type is not null && type.StartsWith("GRADIENT", StringComparison.Ordinal))
             {
-                result.Add(new JsonObject
+                result.Add((JsonNode)new JsonObject
                 {
                     ["type"] = type,
                     ["gradientStops"] = paint["gradientStops"]?.DeepClone() ?? new JsonArray(),
@@ -153,7 +153,7 @@ public static class ReconstructionSpec
             }
             else if (type == "IMAGE")
             {
-                result.Add(new JsonObject
+                result.Add((JsonNode)new JsonObject
                 {
                     ["type"] = "IMAGE",
                     ["scaleMode"] = paint["scaleMode"]?.GetValue<string>() ?? "FILL",

@@ -76,8 +76,15 @@ public static class ToolResponse
         return new CallToolResult
         {
             Content = [new TextContentBlock { Text = envelope }],
-            StructuredContent = JsonSerializer.Deserialize<JsonElement>(envelope),
+            StructuredContent = Element(envelope),
         };
+    }
+
+    private static JsonElement Element(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        return document.RootElement.Clone();
     }
 
     /// <summary>The envelope as the single text block.</summary>

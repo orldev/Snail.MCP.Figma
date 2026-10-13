@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Snail.MCP.Figma.Application.Tokens;
 
@@ -231,7 +230,7 @@ public static partial class DesignSystemScaffolder
 
                 lines.Add(string.Empty);
                 lines.Add($"export const {storyName}: Story = {{");
-                lines.Add($"  args: {{ {entry.Key}: {JsonSerializer.Serialize(value)} }},");
+                lines.Add($"  args: {{ {entry.Key}: {ScriptLiteral.Of(value)} }},");
                 lines.Add("};");
             }
         }

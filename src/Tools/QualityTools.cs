@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -99,8 +98,8 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
                   return { __error: 'figma.annotations API not available. Requires a recent Figma Desktop build.' };
                 }
                 const category = await figma.annotations.addAnnotationCategoryAsync({
-                  label: {{JsonSerializer.Serialize(label)}},
-                  color: {{JsonSerializer.Serialize(normalized)}},
+                  label: {{ScriptLiteral.Of(label)}},
+                  color: {{ScriptLiteral.Of(normalized)}},
                 });
                 return { id: category.id, label: category.label, color: category.color, isPreset: category.isPreset === true };
                 """;

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -155,7 +154,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             };
 
             var code = $$"""
-                const params = JSON.parse({{JsonSerializer.Serialize(parameters.ToJsonString())}});
+                const params = JSON.parse({{ScriptLiteral.Of(parameters.ToJsonString())}});
                 const component = await figma.getNodeByIdAsync(params.componentId);
                 if (!component || (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET')) {
                   throw new Error('Node must be COMPONENT or COMPONENT_SET');

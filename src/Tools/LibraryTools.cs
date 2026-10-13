@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
@@ -72,7 +71,7 @@ public sealed partial class LibraryTools(
             }
             catch (PublishedSourceException ex)
             {
-                warnings.Add($"The node tree did not read: {ex.Message}");
+                warnings.Add((JsonNode)$"The node tree did not read: {ex.Message}");
             }
 
             var variantKeys = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -98,7 +97,7 @@ public sealed partial class LibraryTools(
                 catch (PublishedSourceException ex)
                 {
                     warnings.Add(
-                        $"The component list of the file did not read ({ex.Message}) — variants come back without published keys.");
+                        (JsonNode)$"The component list of the file did not read ({ex.Message}) — variants come back without published keys.");
                 }
             }
 
@@ -122,7 +121,7 @@ public sealed partial class LibraryTools(
                     variant["visualSpec"] = spec;
                 }
 
-                variants.Add(variant);
+                variants.Add((JsonNode)variant);
             }
 
             if (variants.Count > 0 && withSpecs)
@@ -167,8 +166,8 @@ public sealed partial class LibraryTools(
                 }
 
                 warnings.Add(
-                    $"The response weighed {DesignSystemKit.FormatKb(sizeKb)} KB — the visual specifications of the variants were dropped. " +
-                    "Take a single variant through figma_get_component when you need its exact values.");
+                    (JsonNode)($"The response weighed {DesignSystemKit.FormatKb(sizeKb)} KB — the visual specifications of the variants were dropped. " +
+                    "Take a single variant through figma_get_component when you need its exact values."));
             }
 
             return ToolResponse.Ok(payload);
@@ -252,7 +251,7 @@ public sealed partial class LibraryTools(
 
                 totalVariables += variables.Count;
 
-                collections.Add(new JsonObject
+                collections.Add((JsonNode)new JsonObject
                 {
                     ["libraryName"] = collection?["libraryName"]?.DeepClone(),
                     ["collectionKey"] = collection?["collectionKey"]?.DeepClone(),
@@ -288,7 +287,7 @@ public sealed partial class LibraryTools(
                   return { __error: 'figma.variables.importVariableByKeyAsync not available.' };
                 }
                 try {
-                  const imported = await figma.variables.importVariableByKeyAsync({{JsonSerializer.Serialize(variableKey)}});
+                  const imported = await figma.variables.importVariableByKeyAsync({{ScriptLiteral.Of(variableKey)}});
                   if (!imported) {
                     return { __error: 'Import returned no variable. The key may be invalid or the source library is not subscribed by this file.' };
                   }
@@ -416,7 +415,7 @@ public sealed partial class LibraryTools(
                         continue;
                     }
 
-                    items.Add(new JsonObject
+                    items.Add((JsonNode)new JsonObject
                     {
                         ["kind"] = kind == "components" ? "COMPONENT" : "COMPONENT_SET",
                         ["key"] = item?["key"]?.DeepClone(),

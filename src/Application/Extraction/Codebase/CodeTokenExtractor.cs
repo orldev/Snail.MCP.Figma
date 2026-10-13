@@ -507,7 +507,7 @@ public static partial class CodeTokenExtractor
         new()
         {
             [DsTokenProvenance.ExtensionKey] =
-                JsonSerializer.SerializeToNode(provenance, DsJson.Options),
+                JsonSerializer.SerializeToNode(provenance, DsJson.Info<DsTokenProvenance>()),
         };
 
     /// <summary>Reads provenance back from token extensions; <c>null</c> when absent.</summary>
@@ -520,7 +520,7 @@ public static partial class CodeTokenExtractor
 
         try
         {
-            return node.Deserialize<DsTokenProvenance>(DsJson.Options);
+            return node.Deserialize(DsJson.Info<DsTokenProvenance>());
         }
         catch (JsonException)
         {

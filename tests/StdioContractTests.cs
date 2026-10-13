@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Testing;
@@ -161,6 +162,9 @@ public class StdioContractTests
             return await ReadAsync();
         }
 
+        /// <summary>The test writes its requests from anonymous objects, by reflection, which the test project otherwise keeps off to catch the server using it.</summary>
+        private static readonly JsonSerializerOptions Reflective = new() { TypeInfoResolver = new DefaultJsonTypeInfoResolver() };
+
         public async Task NotifyAsync(string method, object? parameters = null, int? id = null)
         {
             var envelope = new Dictionary<string, object> { ["jsonrpc"] = "2.0", ["method"] = method };
@@ -168,7 +172,7 @@ public class StdioContractTests
             if (id is { } value) envelope["id"] = value;
             if (parameters is not null) envelope["params"] = parameters;
 
-            await _process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(envelope));
+            await _process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(envelope, Reflective));
             await _process.StandardInput.FlushAsync();
         }
 

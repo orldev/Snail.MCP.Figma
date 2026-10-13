@@ -286,7 +286,7 @@ public sealed class TokenTools(
 
             if (collectionId is null)
             {
-                failed.Add(new JsonObject { ["set"] = set.Name, ["error"] = "the plugin returned no collection id" });
+                failed.Add((JsonNode)new JsonObject { ["set"] = set.Name, ["error"] = "the plugin returned no collection id" });
                 continue;
             }
 
@@ -308,7 +308,7 @@ public sealed class TokenTools(
                 }
                 catch (EditorCommandException ex)
                 {
-                    failed.Add(new JsonObject { ["token"] = token.SlashPath, ["error"] = ex.Message });
+                    failed.Add((JsonNode)new JsonObject { ["token"] = token.SlashPath, ["error"] = ex.Message });
                 }
             }
         }

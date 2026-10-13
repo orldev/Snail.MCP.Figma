@@ -10,6 +10,7 @@ using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Hosting;
+using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Hosting;
 using Snail.Sdk.Mcp.Http;
@@ -59,17 +60,39 @@ public static class PipelineRegistrationExtensions
         }
 
         /// <summary>The one server both transports carry: its name, the instructions on the handshake, every tool, and the filters every call passes.</summary>
-        private IMcpServerBuilder AddMcpServerWithTools() =>
-            services
+        /// <remarks>Each tool class is named here rather than found by scanning the assembly, which Native AOT cannot do; the stdio contract fails when a class is left out, because it compares tools/list with every tool of the assembly.</remarks>
+        private IMcpServerBuilder AddMcpServerWithTools()
+        {
+            var json = ToolJson.Options(ToolJsonContext.Default);
+
+            return services
                 .AddMcpServer(options =>
                 {
                     options.ServerInfo = ServerIdentity.Of(typeof(ThisAssembly).Assembly);
                     options.ServerInstructions = ServerInstructions.Text;
                 })
-                .WithToolsFromAssembly()
+                .WithTools<CommentTools>(json)
+                .WithTools<ComponentTools>(json)
+                .WithTools<DesignCodeTools>(json)
+                .WithTools<DesignSystemExtractionTools>(json)
+                .WithTools<DesignSystemKitTools>(json)
+                .WithTools<DiagnosticsTools>(json)
+                .WithTools<FigJamTools>(json)
+                .WithTools<LibraryTools>(json)
+                .WithTools<NodeTools>(json)
+                .WithTools<QualityTools>(json)
+                .WithTools<ReadTools>(json)
+                .WithTools<SessionTools>(json)
+                .WithTools<SlidesTools>(json)
+                .WithTools<SlotTools>(json)
+                .WithTools<TokenTools>(json)
+                .WithTools<VariableTools>(json)
+                .WithTools<VersionTools>(json)
+                .WithTools<WriteTools>(json)
                 .WithRequestFilters(filters => filters
                     .AddCallToolFilter(TouchActivity)
                     .AddCallToolFilter(ServeTheAgent));
+        }
     }
 
     /// <summary>How long a session may go without a request before it ends.</summary>

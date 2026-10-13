@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Snail.MCP.Figma.Adapters.Editor;
@@ -55,15 +56,9 @@ public static class EditorLinkHostingExtensions
                     ctx.Response.Headers.AccessControlAllowOrigin = origin;
                 }
 
-                return Results.Json(new
-                {
-                    status = "ok",
-                    version = ThisAssembly.InformationalVersion,
-                    port = endpoint.Port,
-                    connectedFiles = registry.Sessions.Count,
-                    activeFile = agents.Default.ActiveFileKey,
-                    agents = agents.Slots.Count,
-                });
+                return Results.Json(
+                    new BridgeHealth("ok", ThisAssembly.InformationalVersion, endpoint.Port, registry.Sessions.Count, agents.Default.ActiveFileKey, agents.Slots.Count),
+                    BridgeHealthJson.Default.BridgeHealth);
             });
 
             if (endpoint.Port is { } port)
@@ -103,3 +98,12 @@ public static class EditorLinkHostingExtensions
         return Task.CompletedTask;
     }
 }
+
+/// <summary>What /health answers: the plugin tells this bridge from a foreign server by it, and sibling servers find each other with it.</summary>
+/// <remarks>The plugin recognises the bridge by <c>connectedFiles</c>, and a sibling by <c>status</c>, <c>version</c> and <c>port</c>; the names are the wire contract.</remarks>
+public sealed record BridgeHealth(string Status, string Version, int? Port, int ConnectedFiles, string? ActiveFile, int Agents);
+
+/// <summary>The health answer, described by the source generator.</summary>
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(BridgeHealth))]
+internal sealed partial class BridgeHealthJson : JsonSerializerContext;

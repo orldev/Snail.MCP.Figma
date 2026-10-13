@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Documents;
@@ -400,11 +399,11 @@ public sealed class SessionTools(
             }
 
             var script = $$"""
-                const node = await figma.getNodeByIdAsync({{JsonSerializer.Serialize(NodeId.Normalize(nodeId))}});
+                const node = await figma.getNodeByIdAsync({{ScriptLiteral.Of(NodeId.Normalize(nodeId))}});
                 if (!node) return { __error: 'Node was not found.' };
                 if (node.type === 'PAGE' && typeof node.loadAsync === 'function') { await node.loadAsync(); }
                 if (typeof node.exportAsync !== 'function') return { __error: 'Node type ' + node.type + ' cannot be exported.' };
-                const format = {{JsonSerializer.Serialize(normalized)}};
+                const format = {{ScriptLiteral.Of(normalized)}};
                 if (format === 'SVG') {
                   const svg = await node.exportAsync({ format: 'SVG_STRING' });
                   return { format: 'SVG', svg: svg, length: svg.length };
@@ -479,7 +478,7 @@ public sealed class SessionTools(
         ExecuteAsync(async ct =>
         {
             var script = $$"""
-                figma.notify({{JsonSerializer.Serialize(message)}}, { timeout: {{timeoutMs}}, error: {{(isError ? "true" : "false")}} });
+                figma.notify({{ScriptLiteral.Of(message)}}, { timeout: {{timeoutMs}}, error: {{(isError ? "true" : "false")}} });
                 return { shown: true };
                 """;
 
@@ -505,7 +504,7 @@ public sealed class SessionTools(
         ExecuteAsync(async ct =>
         {
             var script = $$"""
-                const node = await figma.getNodeByIdAsync({{JsonSerializer.Serialize(NodeId.Normalize(nodeId))}});
+                const node = await figma.getNodeByIdAsync({{ScriptLiteral.Of(NodeId.Normalize(nodeId))}});
                 if (!node) return { __error: 'Node was not found.' };
                 let page = node;
                 while (page && page.type !== 'PAGE') page = page.parent;
@@ -541,7 +540,7 @@ public sealed class SessionTools(
         ExecuteAsync(async ct =>
         {
             var script = $$"""
-                const id = {{JsonSerializer.Serialize(nodeId is null ? null : NodeId.Normalize(nodeId))}};
+                const id = {{ScriptLiteral.Of(nodeId is null ? null : NodeId.Normalize(nodeId))}};
                 if (id === null) {
                   await figma.setFileThumbnailNodeAsync(null);
                   return { thumbnail: null };

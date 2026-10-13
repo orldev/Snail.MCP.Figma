@@ -204,7 +204,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 var payload = Unwrap(raw);
                 var error = payload is JsonObject answered ? answered["__error"]?.GetValue<string>() : null;
 
-                outcomes.Add(new JsonObject
+                outcomes.Add((JsonNode)new JsonObject
                 {
                     ["step"] = index + 1,
                     ["ok"] = error is null,
@@ -306,7 +306,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             var explicitOrder = order?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 
             var script = $$"""
-                const type = {{JsonSerializer.Serialize(type)}};
+                const type = {{ScriptLiteral.Of(type)}};
                 const getters = {
                   PAINT: function () { return figma.getLocalPaintStylesAsync(); },
                   TEXT: function () { return figma.getLocalTextStylesAsync(); },
@@ -321,7 +321,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 };
                 const styles = await getters[type]();
                 if (styles.length === 0) return { sorted: 0, note: 'The file has no local ' + type + ' styles.' };
-                const wanted = {{JsonSerializer.Serialize(explicitOrder)}};
+                const wanted = {{ScriptLiteral.Of(explicitOrder)}};
                 let target;
                 if (wanted.length > 0) {
                   const byId = {};
@@ -408,14 +408,14 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             }
 
             var script = $$"""
-                const type = {{JsonSerializer.Serialize(type)}};
+                const type = {{ScriptLiteral.Of(type)}};
                 const props = {{parsed?.ToJsonString() ?? "{}"}};
                 let style;
                 if (type === 'PAINT') style = figma.createPaintStyle();
                 else if (type === 'TEXT') style = figma.createTextStyle();
                 else if (type === 'EFFECT') style = figma.createEffectStyle();
                 else style = figma.createGridStyle();
-                style.name = {{JsonSerializer.Serialize(name)}};
+                style.name = {{ScriptLiteral.Of(name)}};
                 try {
                   if (type === 'PAINT' && props.paints) style.paints = props.paints;
                   if (type === 'TEXT') {

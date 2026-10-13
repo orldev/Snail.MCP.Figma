@@ -111,7 +111,7 @@ public sealed class DiagnosticsTools(
 
         foreach (var (bucket, until) in rateLimit.ActiveBlocks.OrderBy(pair => pair.Value))
         {
-            blocked.Add(new JsonObject
+            blocked.Add((JsonNode)new JsonObject
             {
                 ["bucket"] = bucket,
                 ["until"] = until.ToString("O"),

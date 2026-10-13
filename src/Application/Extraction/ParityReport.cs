@@ -26,7 +26,7 @@ public static class ParityReport
 
             if (designValue is null)
             {
-                missingInCode.Add(new JsonObject
+                missingInCode.Add((JsonNode)new JsonObject
                 {
                     ["field"] = key,
                     ["codeValue"] = codeValue?.DeepClone(),
@@ -37,11 +37,11 @@ public static class ParityReport
 
             if (AreEquivalent(designValue, codeValue))
             {
-                matches.Add(key);
+                matches.Add((JsonNode)key);
                 continue;
             }
 
-            mismatches.Add(new JsonObject
+            mismatches.Add((JsonNode)new JsonObject
             {
                 ["field"] = key,
                 ["designValue"] = designValue.DeepClone(),
