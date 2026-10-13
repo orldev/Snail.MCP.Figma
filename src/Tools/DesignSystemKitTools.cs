@@ -126,7 +126,7 @@ public sealed class DesignSystemKitTools(
         catch (Exception ex) when (ex is PublishedSourceException or EditorCommandException or TimeoutException or EditorUnavailableException)
         {
             Log.KitTokensMissing(Logger, ex.Message);
-            errors.Add(new JsonObject { ["section"] = "tokens", ["message"] = ex.Message });
+            errors.Add((JsonNode)new JsonObject { ["section"] = "tokens", ["message"] = ex.Message });
         }
     }
 
@@ -153,7 +153,7 @@ public sealed class DesignSystemKitTools(
                 })
                 .ToArray());
 
-            result.Add(new JsonObject
+            result.Add((JsonNode)new JsonObject
             {
                 ["id"] = id,
                 ["name"] = collection?["name"]?.DeepClone(),
@@ -266,7 +266,7 @@ public sealed class DesignSystemKitTools(
                 }
 
                 ApplyNodeFacts(spec, setNode);
-                items.Add(spec);
+                items.Add((JsonNode)spec);
             }
 
             foreach (var component in targetComponents)
@@ -282,7 +282,7 @@ public sealed class DesignSystemKitTools(
                 };
 
                 ApplyNodeFacts(spec, node);
-                items.Add(spec);
+                items.Add((JsonNode)spec);
             }
 
             if (includeImages && items.Count > 0)
@@ -303,7 +303,7 @@ public sealed class DesignSystemKitTools(
         catch (PublishedSourceException ex)
         {
             Log.KitComponentsMissing(Logger, ex.Message);
-            errors.Add(new JsonObject { ["section"] = "components", ["message"] = ex.Message });
+            errors.Add((JsonNode)new JsonObject { ["section"] = "components", ["message"] = ex.Message });
         }
     }
 
@@ -399,7 +399,7 @@ public sealed class DesignSystemKitTools(
         catch (PublishedSourceException ex)
         {
             Log.KitImagesMissing(Logger, ex.Message);
-            errors.Add(new JsonObject { ["section"] = "component_images", ["message"] = ex.Message });
+            errors.Add((JsonNode)new JsonObject { ["section"] = "component_images", ["message"] = ex.Message });
         }
     }
 
@@ -459,7 +459,7 @@ public sealed class DesignSystemKitTools(
         catch (PublishedSourceException ex)
         {
             Log.KitStylesMissing(Logger, ex.Message);
-            errors.Add(new JsonObject { ["section"] = "styles", ["message"] = ex.Message });
+            errors.Add((JsonNode)new JsonObject { ["section"] = "styles", ["message"] = ex.Message });
         }
     }
 

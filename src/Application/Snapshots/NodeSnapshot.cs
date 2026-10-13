@@ -18,7 +18,7 @@ public sealed class NodeSnapshot
 
     public DateTimeOffset LastFetchedAt { get; set; }
 
-    /// <summary>Safety TTL; LiteDB has no expiration bundle, so the lifetime is tracked here.</summary>
+    /// <summary>Safety TTL; the cache has no expiry of its own, so the lifetime is tracked here.</summary>
     public DateTimeOffset ExpiresAt { get; set; }
 
     /// <summary>Sanitized JSON ready to serve.</summary>

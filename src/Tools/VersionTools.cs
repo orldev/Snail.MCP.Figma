@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Documents;
@@ -81,7 +80,7 @@ public sealed class VersionTools(
                         break;
                     }
 
-                    collected.Add(new JsonObject
+                    collected.Add((JsonNode)new JsonObject
                     {
                         ["id"] = version?["id"]?.DeepClone(),
                         ["label"] = label ?? string.Empty,
@@ -390,8 +389,8 @@ public sealed class VersionTools(
                 if (certainty == "metadata_unavailable")
                 {
                     notes.Add(
-                        "The edit is present at the very start version, but its author was not found in the history walked. " +
-                        "The appearance itself is confirmed, there is nothing in the REST data to attribute a person by.");
+                        (JsonNode)("The edit is present at the very start version, but its author was not found in the history walked. " +
+                        "The appearance itself is confirmed, there is nothing in the REST data to attribute a person by."));
                 }
             }
             else
@@ -413,15 +412,15 @@ public sealed class VersionTools(
                 {
                     certainty = "exists_at_lookback_horizon";
                     notes.Add(
-                        $"The target is present even at the oldest version walked ({version["id"]}). " +
-                        $"The real appearance lies deeper: raise maxVersionsToWalk (currently {lookback}).");
+                        (JsonNode)($"The target is present even at the oldest version walked ({version["id"]}). " +
+                        $"The real appearance lies deeper: raise maxVersionsToWalk (currently {lookback})."));
                 }
                 else if (handle == "Figma")
                 {
                     certainty = "system_attributed";
                     notes.Add(
-                        "The version of appearance is a system autosave (the Figma user). " +
-                        "To find a person set includeAutosaves=false: the search will then land on the nearest named version.");
+                        (JsonNode)("The version of appearance is a system autosave (the Figma user). " +
+                        "To find a person set includeAutosaves=false: the search will then land on the nearest named version."));
                 }
                 else
                 {
@@ -433,17 +432,17 @@ public sealed class VersionTools(
             {
                 certainty = DowngradeCertainty(certainty);
                 notes.Add(
-                    $"Walking the history broke off halfway ({listError ?? "the reason is unknown"}); only " +
-                    $"{candidates.Count} versions were walked. The real appearance may lie outside them, so the certainty is lowered one step.");
+                    (JsonNode)($"Walking the history broke off halfway ({listError ?? "the reason is unknown"}); only " +
+                    $"{candidates.Count} versions were walked. The real appearance may lie outside them, so the certainty is lowered one step."));
             }
 
             notes.Add(
-                "The binary search assumes the existence of the target is monotonic: added once and never deleted again. " +
-                "If the edit was added, removed and brought back, the version found may not be the first one.");
+                (JsonNode)("The binary search assumes the existence of the target is monotonic: added once and never deleted again. " +
+                "If the edit was added, removed and brought back, the version found may not be the first one."));
 
             if (usedSelection)
             {
-                notes.Add($"Node {resolvedNodeId} was taken from the current selection. Pass nodeId to set it explicitly.");
+                notes.Add((JsonNode)$"Node {resolvedNodeId} was taken from the current selection. Pass nodeId to set it explicitly.");
             }
 
             return ToolResponse.Ok(new JsonObject
@@ -504,14 +503,14 @@ public sealed class VersionTools(
             if (usedSelection)
             {
                 notes.Add(
-                    $"The detailed comparison was done over the current selection ({ids.Count} nodes). " +
-                    "Pass componentIds to set the list explicitly.");
+                    (JsonNode)($"The detailed comparison was done over the current selection ({ids.Count} nodes). " +
+                    "Pass componentIds to set the list explicitly."));
             }
             else
             {
                 notes.Add(
-                    "componentIds was not passed and there is no selection — only the page structure was compared. " +
-                    "figma_get_design_system_kit or figma_search_components provide the node ids.");
+                    (JsonNode)("componentIds was not passed and there is no selection — only the page structure was compared. " +
+                    "figma_get_design_system_kit or figma_search_components provide the node ids."));
             }
         }
 
@@ -529,7 +528,7 @@ public sealed class VersionTools(
 
             var nodeDiff = DiffEngine.DiffNode(fromNode, toNode, normalizedMode);
             AttachMetadataChanges(nodeDiff, id, fromFile, toFile);
-            scoped.Add(nodeDiff);
+            scoped.Add((JsonNode)nodeDiff);
         }
 
         var payload = new JsonObject
@@ -588,7 +587,7 @@ public sealed class VersionTools(
                 continue;
             }
 
-            changes.Add(new JsonObject
+            changes.Add((JsonNode)new JsonObject
             {
                 ["field"] = change["field"]?.DeepClone() ?? "description",
                 ["new_value"] = change["value"]?.DeepClone(),
@@ -945,8 +944,8 @@ public sealed class VersionTools(
 
             var script = $$"""
                 const result = await figma.saveVersionHistoryAsync(
-                    {{JsonSerializer.Serialize(title)}}{{(description is null ? "" : $", {JsonSerializer.Serialize(description)}")}});
-                return { versionId: result && result.id ? result.id : null, title: {{JsonSerializer.Serialize(title)}} };
+                    {{ScriptLiteral.Of(title)}}{{(description is null ? "" : $", {ScriptLiteral.Of(description)}")}});
+                return { versionId: result && result.id ? result.id : null, title: {{ScriptLiteral.Of(title)}} };
                 """;
 
             var raw = await Plugin.ApplyAsync(

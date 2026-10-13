@@ -32,11 +32,11 @@ public static class DiffEngine
         {
             if (!fromPages.TryGetValue(id, out var oldName))
             {
-                added.Add(new JsonObject { ["id"] = id, ["name"] = name });
+                added.Add((JsonNode)new JsonObject { ["id"] = id, ["name"] = name });
             }
             else if (!string.Equals(oldName, name, StringComparison.Ordinal))
             {
-                renamed.Add(new JsonObject { ["id"] = id, ["old_name"] = oldName, ["new_name"] = name });
+                renamed.Add((JsonNode)new JsonObject { ["id"] = id, ["old_name"] = oldName, ["new_name"] = name });
             }
         }
 
@@ -44,7 +44,7 @@ public static class DiffEngine
         {
             if (!toPages.ContainsKey(id))
             {
-                removed.Add(new JsonObject { ["id"] = id, ["name"] = name });
+                removed.Add((JsonNode)new JsonObject { ["id"] = id, ["name"] = name });
             }
         }
 
@@ -100,7 +100,7 @@ public static class DiffEngine
         {
             if (!from.TryGetPropertyValue(key, out var previous))
             {
-                added.Add(new JsonObject
+                added.Add((JsonNode)new JsonObject
                 {
                     ["name"] = key,
                     ["type"] = definition?["type"]?.DeepClone(),
@@ -115,7 +115,7 @@ public static class DiffEngine
 
             if (!string.Equals(fromType, toType, StringComparison.Ordinal))
             {
-                typeChanged.Add(new JsonObject
+                typeChanged.Add((JsonNode)new JsonObject
                 {
                     ["name"] = key,
                     ["from_type"] = fromType,
@@ -125,7 +125,7 @@ public static class DiffEngine
 
             if (!AreJsonEqual(previous?["defaultValue"], definition?["defaultValue"]))
             {
-                defaultChanged.Add(new JsonObject
+                defaultChanged.Add((JsonNode)new JsonObject
                 {
                     ["name"] = key,
                     ["from_default"] = previous?["defaultValue"]?.DeepClone(),
@@ -138,7 +138,7 @@ public static class DiffEngine
         {
             if (!to.ContainsKey(key))
             {
-                removed.Add(new JsonObject
+                removed.Add((JsonNode)new JsonObject
                 {
                     ["name"] = key,
                     ["type"] = definition?["type"]?.DeepClone(),
@@ -186,7 +186,7 @@ public static class DiffEngine
                 var kind = fromId is null ? "added" : toId is null ? "removed" : "rebound";
                 var owner = b ?? a;
 
-                changes.Add(new JsonObject
+                changes.Add((JsonNode)new JsonObject
                 {
                     ["node_id"] = owner?["id"]?.DeepClone(),
                     ["node_name"] = owner?["name"]?.GetValue<string>() ?? string.Empty,
@@ -297,7 +297,7 @@ public static class DiffEngine
 
         if (fromNode is null && toNode is not null)
         {
-            notes.Add("The node appeared in the target version — there is nothing to compare with.");
+            notes.Add((JsonNode)"The node appeared in the target version — there is nothing to compare with.");
             result["change_count"] = 1;
 
             return result;
@@ -305,7 +305,7 @@ public static class DiffEngine
 
         if (fromNode is not null && toNode is null)
         {
-            notes.Add("The node disappeared in the target version — there is nothing to compare with.");
+            notes.Add((JsonNode)"The node disappeared in the target version — there is nothing to compare with.");
             result["change_count"] = 1;
 
             return result;
@@ -313,7 +313,7 @@ public static class DiffEngine
 
         if (fromNode is null || toNode is null)
         {
-            notes.Add("The node was not found in either version.");
+            notes.Add((JsonNode)"The node was not found in either version.");
 
             return result;
         }
@@ -341,12 +341,12 @@ public static class DiffEngine
 
         foreach (var (id, child) in toChildren.Where(pair => !fromChildren.ContainsKey(pair.Key)))
         {
-            childrenAdded.Add(ChildSummary(id, child));
+            childrenAdded.Add((JsonNode)ChildSummary(id, child));
         }
 
         foreach (var (id, child) in fromChildren.Where(pair => !toChildren.ContainsKey(pair.Key)))
         {
-            childrenRemoved.Add(ChildSummary(id, child));
+            childrenRemoved.Add((JsonNode)ChildSummary(id, child));
         }
 
         if (fromNode["type"]?.GetValue<string>() == "COMPONENT_SET"

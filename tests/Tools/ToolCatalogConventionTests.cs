@@ -1,3 +1,4 @@
+using Snail.Sdk.Mcp.Hosting;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -23,7 +24,7 @@ public partial class ToolCatalogConventionTests
 
     /// <summary>The tool exactly as tools/list sends it; the SDK emits a hint only when the attribute states it, so a null hint here means the declaration is silent.</summary>
     private static Tool Protocol(MethodInfo method) =>
-        McpServerTool.Create(method, Unreachable, new McpServerToolCreateOptions()).ProtocolTool;
+        McpServerTool.Create(method, Unreachable, new McpServerToolCreateOptions { SerializerOptions = ToolJson.Options(ToolJsonContext.Default) }).ProtocolTool;
 
     private static object Unreachable(RequestContext<CallToolRequestParams> context) =>
         throw new NotSupportedException("the convention tests read declarations only and never invoke a tool");

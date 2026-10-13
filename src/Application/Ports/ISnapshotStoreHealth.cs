@@ -1,6 +1,6 @@
 namespace Snail.MCP.Figma.Application.Ports;
 
-/// <summary>Cache self-check that hides LiteDB from the tools layer.</summary>
+/// <summary>Cache self-check that hides the database from the tools layer.</summary>
 public interface ISnapshotStoreHealth
 {
     bool IsStarted { get; }

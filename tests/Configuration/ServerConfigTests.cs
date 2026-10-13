@@ -22,7 +22,7 @@ public class ServerConfigTests
         var data = ".s3l-mcp-figma";
 
         Assert.EndsWith(data, config.DataDirectory, StringComparison.Ordinal);
-        Assert.EndsWith(Path.Combine(data, "cache.db"), config.CacheDatabaseFile, StringComparison.Ordinal);
+        Assert.EndsWith(Path.Combine(data, "snapshots.sqlite"), config.CacheDatabaseFile, StringComparison.Ordinal);
         Assert.EndsWith(Path.Combine(data, "plugin"), config.PluginDirectory, StringComparison.Ordinal);
         Assert.EndsWith(Path.Combine(data, "screenshots"), config.ScreenshotDirectory, StringComparison.Ordinal);
         Assert.Equal(30, config.Screenshots.RetainCount);

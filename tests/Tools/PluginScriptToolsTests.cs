@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Ports;
@@ -423,7 +422,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     [Fact]
     public async Task MoreStepsThanOneCallRunsAreRefusedWithTheCap()
     {
-        var steps = JsonSerializer.Serialize(Enumerable.Repeat("a();", ToolLimits.MaxSteps + 1));
+        var steps = new JsonArray([.. Enumerable.Repeat("a();", ToolLimits.MaxSteps + 1).Select(step => (JsonNode)step)]).ToJsonString();
 
         var response = Parse(await Write().ExecuteStepsAsync(steps));
 

@@ -1,7 +1,12 @@
 <Project Sdk="Snail.Sdk.Mcp">
 
+    <!--
+        JSON by reflection is off here as it is in a native build of the server: a type the server's generated contexts
+        do not describe fails in a test, not in Figma after publishing.
+    -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
+        <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     </PropertyGroup>
 
     <ItemGroup>

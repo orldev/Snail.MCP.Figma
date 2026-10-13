@@ -68,7 +68,7 @@ public sealed class ServerConfig
 
     public bool HasAccessToken => !string.IsNullOrWhiteSpace(AccessToken);
 
-    /// <summary>Cache database file (LiteDB).</summary>
+    /// <summary>Cache database file (SQLite).</summary>
     public string CacheDatabaseFile => Path.Combine(DataDirectory, Cache.DatabaseFileName);
 
     /// <summary>Legacy embedded RavenDB directory, kept only to remove it.</summary>
@@ -105,13 +105,13 @@ public sealed class EditorLinkOptions
     public string AgentName { get; set; } = System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(Environment.CurrentDirectory));
 }
 
-/// <summary>Settings of the sanitized-node cache in LiteDB.</summary>
+/// <summary>Settings of the snapshot cache, a SQLite file every server process of the machine shares.</summary>
 public sealed class CacheOptions
 {
     public bool Enabled { get; set; } = true;
 
     /// <summary>Database file name inside <see cref="ServerConfig.DataDirectory"/>.</summary>
-    public string DatabaseFileName { get; set; } = "cache.db";
+    public string DatabaseFileName { get; set; } = "snapshots.sqlite";
 
     /// <summary>Safety TTL of a document; real invalidation comes from the file version and DOCUMENT_CHANGE.</summary>
     public int TtlHours { get; set; } = 24;
@@ -124,10 +124,6 @@ public sealed class CacheOptions
 
     /// <summary>Seconds a cached snapshot counts as fresh; the only throttle on expensive requests. Zero means ask Figma on every read.</summary>
     public int FreshnessSeconds { get; set; } = 300;
-
-    /// <summary>Open the file in shared mode, so several stdio clients can use the cache at once.</summary>
-    [SuppressMessage("Snail", "S3L0008", Justification = "A settings key: SNAIL_MCP_FIGMA_CACHE__SHARED_CONNECTION and config files bind by this name.")]
-    public bool SharedConnection { get; set; } = true;
 
     /// <summary>Past-version snapshots kept in process memory; past versions never go stale and diff tools re-read them dozens of times.</summary>
     public int VersionSnapshotEntries { get; set; } = 50;

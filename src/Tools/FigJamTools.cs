@@ -277,7 +277,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
         ReadAsync(EditorCommands.GetConnections, [], cancellationToken, TimeSpan.FromSeconds(30));
 
     /// <summary>String into a JavaScript literal via JSON serialization.</summary>
-    private static string ToJsString(string value) => System.Text.Json.JsonSerializer.Serialize(value);
+    private static string ToJsString(string value) => ScriptLiteral.Of(value);
 
     private static JsonArray? SplitToArray(string? value) =>
         string.IsNullOrWhiteSpace(value)

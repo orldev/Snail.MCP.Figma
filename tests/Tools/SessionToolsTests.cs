@@ -1,3 +1,4 @@
+using Snail.Sdk.Mcp.Hosting;
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -352,7 +353,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     private static JsonElement OutputSchemaOf(string method) =>
-        McpServerTool.Create(typeof(SessionTools).GetMethod(method)!, _ => throw new NotSupportedException(), new McpServerToolCreateOptions())
+        McpServerTool.Create(typeof(SessionTools).GetMethod(method)!, _ => throw new NotSupportedException(), new McpServerToolCreateOptions { SerializerOptions = ToolJson.Options(ToolJsonContext.Default) })
             .ProtocolTool.OutputSchema!.Value;
 
     /// <summary>Every object in the answer carries exactly the properties its schema lists; arrays are checked through their first element.</summary>

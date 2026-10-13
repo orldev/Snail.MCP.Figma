@@ -647,7 +647,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
         ["stats"] = Serialize(target.Stats),
     };
 
-    private static JsonNode? Serialize<T>(T value) => JsonSerializer.SerializeToNode(value, DsJson.Options);
+    private static JsonNode? Serialize<T>(T value) => JsonSerializer.SerializeToNode(value, DsJson.Info<T>());
 
     /// <summary>Token document as canonical DTCG — for dry runs when no files are written.</summary>
     private static JsonNode? RenderDtcg(TokenDocument document)

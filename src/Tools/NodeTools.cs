@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
@@ -178,7 +177,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             var script = $$"""
                 const page = figma.createPage();
-                page.name = {{JsonSerializer.Serialize(name)}};
+                page.name = {{ScriptLiteral.Of(name)}};
                 if ({{(makeCurrent ? "true" : "false")}}) { await figma.setCurrentPageAsync(page); }
                 return { id: page.id, name: page.name };
                 """;
@@ -215,7 +214,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }
 
             var script = $$"""
-                const parentId = {{JsonSerializer.Serialize(parentId is null ? null : NodeId.Normalize(parentId))}};
+                const parentId = {{ScriptLiteral.Of(parentId is null ? null : NodeId.Normalize(parentId))}};
                 let parent = figma.currentPage;
                 if (parentId) {
                   parent = await figma.getNodeByIdAsync(parentId);
@@ -225,12 +224,12 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 }
                 let frame;
                 try {
-                  frame = figma.createNodeFromSvg({{JsonSerializer.Serialize(svg)}});
+                  frame = figma.createNodeFromSvg({{ScriptLiteral.Of(svg)}});
                 } catch (e) {
                   return { __error: 'SVG did not parse: ' + ((e && e.message) ? e.message : String(e)) };
                 }
                 parent.appendChild(frame);
-                const name = {{JsonSerializer.Serialize(name)}};
+                const name = {{ScriptLiteral.Of(name)}};
                 if (name) frame.name = name;
                 const x = {{(x is { } vx ? vx.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")}};
                 const y = {{(y is { } vy ? vy.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")}};
@@ -289,13 +288,13 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 let image;
                 try {
                   image = {{(url is { Length: > 0 }
-                    ? $"await figma.createImageAsync({JsonSerializer.Serialize(url)})"
-                    : $"figma.createImage(figma.base64Decode({JsonSerializer.Serialize(base64)}))")}};
+                    ? $"await figma.createImageAsync({ScriptLiteral.Of(url)})"
+                    : $"figma.createImage(figma.base64Decode({ScriptLiteral.Of(base64)}))")}};
                 } catch (e) {
                   return { __error: 'Figma rejected the image: ' + ((e && e.message) ? e.message : String(e)) };
                 }
                 const size = await image.getSizeAsync();
-                const parentId = {{JsonSerializer.Serialize(parentId is null ? null : NodeId.Normalize(parentId))}};
+                const parentId = {{ScriptLiteral.Of(parentId is null ? null : NodeId.Normalize(parentId))}};
                 let parent = figma.currentPage;
                 if (parentId) {
                   parent = await figma.getNodeByIdAsync(parentId);
@@ -307,7 +306,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 rect.resize(size.width, size.height);
                 rect.fills = [{ type: 'IMAGE', imageHash: image.hash, scaleMode: 'FILL' }];
                 parent.appendChild(rect);
-                const name = {{JsonSerializer.Serialize(name)}};
+                const name = {{ScriptLiteral.Of(name)}};
                 if (name) rect.name = name;
                 const x = {{(x is { } vx ? vx.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")}};
                 const y = {{(y is { } vy ? vy.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")}};
@@ -372,7 +371,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 } catch (e) {
                   return { __error: (e && e.message) ? e.message : String(e) };
                 }
-                const parentId = {{JsonSerializer.Serialize(parentId is null ? null : NodeId.Normalize(parentId))}};
+                const parentId = {{ScriptLiteral.Of(parentId is null ? null : NodeId.Normalize(parentId))}};
                 if (parentId) {
                   const parent = await figma.getNodeByIdAsync(parentId);
                   if (!parent) return { __error: 'Created ' + node.id + ', but parent ' + parentId + ' was not found.' };
@@ -433,7 +432,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }
 
             var script = $$"""
-                const ids = {{JsonSerializer.Serialize(ids)}};
+                const ids = {{ScriptLiteral.Of(ids)}};
                 const nodes = [];
                 for (const id of ids) {
                   const node = await figma.getNodeByIdAsync(id);
@@ -441,7 +440,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                   nodes.push(node);
                 }
                 const parent = nodes[0].parent || figma.currentPage;
-                const op = {{JsonSerializer.Serialize(op)}};
+                const op = {{ScriptLiteral.Of(op)}};
                 let result;
                 try {
                   if (op === 'UNION') result = figma.union(nodes, parent);
@@ -452,7 +451,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 } catch (e) {
                   return { __error: (e && e.message) ? e.message : String(e) };
                 }
-                const name = {{JsonSerializer.Serialize(name)}};
+                const name = {{ScriptLiteral.Of(name)}};
                 if (name) result.name = name;
                 return { id: result.id, type: result.type, name: result.name, parentId: parent.id };
                 """;
@@ -496,7 +495,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }
 
             var script = $$"""
-                const ids = {{JsonSerializer.Serialize(ids)}};
+                const ids = {{ScriptLiteral.Of(ids)}};
                 const nodes = [];
                 for (const id of ids) {
                   const node = await figma.getNodeByIdAsync(id);
@@ -509,7 +508,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 } catch (e) {
                   return { __error: (e && e.message) ? e.message : String(e) };
                 }
-                const name = {{JsonSerializer.Serialize(name)}};
+                const name = {{ScriptLiteral.Of(name)}};
                 if (name) group.name = name;
                 return { id: group.id, name: group.name, children: group.children.length };
                 """;
@@ -542,7 +541,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         ExecuteAsync(async ct =>
         {
             var script = $$"""
-                const node = await figma.getNodeByIdAsync({{JsonSerializer.Serialize(NodeId.Normalize(nodeId))}});
+                const node = await figma.getNodeByIdAsync({{ScriptLiteral.Of(NodeId.Normalize(nodeId))}});
                 if (!node) return { __error: 'Node was not found.' };
                 let children;
                 try {
@@ -586,7 +585,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         var data = images.ReadAsBase64(filePath);
 
         var createScript = $$"""
-            const parentId = {{JsonSerializer.Serialize(parentId is null ? null : NodeId.Normalize(parentId))}};
+            const parentId = {{ScriptLiteral.Of(parentId is null ? null : NodeId.Normalize(parentId))}};
             let parent = figma.currentPage;
             if (parentId) {
               parent = await figma.getNodeByIdAsync(parentId);
@@ -596,7 +595,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }
             const rect = figma.createRectangle();
             parent.appendChild(rect);
-            const name = {{JsonSerializer.Serialize(name)}};
+            const name = {{ScriptLiteral.Of(name)}};
             if (name) rect.name = name;
             const x = {{Coordinate(x)}};
             const y = {{Coordinate(y)}};
@@ -641,13 +640,13 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }
 
             var sizeScript = $$"""
-                const node = await figma.getNodeByIdAsync({{JsonSerializer.Serialize(nodeId)}});
+                const node = await figma.getNodeByIdAsync({{ScriptLiteral.Of(nodeId)}});
                 if (!node) return { __error: 'The rectangle was gone before the picture could be sized.' };
-                const image = figma.getImageByHash({{JsonSerializer.Serialize(hash)}});
+                const image = figma.getImageByHash({{ScriptLiteral.Of(hash)}});
                 if (!image) return { __error: 'Figma no longer knows the image that was just created.' };
                 const size = await image.getSizeAsync();
                 node.resize(size.width, size.height);
-                return { id: node.id, name: node.name, width: size.width, height: size.height, imageHash: {{JsonSerializer.Serialize(hash)}}, parentId: node.parent ? node.parent.id : null };
+                return { id: node.id, name: node.name, width: size.width, height: size.height, imageHash: {{ScriptLiteral.Of(hash)}}, parentId: node.parent ? node.parent.id : null };
                 """;
 
             var sized = Unwrap(await Plugin.ApplyAsync(

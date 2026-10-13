@@ -3,14 +3,14 @@
 A local MCP server that gives an AI agent 141 tools for reading and editing Figma.
 
 Reads go through the **live Figma Desktop plugin** — no REST quota spent and unsaved edits visible — or
-through the **REST API** behind a LiteDB snapshot cache and a sanitizer that keeps the raw Figma JSON out of
+through the **REST API** behind a SQLite snapshot cache and a sanitizer that keeps the raw Figma JSON out of
 the model context. Writes go through the plugin only: nodes, variables, components, FigJam and Slides.
 
 ```mermaid
 flowchart LR
     C["MCP client"] -- stdio --> S["Snail.MCP.Figma"]
     S -- READ --> P["Live editor<br/>Figma Desktop plugin"]
-    P -. no session .-> N["LiteDB snapshot"]
+    P -. no session .-> N["SQLite snapshot"]
     N -. stale .-> R["Figma REST API"]
     R --> Z["Sanitizer"]
     S -- WRITE --> P

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Application.Snapshots;
@@ -42,7 +42,7 @@ public class BridgeHostFixture : IAsyncLifetime
     /// <summary>The one agent of this host, as over stdio.</summary>
     public AgentSlot Agent { get; private set; } = null!;
 
-    public LiteDbNodeSnapshotStore Cache { get; private set; } = null!;
+    public SqliteNodeSnapshotStore Cache { get; private set; } = null!;
 
     public EditorSocketHub Hub { get; private set; } = null!;
 
@@ -84,16 +84,16 @@ public class BridgeHostFixture : IAsyncLifetime
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(config.Bridge);
         builder.Services.AddSingleton(config.Cache);
-        builder.Services.AddSingleton<ILiteDatabaseProvider, DisabledLiteDatabaseProvider>();
-        builder.Services.AddSingleton<LiteDbNodeSnapshotStore>();
-        builder.Services.AddSingleton<INodeSnapshotStore>(provider => provider.GetRequiredService<LiteDbNodeSnapshotStore>());
-        builder.Services.AddSingleton<LiteDbRenderSnapshotStore>();
-        builder.Services.AddSingleton<IRenderSnapshotStore>(provider => provider.GetRequiredService<LiteDbRenderSnapshotStore>());
+        builder.Services.AddSingleton<ISnapshotDatabase, DisabledSnapshotDatabase>();
+        builder.Services.AddSingleton<SqliteNodeSnapshotStore>();
+        builder.Services.AddSingleton<INodeSnapshotStore>(provider => provider.GetRequiredService<SqliteNodeSnapshotStore>());
+        builder.Services.AddSingleton<SqliteRenderSnapshotStore>();
+        builder.Services.AddSingleton<IRenderSnapshotStore>(provider => provider.GetRequiredService<SqliteRenderSnapshotStore>());
         var source = new FakePublishedSource(new JsonObject());
         builder.Services.AddSingleton<IPublishedDocumentSource>(source);
         builder.Services.AddSingleton<IRenderSource>(source);
-        builder.Services.AddSingleton<LiteDbDocumentVersionLedger>();
-        builder.Services.AddSingleton<IDocumentVersionLedger>(provider => provider.GetRequiredService<LiteDbDocumentVersionLedger>());
+        builder.Services.AddSingleton<SqliteDocumentVersionLedger>();
+        builder.Services.AddSingleton<IDocumentVersionLedger>(provider => provider.GetRequiredService<SqliteDocumentVersionLedger>());
         builder.Services.AddSingleton<SnapshotInvalidator>();
         builder.Services.AddSingleton<OpenDocumentRegistry>();
         builder.Services.AddSingleton<AgentRoster>();
@@ -114,7 +114,7 @@ public class BridgeHostFixture : IAsyncLifetime
         Gateway = _app.Services.GetRequiredService<LiveEditorGateway>();
         Hub = _app.Services.GetRequiredService<EditorSocketHub>();
         Registry = _app.Services.GetRequiredService<OpenDocumentRegistry>();
-        Cache = _app.Services.GetRequiredService<LiteDbNodeSnapshotStore>();
+        Cache = _app.Services.GetRequiredService<SqliteNodeSnapshotStore>();
         Roster = _app.Services.GetRequiredService<AgentRoster>();
         Agent = Roster.Default;
         ActiveFile = Agent.Tracker;

@@ -43,7 +43,7 @@ public static class ExtractionManifests
             System.IO.Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, JsonSerializer.Serialize(data, DsJson.Options) + Environment.NewLine);
+        File.WriteAllText(path, JsonSerializer.Serialize(data, DsJson.Info<T>()) + Environment.NewLine);
     }
 
     /// <summary>Manifest from disk; <c>null</c> when missing or corrupt, so the call does not fail.</summary>
@@ -58,7 +58,7 @@ public static class ExtractionManifests
 
         try
         {
-            return JsonSerializer.Deserialize<T>(raw, DsJson.Options);
+            return JsonSerializer.Deserialize(raw, DsJson.Info<T>());
         }
         catch (JsonException)
         {

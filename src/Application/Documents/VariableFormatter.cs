@@ -11,7 +11,7 @@ public static class VariableFormatter
 
         foreach (var (id, collection) in keyed["variableCollections"]!.AsObject())
         {
-            collections.Add(new JsonObject
+            collections.Add((JsonNode)new JsonObject
             {
                 ["id"] = id,
                 ["name"] = collection?["name"]?.DeepClone(),
@@ -37,7 +37,7 @@ public static class VariableFormatter
             var resolvedType = variable?["resolvedType"]?.GetValue<string>() ?? "UNKNOWN";
             byType[resolvedType] = byType.GetValueOrDefault(resolvedType) + 1;
 
-            variables.Add(new JsonObject
+            variables.Add((JsonNode)new JsonObject
             {
                 ["id"] = id,
                 ["name"] = name,

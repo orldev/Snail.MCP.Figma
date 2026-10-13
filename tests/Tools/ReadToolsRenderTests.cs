@@ -1,7 +1,7 @@
 using System.Text;
 using ModelContextProtocol.Protocol;
 using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Sanitization;
@@ -27,7 +27,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     /// <summary>One-pixel PNG — exactly how the plugin returns an image, base64 inside image.</summary>
     private static readonly string SamplePng = Convert.ToBase64String(Encoding.UTF8.GetBytes("PNG-DATA"));
 
-    private (ReadTools Tools, FakePublishedSource Api) Build(bool preferPlugin = true, ILiteDatabaseProvider? database = null)
+    private (ReadTools Tools, FakePublishedSource Api) Build(bool preferPlugin = true, ISnapshotDatabase? database = null)
     {
         var api = new FakePublishedSource(new JsonObject());
         var config = new ServerConfig
@@ -36,10 +36,10 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
             Cache = { Enabled = database is not null },
             Bridge = { PreferPluginForReads = preferPlugin },
         };
-        database ??= new DisabledLiteDatabaseProvider();
-        var nodes = new LiteDbNodeSnapshotStore(database, config.Cache, NullLogger<LiteDbNodeSnapshotStore>.Instance);
-        var images = new LiteDbRenderSnapshotStore(database, config.Cache, NullLogger<LiteDbRenderSnapshotStore>.Instance);
-        var versions = new LiteDbDocumentVersionLedger(database, nodes, images, NullLogger<LiteDbDocumentVersionLedger>.Instance);
+        database ??= new DisabledSnapshotDatabase();
+        var nodes = new SqliteNodeSnapshotStore(database, config.Cache, NullLogger<SqliteNodeSnapshotStore>.Instance);
+        var images = new SqliteRenderSnapshotStore(database, config.Cache, NullLogger<SqliteRenderSnapshotStore>.Instance);
+        var versions = new SqliteDocumentVersionLedger(database, nodes, images, NullLogger<SqliteDocumentVersionLedger>.Instance);
         var sanitization = new SanitizationOptions { LogMetrics = false };
         var sanitizer = new NodeSanitizer(sanitization, NullLogger<NodeSanitizer>.Instance);
 
@@ -126,13 +126,13 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     /// <summary>Live cache file in a temp directory — for plugin-versus-cache priority tests.</summary>
-    private LiteDatabaseProvider WarmDatabase() => new(
+    private SqliteSnapshotDatabase WarmDatabase() => new(
         new ServerConfig { DataDirectory = Path.Combine(_screenshotDirectory, $"db-{Guid.NewGuid().ToString("N")}") },
-        NullLogger<LiteDatabaseProvider>.Instance);
+        NullLogger<SqliteSnapshotDatabase>.Instance);
 
-    private static async Task SeedCachedRenderAsync(ILiteDatabaseProvider database, string fileKey, string nodeId)
+    private static async Task SeedCachedRenderAsync(ISnapshotDatabase database, string fileKey, string nodeId)
     {
-        var images = new LiteDbRenderSnapshotStore(database, new ServerConfig().Cache, NullLogger<LiteDbRenderSnapshotStore>.Instance);
+        var images = new SqliteRenderSnapshotStore(database, new ServerConfig().Cache, NullLogger<SqliteRenderSnapshotStore>.Instance);
         await images.SetAsync(new RenderSnapshot
         {
             FileKey = fileKey,
@@ -149,7 +149,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         AnswerWithScreenshot(plugin);
 
-        using var database = WarmDatabase();
+        var database = WarmDatabase();
         await SeedCachedRenderAsync(database, fileKey, "1:2");
 
         var (tools, api) = Build(database: database);
@@ -166,7 +166,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         AnswerWithScreenshot(plugin);
 
-        using var database = WarmDatabase();
+        var database = WarmDatabase();
         await SeedCachedRenderAsync(database, fileKey, "1:2");
 
         var (tools, api) = Build(preferPlugin: false, database: database);

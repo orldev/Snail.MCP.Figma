@@ -205,19 +205,24 @@ Then paste a file link and ask for something cheap, such as the list of pages
 
 ## One server for every agent
 
-By default every client session starts a server of its own: four agents in Figma Desktop are four processes of
-about 88 MB each, and four panels' worth of connections in every file. With several agents working at once, run
-one server for all of them instead. Measured with four sessions: 353 MB as four stdio processes, 103 MB as one
-shared server, and a new session answered in about a millisecond instead of the 150 ms a process takes to start.
-stdio stays the default; the shared server is opt-in.
+By default every client session starts a server of its own: four agents in Figma Desktop are four processes, and four
+panels' worth of connections in every file. With several agents working at once, run one server for all of them
+instead. stdio stays the default; the shared server is opt-in.
+
+Measured with four sessions on an Apple Silicon Mac:
+
+| | Framework-dependent (`dotnet …dll`) | Native |
+|---|---|---|
+| Four stdio processes | 359 MB, 135 ms from start to `initialize` | 160 MB, 82 ms |
+| One shared server | 100 MB | 40 MB, a new session answered in about a millisecond |
 
 1. **Publish and install the job.** From a clone of the repository:
 
     ```bash
-    dotnet publish src -c Release -p:Install=true
+    dotnet publish src -c Release -r osx-arm64 -p:Install=true
     ```
 
-    This publishes into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,
+    This publishes the native server into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,
     from `deploy/s3l.mcp.figma.plist`. The first time, it prints the two commands that load the job:
 
     ```bash
@@ -254,6 +259,10 @@ session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MC
 stdio, `launchctl bootout gui/$(id -u)/s3l.mcp.figma` and restore the stdio entry.
 
 ## Updating
+
+A native publication holds the program itself, `~/.s3l-mcp/Snail.MCP.Figma/current/Snail.MCP.Figma`, and no
+`Snail.MCP.Figma.dll`: a stdio registration that ran `dotnet …/Snail.MCP.Figma.dll` from there names the program as its
+`command` instead, with no arguments.
 
 ```bash
 dotnet tool update -g Snail.MCP.Figma

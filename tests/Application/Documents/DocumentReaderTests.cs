@@ -1,4 +1,4 @@
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Application.Sanitization;
@@ -6,11 +6,11 @@ using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Application.Documents;
 
-/// <summary>Stage 1 definition of done: repeated reads do not hit the Figma API and a version change drops the cache; uses a real LiteDB in a temp directory.</summary>
-[Collection(nameof(LiteDbFixture))]
-public class DocumentReaderTests(LiteDbFixture cacheFixture) : IAsyncLifetime
+/// <summary>Stage 1 definition of done: repeated reads do not hit the Figma API and a version change drops the cache; uses a real SQLite file in a temp directory.</summary>
+[Collection(nameof(SnapshotDatabaseFixture))]
+public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncLifetime
 {
-    private readonly LiteDbFixture _cacheFixture = cacheFixture;
+    private readonly SnapshotDatabaseFixture _cacheFixture = cacheFixture;
     private readonly string _fileKey = $"file-{Guid.NewGuid().ToString("N")[..8]}";
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -35,7 +35,7 @@ public class DocumentReaderTests(LiteDbFixture cacheFixture) : IAsyncLifetime
         },
     };
 
-    private (DocumentReader Reader, FakePublishedSource Api, LiteDbNodeSnapshotStore Cache) Build(
+    private (DocumentReader Reader, FakePublishedSource Api, SqliteNodeSnapshotStore Cache) Build(
         int ttlHours = 1,
         int freshnessSeconds = 300)
     {
@@ -46,9 +46,9 @@ public class DocumentReaderTests(LiteDbFixture cacheFixture) : IAsyncLifetime
             TtlHours = ttlHours,
             FreshnessSeconds = freshnessSeconds,
         };
-        var cache = new LiteDbNodeSnapshotStore(_cacheFixture.Database, cacheOptions, NullLogger<LiteDbNodeSnapshotStore>.Instance);
-        var images = new LiteDbRenderSnapshotStore(_cacheFixture.Database, cacheOptions, NullLogger<LiteDbRenderSnapshotStore>.Instance);
-        var validator = new LiteDbDocumentVersionLedger(_cacheFixture.Database, cache, images, NullLogger<LiteDbDocumentVersionLedger>.Instance);
+        var cache = new SqliteNodeSnapshotStore(_cacheFixture.Database, cacheOptions, NullLogger<SqliteNodeSnapshotStore>.Instance);
+        var images = new SqliteRenderSnapshotStore(_cacheFixture.Database, cacheOptions, NullLogger<SqliteRenderSnapshotStore>.Instance);
+        var validator = new SqliteDocumentVersionLedger(_cacheFixture.Database, cache, images, NullLogger<SqliteDocumentVersionLedger>.Instance);
         var sanitizer = new NodeSanitizer(new SanitizationOptions { LogMetrics = false }, NullLogger<NodeSanitizer>.Instance);
 
         return (

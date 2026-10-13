@@ -1,4 +1,4 @@
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Application.Snapshots;
@@ -7,27 +7,27 @@ using Snail.MCP.Figma.Configuration;
 namespace Snail.MCP.Figma.Tests.Application.Documents;
 
 /// <summary>Render cache: a repeated "show the same node" must not spend the most expensive bucket, and the cache must not survive a node edit.</summary>
-[Collection(nameof(LiteDbFixture))]
-public class DocumentRendererTests(LiteDbFixture cacheFixture)
+[Collection(nameof(SnapshotDatabaseFixture))]
+public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
 {
-    private readonly LiteDbFixture _cacheFixture = cacheFixture;
+    private readonly SnapshotDatabaseFixture _cacheFixture = cacheFixture;
 
     private static string NewFileKey() => $"img{Guid.NewGuid().ToString("N")[..10]}";
 
-    private (DocumentRenderer Renderer, FakePublishedSource Api, LiteDbRenderSnapshotStore Cache, LiteDbDocumentVersionLedger Versions) Build()
+    private (DocumentRenderer Renderer, FakePublishedSource Api, SqliteRenderSnapshotStore Cache, SqliteDocumentVersionLedger Versions) Build()
     {
         var (renderer, api, images, versions, _) = BuildWithListener();
 
         return (renderer, api, images, versions);
     }
 
-    private (DocumentRenderer Renderer, FakePublishedSource Api, LiteDbRenderSnapshotStore Cache, LiteDbDocumentVersionLedger Versions, SnapshotInvalidator Listener) BuildWithListener()
+    private (DocumentRenderer Renderer, FakePublishedSource Api, SqliteRenderSnapshotStore Cache, SqliteDocumentVersionLedger Versions, SnapshotInvalidator Listener) BuildWithListener()
     {
         var options = new CacheOptions { Enabled = true, TtlHours = 1, ImageTtlHours = 1 };
         var api = new FakePublishedSource(new System.Text.Json.Nodes.JsonObject());
-        var nodes = new LiteDbNodeSnapshotStore(_cacheFixture.Database, options, NullLogger<LiteDbNodeSnapshotStore>.Instance);
-        var images = new LiteDbRenderSnapshotStore(_cacheFixture.Database, options, NullLogger<LiteDbRenderSnapshotStore>.Instance);
-        var versions = new LiteDbDocumentVersionLedger(_cacheFixture.Database, nodes, images, NullLogger<LiteDbDocumentVersionLedger>.Instance);
+        var nodes = new SqliteNodeSnapshotStore(_cacheFixture.Database, options, NullLogger<SqliteNodeSnapshotStore>.Instance);
+        var images = new SqliteRenderSnapshotStore(_cacheFixture.Database, options, NullLogger<SqliteRenderSnapshotStore>.Instance);
+        var versions = new SqliteDocumentVersionLedger(_cacheFixture.Database, nodes, images, NullLogger<SqliteDocumentVersionLedger>.Instance);
         var listener = new SnapshotInvalidator(nodes, images, versions, NullLogger<SnapshotInvalidator>.Instance);
 
         return (
