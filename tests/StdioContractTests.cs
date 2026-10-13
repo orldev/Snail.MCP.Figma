@@ -152,7 +152,7 @@ public class StdioContractTests
             ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = "9400",
             ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = "9410",
             ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null,
-            ["SNAIL_MCP_FIGMA_CONFIG"] = null,
+            ["SNAIL_MCP_FIGMA_CONFIG"] = ServerProgram.NoSettingsFile,
         };
 
         public async Task<JsonElement> CallAsync(int id, string method, object parameters)
