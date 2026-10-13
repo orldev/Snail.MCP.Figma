@@ -5,16 +5,16 @@ using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tests.Tools;
 
-/// <summary>Ports &amp; Adapters boundary: the Tools layer is the MCP driving adapter and must not see WebSocket, HTTP, LiteDB or concrete Figma adapters.</summary>
+/// <summary>Ports &amp; Adapters boundary: the Tools layer is the MCP driving adapter and must not see WebSocket, HTTP, the database or concrete Figma adapters.</summary>
 public class ToolLayerBoundaryTests
 {
-    private static readonly string[] ForbiddenNamespaces = ["System.Net", "LiteDB", "Snail.MCP.Figma.Hosting", "Snail.MCP.Figma.Extensions", "Snail.MCP.Figma.Adapters"];
+    private static readonly string[] ForbiddenNamespaces = ["System.Net", "Microsoft.Data.Sqlite", "Snail.MCP.Figma.Hosting", "Snail.MCP.Figma.Extensions", "Snail.MCP.Figma.Adapters"];
 
     private static readonly string[] ForbiddenTypes =
         [
             "EditorSocketHub", "EditorCommandRouter", "LiveEditorGateway", "OpenDocumentRegistry", "EditorSession",
             "EditorWireProtocol", "EditorScripts", "CaptureStore", "EditorExtensionInstaller",
-            "RestDocumentGateway", "QuotaGate", "LiteDatabaseProvider", "ILiteDatabaseProvider", "HttpClient",
+            "RestDocumentGateway", "QuotaGate", "SqliteSnapshotDatabase", "ISnapshotDatabase", "HttpClient",
         ];
 
     [Fact]

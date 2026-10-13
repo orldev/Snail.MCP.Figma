@@ -1,5 +1,5 @@
 using Snail.MCP.Figma.Adapters.Editor;
-using Snail.MCP.Figma.Adapters.Persistence.LiteDb;
+using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Sanitization;
@@ -41,10 +41,10 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
             Bridge = { PreferPluginForReads = preferPlugin },
         };
 
-        var database = new DisabledLiteDatabaseProvider();
-        var nodes = new LiteDbNodeSnapshotStore(database, config.Cache, NullLogger<LiteDbNodeSnapshotStore>.Instance);
-        var images = new LiteDbRenderSnapshotStore(database, config.Cache, NullLogger<LiteDbRenderSnapshotStore>.Instance);
-        var versions = new LiteDbDocumentVersionLedger(database, nodes, images, NullLogger<LiteDbDocumentVersionLedger>.Instance);
+        var database = new DisabledSnapshotDatabase();
+        var nodes = new SqliteNodeSnapshotStore(database, config.Cache, NullLogger<SqliteNodeSnapshotStore>.Instance);
+        var images = new SqliteRenderSnapshotStore(database, config.Cache, NullLogger<SqliteRenderSnapshotStore>.Instance);
+        var versions = new SqliteDocumentVersionLedger(database, nodes, images, NullLogger<SqliteDocumentVersionLedger>.Instance);
         var sanitization = new SanitizationOptions { LogMetrics = false };
         var sanitizer = new NodeSanitizer(sanitization, NullLogger<NodeSanitizer>.Instance);
 

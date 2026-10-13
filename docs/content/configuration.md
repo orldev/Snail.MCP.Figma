@@ -24,7 +24,7 @@ is a field like any other.
 | `SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START` | `9223` | First port of the WebSocket bridge |
 | `SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END` | `9232` | Last port of the bridge |
 | `SNAIL_MCP_FIGMA_BRIDGE__REQUEST_TIMEOUT_SECONDS` | `30` | Timeout of one plugin command |
-| `SNAIL_MCP_FIGMA_CACHE__ENABLED` | `true` | Keep LiteDB snapshots of REST reads |
+| `SNAIL_MCP_FIGMA_CACHE__ENABLED` | `true` | Keep snapshots of REST reads in a SQLite file in the data directory |
 | `SNAIL_MCP_FIGMA_CACHE__FRESHNESS_SECONDS` | `300` | How long a snapshot is served without checking the version |
 | `SNAIL_MCP_FIGMA_CACHE__TTL_HOURS` | `24` | Lifetime of a node snapshot |
 | `SNAIL_MCP_FIGMA_CACHE__IMAGE_TTL_HOURS` | `24` | Lifetime of a render link |
@@ -82,12 +82,11 @@ Every field is optional and the values below are the defaults, so an empty `{}` 
   },
   "Cache": {
     "Enabled": true,
-    "DatabaseFileName": "cache.db",
+    "DatabaseFileName": "snapshots.sqlite",
     "TtlHours": 24,
     "ExpirationSweepSeconds": 60,
     "ImageTtlHours": 24,
     "FreshnessSeconds": 300,
-    "SharedConnection": true,
     "VersionSnapshotEntries": 50
   },
   "Sanitization": {

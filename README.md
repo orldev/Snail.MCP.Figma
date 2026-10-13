@@ -267,7 +267,7 @@ More cases: [Troubleshooting](https://orldev.github.io/Snail.MCP.Figma/troublesh
 ## How it works
 
 ```
-                 ┌── READ ──→ Live Editor (plugin) ──→ LiteDB snapshot ──→ REST ──→ Sanitizer
+                 ┌── READ ──→ Live Editor (plugin) ──→ SQLite snapshot ──→ REST ──→ Sanitizer
 Claude ── stdio ─┤
                  └── WRITE ─→ EditorSocketHub (Kestrel, ws://127.0.0.1:9223…9232) ─→ ui.html ─→ code.js ─→ figma.*
                                        └─ DOCUMENT_CHANGE ─→ SnapshotInvalidator
@@ -311,7 +311,7 @@ dotnet test
 ```
 
 - .NET SDK 10. Folder = layer = namespace `Snail.MCP.Figma.<Folder>`; the core knows nothing of REST,
-  WebSockets or LiteDB, and the tools see ports only. A new external dependency starts with a port in
+  WebSockets or SQLite, and the tools see ports only. A new external dependency starts with a port in
   `Application/Ports`, then an adapter, then a registration in `Extensions`.
 - Code, documentation and every string the model reads are in English. The layer boundary, the prompt
   catalog, the stdio contract and the code style are all guarded by tests.

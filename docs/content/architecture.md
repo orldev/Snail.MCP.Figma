@@ -1,6 +1,6 @@
 # Architecture
 
-The server is a hexagon: the core knows nothing about REST, WebSockets or LiteDB, and the MCP tools see
+The server is a hexagon: the core knows nothing about REST, WebSockets or SQLite, and the MCP tools see
 ports only. Folder = layer = namespace.
 
 | Layer | Holds |
@@ -10,7 +10,7 @@ ports only. Folder = layer = namespace.
 | `Application` | the read pipeline, snapshot policy, sanitizer, tokens, extraction, version diffing |
 | `Adapters/Rest` | `RestDocumentGateway`, `QuotaGate` — the only place that speaks HTTP |
 | `Adapters/Editor` | the WebSocket hub, command router, file registry, the agents and their slots, server-side sibling discovery, embedded read scripts, capture store |
-| `Adapters/Persistence/LiteDb` | the three snapshot stores and the lazily opened database |
+| `Adapters/Persistence/Sqlite` | the three snapshot stores and the cache file, prepared on first use and shared by every server process |
 | `Tools` | the MCP driving adapter: 141 tools and the prompt catalog |
 | `Extensions` / `Hosting` | the composition root and the process lifetime |
 
@@ -18,7 +18,7 @@ ports only. Folder = layer = namespace.
 
 **READ is plugin-first.** While a plugin session exists for the file, reads go through it: zero REST
 requests, zero quota, and the current state of the canvas including unsaved edits. Without a session the
-server serves a LiteDB snapshot while it is fresh (`Cache.FreshnessSeconds`, 300 s by default), and only then
+server serves a cached snapshot while it is fresh (`Cache.FreshnessSeconds`, 300 s by default), and only then
 calls REST. Every response carries a `source` field — `plugin`, `cache`, `figma-api` or `cache-stale`.
 
 The path can be forced per call with the `source` parameter (`auto` / `rest` / `plugin`) and switched off
