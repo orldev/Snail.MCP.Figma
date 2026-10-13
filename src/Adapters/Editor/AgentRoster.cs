@@ -98,6 +98,8 @@ public sealed class AgentRoster
             agent.NameAfterFolder(UniqueName(name, agent));
         }
 
+        Log.AgentNamed(_logger, agent.Id, agent.Name);
+
         if (agent.ActiveFileKey is null &&
             _targets?.Recall(agent.Name, DateTimeOffset.UtcNow, fileKey => _registry.Open(fileKey) is not null) is var (fileKey, fileName))
         {

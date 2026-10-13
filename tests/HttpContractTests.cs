@@ -171,6 +171,30 @@ public sealed class HttpContractTests : IAsyncLifetime
         await BridgeHostFixture.WaitUntilAsync(() => !Names(panel).Contains("Leaving.Project"), "the agent stayed after its session ended");
     }
 
+    /// <summary>The sessionless revision carries nothing that tells one window of a client from another, so it is refused in the way that makes Claude Code fall back to initialize and a session of its own.</summary>
+    [Fact]
+    public async Task ARequestWithoutASessionIsSentBackToInitialize()
+    {
+        using var http = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint)
+        {
+            Content = new StringContent(
+                """{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","version":"2.1.296"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true}}}}}""",
+                System.Text.Encoding.UTF8,
+                "application/json"),
+        };
+
+        request.Headers.Add("Accept", "application/json, text/event-stream");
+        request.Headers.Add("mcp-protocol-version", "2026-07-28");
+        request.Headers.Add("mcp-method", "server/discover");
+
+        using var response = await http.SendAsync(request);
+        var answer = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+
+        Assert.Equal(-32022, answer["error"]!["code"]!.GetValue<int>());
+        Assert.Contains("2025-11-25", answer["error"]!["data"]!["supported"]!.AsArray().Select(version => version!.GetValue<string>()));
+    }
+
     [Fact]
     public async Task ARequestFromABrowserIsRefused()
     {

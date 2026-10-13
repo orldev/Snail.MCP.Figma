@@ -20,10 +20,12 @@ internal static class ClientFolder
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
 
     /// <summary>The name of the client's first <c>file:</c> root, or <c>null</c> when it lists none or does not answer.</summary>
-    public static async Task<string?> NameAsync(McpServer server, CancellationToken cancellationToken)
+    public static async Task<string?> NameAsync(McpServer server, ILogger logger, CancellationToken cancellationToken)
     {
         if (server.ClientCapabilities?.Roots is null)
         {
+            Log.RootsNotDeclared(logger);
+
             return null;
         }
 
@@ -44,14 +46,20 @@ internal static class ClientFolder
                 }
             }
 
+            Log.NoFolderRoot(logger, listed.Roots.Count);
+
             return null;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            Log.RootsUnanswered(logger, Patience.TotalSeconds);
+
             return null;
         }
-        catch (McpException)
+        catch (McpException ex)
         {
+            Log.RootsRefused(logger, ex);
+
             return null;
         }
     }
