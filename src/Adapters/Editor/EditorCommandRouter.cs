@@ -47,7 +47,7 @@ public sealed class EditorCommandRouter(
 
         using (turn)
         {
-            return await DispatchAsync(session, agent.Id, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
+            return await DispatchAsync(session, agent.Address, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
         }
     }
 

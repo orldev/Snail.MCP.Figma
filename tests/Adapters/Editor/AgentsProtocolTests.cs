@@ -197,4 +197,70 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         await Assert.ThrowsAnyAsync<Exception>(() => Task.WhenAll(reads));
         await Assert.ThrowsAsync<EditorUnavailableException>(() => reload);
     }
+
+    private static int Entries(FakeEditorExtension plugin, string name) => plugin.Received
+        .LastOrDefault(message => message["type"]?.GetValue<string>() == "AGENTS")?["data"]?["agents"]?.AsArray()
+        .Count(entry => entry?["name"]?.GetValue<string>() == name) ?? 0;
+
+    /// <summary>A second conversation of one project, or its reconnect before the old session timed out, is still the one project in the panel: one entry, one queue of remarks, and not somebody else to itself.</summary>
+    [Fact]
+    public async Task TwoSessionsOfOneProjectAreOneAgentInThePanel()
+    {
+        var fileKey = NewKey("f");
+        var project = NewKey("p");
+        await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
+        var first = await ClaimAsync(NewKey("s"), fileKey);
+        var second = await ClaimAsync(NewKey("s"), fileKey);
+        await bridge.Roster.NameAsync(first, project);
+        await bridge.Roster.NameAsync(second, project);
+        var session = bridge.Registry.Open(fileKey)!;
+
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "for the project", ["agent"] = first.Address });
+
+        await BridgeHostFixture.WaitUntilAsync(() => second.RemarksIn(session).Count == 1, "the remark did not reach the project");
+        Assert.Equal(1, Entries(plugin, project));
+        Assert.Equal(0, Entries(plugin, $"{project} 2"));
+        Assert.Equal(1, Described(plugin, first.Address)!["waiting"]!.GetValue<int>());
+        Assert.Single(first.RemarksIn(session).TakeAll());
+        Assert.Equal(0, second.RemarksIn(session).Count);
+        Assert.DoesNotContain(project, first.OthersIn(session));
+    }
+
+    /// <summary>When one of the project's sessions ends, the other still reads what was left for the project.</summary>
+    [Fact]
+    public async Task ARemarkForTheProjectOutlivesOneOfItsSessions()
+    {
+        var fileKey = NewKey("f");
+        var project = NewKey("p");
+        var leaving = NewKey("s");
+        await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
+        var gone = await ClaimAsync(leaving, fileKey);
+        var staying = await ClaimAsync(NewKey("s"), fileKey);
+        await bridge.Roster.NameAsync(gone, project);
+        await bridge.Roster.NameAsync(staying, project);
+        var session = bridge.Registry.Open(fileKey)!;
+        await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "still here" });
+        await BridgeHostFixture.WaitUntilAsync(() => staying.RemarksIn(session).Count == 1, "the remark did not arrive");
+
+        await bridge.Roster.CloseAsync(leaving, CancellationToken.None);
+
+        Assert.Equal(1, staying.RemarksIn(session).Count);
+    }
+
+    [Fact]
+    public async Task ACommandNamesTheProjectOfTheAgentWhoseItIs()
+    {
+        var fileKey = NewKey("f");
+        var sessionId = NewKey("s");
+        var project = NewKey("p");
+        await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
+        var agent = await ClaimAsync(sessionId, fileKey);
+        await bridge.Roster.NameAsync(agent, project);
+
+        await MoveAsync(sessionId);
+
+        var command = Assert.Single(plugin.Received, message => message["method"] is not null);
+        Assert.Equal(agent.Address, command["agent"]!.GetValue<string>());
+        Assert.Equal(project, Described(plugin, agent.Address)!["name"]!.GetValue<string>());
+    }
 }
