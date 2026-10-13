@@ -14,8 +14,6 @@ public sealed class AgentSlot : IOpenDocuments
 
     private readonly ILogger _logger;
 
-    private readonly ConcurrentDictionary<string, Remarks> _remarks = new(StringComparer.Ordinal);
-
     /// <summary>Console marks by connection: a reconnected plugin brings a new console whose count starts from zero.</summary>
     private readonly ConcurrentDictionary<string, long> _consoleMarks = new(StringComparer.Ordinal);
 
@@ -24,7 +22,9 @@ public sealed class AgentSlot : IOpenDocuments
 
     private CancellationTokenSource _departure = new();
 
-    private int _isFolderAsked;
+    private readonly Lock _naming = new();
+
+    private Task? _named;
 
     private string? _targetFileKey;
 
@@ -125,14 +125,15 @@ public sealed class AgentSlot : IOpenDocuments
 
     IOpenDocument? IOpenDocuments.Resolve(string? fileKey) => Resolve(fileKey);
 
+    /// <summary>The remarks left in the document for this agent's project: whichever of its sessions reads first takes them.</summary>
     public Remarks RemarksIn(IOpenDocument document) =>
-        _remarks.GetOrAdd(document.FileKey ?? document.ConnectionId, _ => new Remarks(20));
+        _roster.RemarksOf(Address, document.FileKey ?? document.ConnectionId);
 
-    /// <summary>Who else works in the document: this server's other agents there, and the agents of other servers the panel names.</summary>
-    /// <remarks>The panel names only the agents of its other connections; the agents sharing this server's connection are known here alone.</remarks>
+    /// <summary>Who else works in the document: this server's agents of other projects there, and the agents of other servers the panel names.</summary>
+    /// <remarks>The panel names only the agents of its other connections; the agents sharing this server's connection are known here alone. Another session of this agent's own project is not somebody else.</remarks>
     public IReadOnlyList<string> OthersIn(IOpenDocument document)
     {
-        var mine = _roster.WorkingIn(document.FileKey).Where(slot => slot != this).Select(slot => slot.Name);
+        var mine = _roster.WorkingIn(document.FileKey).Where(slot => slot.Address != Address).Select(slot => slot.ProjectName);
 
         return [.. mine.Concat(document.Peers).Distinct(StringComparer.Ordinal)];
     }
@@ -146,12 +147,28 @@ public sealed class AgentSlot : IOpenDocuments
     public void ClearConsole(IOpenDocument document) =>
         _consoleMarks[document.ConnectionId] = document.ConsoleLogs.Added;
 
-    /// <summary>Whether this call is the one to ask the client for its folder: the first call of the agent, and only that one.</summary>
-    internal bool IsFirstToAskForTheFolder() => Interlocked.Exchange(ref _isFolderAsked, 1) == 0;
+    /// <summary>Names the agent once: the first call starts <paramref name="naming"/>, and every call of the agent waits for that one answer.</summary>
+    /// <remarks>A client often opens with several calls at once. Before, the first asked for the folder while the others went on to their tools: one of them chose a file before the agent knew its folder, and the choice was never written down to come back to.</remarks>
+    internal Task NameOnceAsync(Func<Task> naming)
+    {
+        lock (_naming)
+        {
+            return _named ??= naming();
+        }
+    }
 
     /// <summary>The project folder the client works in, once it said so; the agent's file is kept by it across restarts and reconnects.</summary>
     /// <remarks>Not <see cref="Name"/>: a window that reconnects opens a new session while the old one has not yet timed out, and is named <c>Keynex 2</c> for that while — it is still Keynex, and its file is Keynex's.</remarks>
     internal string? Folder { get; private set; }
+
+    /// <summary>How the panel addresses the agent: by its project, so two sessions of one project — a reconnect, a second conversation — are one agent there.</summary>
+    /// <remarks>An agent that has not named its folder yet stands alone under its id.</remarks>
+    internal string Address => Folder is { } folder ? $"{ProjectAddress}{folder}" : Id;
+
+    /// <summary>What the panel shows: the project folder, without the number that tells its sessions apart in the log.</summary>
+    internal string ProjectName => Folder ?? Name;
+
+    private const string ProjectAddress = "project:";
 
     internal void NameAfterFolder(string folder, string name)
     {
@@ -174,18 +191,17 @@ public sealed class AgentSlot : IOpenDocuments
     internal CommandLane LaneTo(EditorSession session) =>
         _lanes.GetOrAdd(session.ConnectionId, _ => new CommandLane());
 
-    /// <summary>How the agent stands in the file, as protocol 2 tells the panel.</summary>
+    /// <summary>How the agent's project stands in the file, as protocol 2 tells the panel: it works there when any of its sessions does.</summary>
     internal JsonObject DescribeIn(string? fileKey) => new()
     {
-        ["id"] = Id,
-        ["name"] = Name,
-        ["bound"] = fileKey is not null && fileKey == _targetFileKey,
+        ["id"] = Address,
+        ["name"] = ProjectName,
+        ["bound"] = _roster.WorkingIn(fileKey).Any(slot => slot.Address == Address),
         ["waiting"] = fileKey is null ? 0 : WaitingIn(fileKey),
     };
 
-    /// <summary>How many remarks wait for this agent in the file.</summary>
-    internal int WaitingIn(string fileKey) =>
-        _remarks.TryGetValue(fileKey, out var remarks) ? remarks.Count : 0;
+    /// <summary>How many remarks wait for this agent's project in the file.</summary>
+    internal int WaitingIn(string fileKey) => _roster.WaitingFor(Address, fileKey);
 
     /// <summary>Why a command found no plugin: the file this agent works in by name when it has one, so the agent knows what to ask the human for.</summary>
     internal EditorUnavailableException Unavailable(string? fileKey)

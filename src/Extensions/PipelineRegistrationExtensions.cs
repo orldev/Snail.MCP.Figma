@@ -132,9 +132,18 @@ public static class PipelineRegistrationExtensions
             using var serving = agents.Serve(context.Server.SessionId, context.Server.ClientInfo?.Name);
             var agent = agents.Current;
 
-            if (agents.IsShared && agent.IsFirstToAskForTheFolder() && await ClientFolder.NameAsync(context.Server, context.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ClientFolder)), cancellationToken) is { } folder)
+            if (agents.IsShared)
             {
-                await agents.NameAsync(agent, folder);
+                var server = context.Server;
+                var logger = context.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ClientFolder));
+
+                await agent.NameOnceAsync(async () =>
+                {
+                    if (await ClientFolder.NameAsync(server, logger, CancellationToken.None) is { } folder)
+                    {
+                        await agents.NameAsync(agent, folder);
+                    }
+                }).WaitAsync(cancellationToken);
             }
 
             return await next(context, cancellationToken);

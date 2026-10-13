@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using Snail.MCP.Figma.Configuration;
 
@@ -12,6 +13,9 @@ public sealed class AgentRoster
     private readonly Dictionary<string, AgentSlot> _bySession = new(StringComparer.Ordinal);
 
     private readonly AsyncLocal<AgentSlot?> _serving = new();
+
+    /// <summary>Remarks by project and file: the sessions of one project share them.</summary>
+    private readonly ConcurrentDictionary<(string Address, string Place), Remarks> _remarks = new();
 
     private readonly object _gate = new();
 
@@ -106,6 +110,10 @@ public sealed class AgentRoster
             agent.Return(fileKey, fileName);
             Log.AgentReturned(_logger, agent.Name, fileName, fileKey);
         }
+        else if (agent.ActiveFileKey is not null)
+        {
+            Remember(agent);
+        }
 
         await AnnounceEverywhereAsync().ConfigureAwait(false);
     }
@@ -129,9 +137,11 @@ public sealed class AgentRoster
     }
 
     /// <summary>The session ended: its agent leaves, its commands still waiting for their turn give it up, and every panel learns who is left.</summary>
+    /// <remarks>The remarks left for its project stay while another session of the project is here to read them.</remarks>
     public async Task CloseAsync(string sessionId, CancellationToken cancellationToken)
     {
         AgentSlot? leaving;
+        bool isLastOfItsProject;
 
         lock (_gate)
         {
@@ -141,6 +151,15 @@ public sealed class AgentRoster
             }
 
             _slots.Remove(leaving);
+            isLastOfItsProject = !_slots.Exists(slot => slot.Address == leaving.Address);
+        }
+
+        if (isLastOfItsProject)
+        {
+            foreach (var key in _remarks.Keys.Where(key => key.Address == leaving.Address))
+            {
+                _remarks.TryRemove(key, out _);
+            }
         }
 
         leaving.Release();
@@ -155,7 +174,15 @@ public sealed class AgentRoster
 
     /// <summary>How many remarks wait in the file for any agent of this server.</summary>
     public int WaitingIn(string? fileKey) =>
-        fileKey is null ? 0 : Slots.Sum(slot => slot.WaitingIn(fileKey));
+        fileKey is null ? 0 : Projects(Slots).Sum(slot => slot.WaitingIn(fileKey));
+
+    /// <summary>The remarks left for the project in the file or connection.</summary>
+    internal Remarks RemarksOf(string address, string place) =>
+        _remarks.GetOrAdd((address, place), _ => new Remarks(20));
+
+    /// <summary>How many remarks wait for the project there, without opening a queue just to count it.</summary>
+    internal int WaitingFor(string address, string place) =>
+        _remarks.TryGetValue((address, place), out var remarks) ? remarks.Count : 0;
 
     /// <summary>A plugin identified its file: an agent with no target takes the only file there is, and a panel that reloaded learns again who works in it.</summary>
     public async Task OnConnectedAsync(EditorSession session, CancellationToken cancellationToken)
@@ -171,10 +198,11 @@ public sealed class AgentRoster
         }
     }
 
-    /// <summary>Tells the panel who works in its file: every agent by name to a panel of protocol 2, whether anyone does to an older one.</summary>
+    /// <summary>Tells the panel who works in its file: every project by name to a panel of protocol 2, whether anyone does to an older one.</summary>
+    /// <remarks>A project with two sessions is one entry: the human sees the projects at work, not how many conversations each has open.</remarks>
     public Task AnnounceAsync(IOpenDocument session, CancellationToken cancellationToken) =>
         session is EditorSession { NamesAgents: true } named
-            ? named.SendAsync(EditorWireProtocol.Agents(new JsonArray([.. Slots.Select(slot => (JsonNode)slot.DescribeIn(named.FileKey))])), cancellationToken)
+            ? named.SendAsync(EditorWireProtocol.Agents(new JsonArray([.. Projects(Slots).Select(slot => (JsonNode)slot.DescribeIn(named.FileKey))])), cancellationToken)
             : session.PublishTargetBoundAsync(WorkingIn(session.FileKey).Count > 0, cancellationToken);
 
     /// <summary>Tells the panel how many remarks still wait there: per agent to a panel of protocol 2, all of them together to an older one.</summary>
@@ -183,11 +211,11 @@ public sealed class AgentRoster
             ? AnnounceAsync(session, cancellationToken)
             : session.PublishRemarksWaitingAsync(WaitingIn(session.FileKey), cancellationToken);
 
-    /// <summary>Queues the human's remark for the agent it names, or for every agent working in the file when it names none, and only if they work there.</summary>
+    /// <summary>Queues the human's remark for the project it names, or for every project working in the file when it names none, and only if they work there.</summary>
     /// <remarks>Every server is connected to every panel. A remark for another server's agent, queued here, would light this panel's queue for a reader that never comes and stop a build the human was not looking at.</remarks>
     public async Task QueueRemarkAsync(EditorSession session, BuildInterruption remark, string? agent, CancellationToken cancellationToken)
     {
-        var working = WorkingIn(session.FileKey).Where(slot => agent is null || slot.Id == agent).ToList();
+        var working = Projects(WorkingIn(session.FileKey).Where(slot => agent is null || slot.Address == agent)).ToList();
 
         if (working.Count == 0)
         {
@@ -205,10 +233,10 @@ public sealed class AgentRoster
         await PublishWaitingAsync(session, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>The human took the remarks waiting for the agent back before it read them, or every agent's when the panel names none.</summary>
+    /// <summary>The human took the remarks waiting for the project back before it read them, or every project's when the panel names none.</summary>
     public Task ClearRemarksAsync(EditorSession session, string? agent, CancellationToken cancellationToken)
     {
-        foreach (var slot in Slots.Where(slot => agent is null || slot.Id == agent))
+        foreach (var slot in Projects(Slots.Where(slot => agent is null || slot.Address == agent)))
         {
             slot.RemarksIn(session).TakeAll();
         }
@@ -246,6 +274,10 @@ public sealed class AgentRoster
 
         return unique;
     }
+
+    /// <summary>One session for each project among the agents.</summary>
+    private static IEnumerable<AgentSlot> Projects(IEnumerable<AgentSlot> agents) =>
+        agents.DistinctBy(slot => slot.Address, StringComparer.Ordinal);
 
     private static string? Called(string? name) =>
         string.IsNullOrWhiteSpace(name) ? null : name.Trim();
