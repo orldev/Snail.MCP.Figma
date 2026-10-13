@@ -245,10 +245,9 @@ Nothing has to be configured — the defaults work. Every setting is an environm
 | `SNAIL_MCP_FIGMA_CACHE__TTL_HOURS` / `__IMAGE_TTL_HOURS` | `24` / `24` | Lifetime of a node snapshot and of a render link |
 | `SNAIL_MCP_FIGMA_SCREENSHOTS__RETAIN_COUNT` | `30` | How many screenshots are kept on disk |
 
-A settings file can hold the same fields instead, looked up as `$SNAIL_MCP_FIGMA_CONFIG` →
-`./.s3l-mcp-figma.json` → `./s3l-mcp-figma.json` → `~/.config/s3l-mcp-figma/config.json` →
-`~/.s3l-mcp-figma.json`, then the same files under the snail name from before the rename (`./.snail-mcp-figma.json` →
-`./snail-mcp-figma.json` → `~/.snail-mcp-figma.json`). Environment variables always win. Full sample:
+A settings file can hold the same fields instead: the file `$SNAIL_MCP_FIGMA_CONFIG` names, and only that one, or else
+the first of `./.s3l-mcp-figma.json` → `./s3l-mcp-figma.json` → `~/.config/s3l-mcp-figma/config.json` →
+`~/.s3l-mcp-figma.json`. Environment variables always win. Full sample:
 [Configuration](https://orldev.github.io/Snail.MCP.Figma/configuration/).
 
 ## Troubleshooting

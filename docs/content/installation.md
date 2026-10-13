@@ -230,12 +230,24 @@ Measured with four sessions on an Apple Silicon Mac:
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/s3l.mcp.figma.plist
     ```
 
-    Later installs restart a loaded job by themselves.
+    Later installs restart a loaded job by themselves — as long as the loaded job is the one they write. Edit the
+    copy in `~/Library/LaunchAgents/` and they stop restarting it, printing the commands that would load the new
+    job over your edits instead.
 
-2. **Give the job your settings.** The job runs with `SNAIL_MCP_FIGMA_TRANSPORT=Http` and nothing else. Add the
-   token as `SNAIL_MCP_FIGMA_ACCESS_TOKEN` to `EnvironmentVariables` of the copy in `~/Library/LaunchAgents/` (never
-   to the template in the repository), and `SNAIL_MCP_FIGMA_DATA_DIRECTORY` when the plugin was imported into Figma
-   from a folder other than `~/.s3l-mcp-figma`. Then `launchctl kickstart -k gui/$(id -u)/s3l.mcp.figma`.
+2. **Give the server your settings in its settings file, not in the job.** The job runs with
+   `SNAIL_MCP_FIGMA_TRANSPORT=Http` and nothing else. Put the token into `~/.config/s3l-mcp-figma/config.json`,
+   readable by you alone:
+
+    ```bash
+    mkdir -p ~/.config/s3l-mcp-figma
+    printf '{ "AccessToken": "figd_..." }\n' > ~/.config/s3l-mcp-figma/config.json
+    chmod 600 ~/.config/s3l-mcp-figma/config.json
+    launchctl kickstart -k gui/$(id -u)/s3l.mcp.figma
+    ```
+
+    The server reads the file itself, so the same file serves stdio sessions too, and on Linux or Windows the service
+    needs nothing of its own. Any other setting goes there as well — `"DataDirectory"` when the plugin was imported
+    into Figma from a folder other than `~/.s3l-mcp-figma`; see [Configuration](configuration.md#settings-file).
 
 3. **Register it as an HTTP server** in every client, in place of the stdio entry:
 

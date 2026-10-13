@@ -11,7 +11,7 @@ is a field like any other.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SNAIL_MCP_FIGMA_ACCESS_TOKEN` | — | Figma personal or OAuth token. Needed by the REST channel only |
-| `SNAIL_MCP_FIGMA_CONFIG` | — | Explicit path to the settings file (read before the config is loaded) |
+| `SNAIL_MCP_FIGMA_CONFIG` | — | Explicit path to the settings file, the only one read then: a missing file means no settings file |
 | `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.s3l-mcp-figma` | Snapshot database, bundled plugin, captures |
 | `SNAIL_MCP_FIGMA_MODE` | `Local` | Server mode |
 | `SNAIL_MCP_FIGMA_TRANSPORT` | `Stdio` | `Stdio`: each client starts a server of its own. `Http`: one server for every agent on the machine, see [Installation](installation.md#one-server-for-every-agent) |
@@ -57,16 +57,19 @@ Only `command` and the token are needed in practice; the rest is shown to make t
 
 ## Settings file
 
-Optional — without it the server runs on defaults. It is looked up along the chain
+Optional — without it the server runs on defaults. It is looked up along the chain every Snail server shares
+(`ServerSettings` of Snail.Sdk). A file `$SNAIL_MCP_FIGMA_CONFIG` names is the only one read; otherwise the first of
+these that exists:
 
-1. `$SNAIL_MCP_FIGMA_CONFIG`
-2. `./.s3l-mcp-figma.json`
-3. `./s3l-mcp-figma.json`
-4. `~/.config/s3l-mcp-figma/config.json`
-5. `~/.s3l-mcp-figma.json`
-6. `./.snail-mcp-figma.json`, `./snail-mcp-figma.json`, `~/.snail-mcp-figma.json` — the names from before the rename
+1. `./.s3l-mcp-figma.json`
+2. `./s3l-mcp-figma.json`
+3. `~/.config/s3l-mcp-figma/config.json`
+4. `~/.s3l-mcp-figma.json`
 
 Every field is optional and the values below are the defaults, so an empty `{}` behaves exactly like no file.
+The token is a field too, `"AccessToken": "figd_..."`, and this file is the place for it when the server runs as a
+service: a secret in a launchd job or a client's config is copied wherever that file goes, while this one stays
+readable by you alone (`chmod 600`). A token in the environment still wins over the file.
 
 ```json
 {

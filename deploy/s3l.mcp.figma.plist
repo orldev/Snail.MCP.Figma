@@ -4,9 +4,9 @@
     The one Figma server of this Mac, shared by every agent: MCP over HTTP on 127.0.0.1:9233, the plugin bridge on the
     first free port of 9223-9232, started at login and again whenever it ends. Publishing natively with
     -r osx-arm64 -p:SnailMcpInstall=true writes this job with the machine's paths to ~/.s3l-mcp/Snail.MCP.Figma/ and
-    restarts it when it is loaded; the program is the native binary, so no dotnet runs it.
-    The Figma token goes into the installed job's EnvironmentVariables as SNAIL_MCP_FIGMA_ACCESS_TOKEN, never into this
-    template; so does SNAIL_MCP_FIGMA_DATA_DIRECTORY when the plugin was imported into Figma from another folder.
+    restarts it when the loaded job is the one written; the program is the native binary, so no dotnet runs it.
+    The Figma token and every other setting go into ~/.config/s3l-mcp-figma/config.json, which the server reads itself,
+    never into this template or the installed job: a job edited by hand is no longer restarted by an install.
 -->
 <plist version="1.0">
 <dict>

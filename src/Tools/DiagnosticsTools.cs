@@ -3,6 +3,7 @@ using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -36,7 +37,7 @@ public sealed class DiagnosticsTools(
             },
             ["config"] = new JsonObject
             {
-                ["configFile"] = ServerPaths.FindConfigFile(),
+                ["configFile"] = ServerSettings.FileOf(ServerPaths.ShortName),
                 ["dataDirectory"] = config.DataDirectory,
                 ["figmaAccessToken"] = await DescribeTokenAsync(probeToken, cancellationToken).ConfigureAwait(false),
                 ["sanitizationProfile"] = config.Sanitization.Profile.ToString(),

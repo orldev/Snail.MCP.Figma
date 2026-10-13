@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tests.Configuration;
 
@@ -82,7 +84,7 @@ public class ServerConfigTests
         };
 
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(EnvironmentSettings.Read(variables))
+            .AddServerSettings(ServerPaths.ShortName, file: null, variables)
             .Build();
         var config = new ServerConfig();
         configuration.Bind(config);
@@ -94,17 +96,29 @@ public class ServerConfigTests
         Assert.Null(configuration["PATH"]);
     }
 
+    /// <summary>The token kept in the settings file, out of the launchd job and every client's config, reaches the server; a token in the environment still wins.</summary>
     [Fact]
-    public void ConfigCandidates_PutEnvironmentOverrideFirst()
+    public void AccessToken_IsReadFromTheSettingsFile_UnlessTheEnvironmentNamesOne()
     {
-        var candidates = RunWithEnvironment(
-            new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = "/tmp/snail-mcp-figma-explicit.json" },
-            () => ServerPaths.ConfigCandidates().ToList());
+        var file = Path.Combine(Path.GetTempPath(), $"s3l-mcp-figma-{Guid.NewGuid():N}.json");
+        File.WriteAllText(file, """{ "AccessToken": "figd_from-file" }""");
 
-        Assert.Equal("/tmp/snail-mcp-figma-explicit.json", candidates[0]);
-        Assert.Contains(candidates, c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal));
-        Assert.True(candidates.FindIndex(c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal))
-            < candidates.FindIndex(c => c.EndsWith(".snail-mcp-figma.json", StringComparison.Ordinal)));
+        try
+        {
+            var fromFile = RunWithEnvironment(
+                new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null },
+                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+            var fromEnvironment = RunWithEnvironment(
+                new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = "figd_from-env" },
+                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+
+            Assert.Equal("figd_from-file", fromFile.AccessToken);
+            Assert.Equal("figd_from-env", fromEnvironment.AccessToken);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
     }
 
     private static void RunWithEnvironment(Dictionary<string, string?> values, Action action) =>

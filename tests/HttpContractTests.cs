@@ -45,7 +45,7 @@ public sealed class HttpContractTests : IAsyncLifetime
         start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = BridgeRangeStart.ToString(System.Globalization.CultureInfo.InvariantCulture);
         start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = BridgeRangeEnd.ToString(System.Globalization.CultureInfo.InvariantCulture);
         start.Environment.Remove("SNAIL_MCP_FIGMA_ACCESS_TOKEN");
-        start.Environment.Remove("SNAIL_MCP_FIGMA_CONFIG");
+        start.Environment["SNAIL_MCP_FIGMA_CONFIG"] = ServerProgram.NoSettingsFile;
         start.Environment["HOME"] = ServerProgram.Home;
         start.Environment["USERPROFILE"] = ServerProgram.Home;
 
