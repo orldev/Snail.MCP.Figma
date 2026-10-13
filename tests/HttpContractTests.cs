@@ -106,7 +106,8 @@ public sealed class HttpContractTests : IAsyncLifetime
         await StartServerAsync();
         await using var after = await ConnectAsync("Keynex", cancellation.Token);
 
-        var status = JsonNode.Parse(ServerProgram.Text(await after.CallToolAsync("figma_get_status", cancellationToken: cancellation.Token)))!;
+        var answer = await after.CallToolAsync("figma_get_status", cancellationToken: cancellation.Token);
+        var status = JsonNode.Parse(answer.Text())!;
 
         Assert.Equal("survivor", status["data"]!["activeFileKey"]!.GetValue<string>());
 

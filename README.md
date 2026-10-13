@@ -317,10 +317,11 @@ dotnet test
   catalog, the stdio contract and the code style are all guarded by tests.
 - `.mcp.json` in the repository root registers a local debug build for Claude Code.
 - Docs: `dotnet build src -p:SnailReference=true` regenerates the tool reference from the built server
-  (Snail.Sdk; families and titles in `docs/tools.json`), `mkdocs serve -f docs/mkdocs.yml` previews the site
-  (`pip install -r docs/requirements.txt`); the theme is our own and lives in `docs/theme/`.
-- Workflows call the shared ones of Snail.Sdk. Release: a `v*` tag runs the tests, syncs the version in
-  `.mcp/server.json` and pushes the package to NuGet; every push to `master` deploys the documentation.
+  (Snail.Sdk; families and titles in `docs/tools.json`), `dotnet msbuild src -t:SnailSite` builds the site with the
+  theme and MkDocs Snail.Sdk carries.
+- Workflows call the shared ones of Snail.Sdk. Release: a version tag (`v1.2.0`) runs the tests, syncs the version in
+  `.mcp/server.json` and builds the native packages, which a job of `publish.yml` pushes to NuGet; every push to
+  `master` deploys the documentation.
 
 Repository layout:
 
@@ -330,7 +331,7 @@ Repository layout:
   Figma API contracts they compare against (`Figma/openapi.yaml`, `Figma/plugin-api.d.ts`).
 - `plugin/` — the Figma extension bundle the server installs for import.
 - `docs/` — the documentation site: `content/` (the pages; `tools/` and `schemas/` inside it are
-  generated), `theme/`, `tools.json` (the tool families) and `mkdocs.yml`.
+  generated), `tools.json` (the tool families) and `mkdocs.yml`.
 - `.mcp/server.json` — the MCP registry manifest packed into the NuGet package; `.mcp.json` registers
   the local debug build for Claude Code.
 

@@ -219,7 +219,7 @@ Measured with four sessions on an Apple Silicon Mac:
 1. **Publish and install the job.** From a clone of the repository:
 
     ```bash
-    dotnet publish src -c Release -r osx-arm64 -p:Install=true
+    dotnet publish src -c Release -r osx-arm64 -p:SnailMcpInstall=true
     ```
 
     This publishes the native server into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,

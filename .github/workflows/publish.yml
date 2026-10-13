@@ -1,19 +1,21 @@
 name: release to NuGet
 
-# The shared server release of Snail.Sdk (docs/publishing.md): one framework-dependent tool package, as the plugin
-# bridge runs on ASP.NET Core, asked over stdio before it is pushed; .mcp/server.json takes the version. A v* tag
-# releases; run by hand, it builds and checks the package and pushes only when asked to. The site is docs.yml's.
+# The shared server release of Snail.Sdk: a native tool package for each platform with a framework-dependent one for the
+# rest, asked over stdio before they are pushed; .mcp/server.json takes the version. A version tag (v1.2.0,
+# v1.2.0-preview.1) releases; run by hand, it builds and checks the packages and pushes only when asked to. The push is
+# a job of this file because nuget.org gives a trusted publishing key only to a job of the workflow file its policy
+# names in this repository: this publish.yml, with the secret NUGET_USER. The site is docs.yml's.
 
 on:
   push:
-    tags: ['v*']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
   workflow_dispatch:
     inputs:
       version:
         description: The version to pack, such as 0.2.0 or 0.2.0-preview.1
         required: true
       push:
-        description: Push the package to NuGet
+        description: Push the packages to NuGet
         type: boolean
         default: false
 
@@ -22,14 +24,21 @@ permissions:
 
 jobs:
   release:
-    permissions:
-      contents: read
-      id-token: write
     uses: orldev/Snail.Sdk/.github/workflows/mcp-publish.yml@v1
     with:
-      name: Snail.MCP.Figma
-      native: false
       contract-variable: SNAIL_FIGMA_SERVER
+      contract-filter: FullyQualifiedName~StdioContract
       version: ${{ inputs.version }}
       push: ${{ github.event_name == 'push' || inputs.push }}
-    secrets: inherit
+
+  push:
+    needs: release
+    if: needs.release.outputs.push == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: orldev/Snail.Sdk/.github/actions/nuget-push@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}

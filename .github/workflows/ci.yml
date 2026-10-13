@@ -1,7 +1,7 @@
 name: build and tests
 
 # The shared server CI of Snail.Sdk: the tests, the conformance check, the reference the build writes, and the server
-# published framework-dependent (the plugin bridge runs on ASP.NET Core) and asked over stdio. Once a month, and by
+# built native for every platform it ships to and asked over stdio (the stdio contract tests only). Once a month, and by
 # hand, the contract guards run against the latest Figma REST and Plugin API artifacts: this server's own job.
 
 on:
@@ -19,9 +19,8 @@ jobs:
     if: github.event_name != 'schedule'
     uses: orldev/Snail.Sdk/.github/workflows/mcp-ci.yml@v1
     with:
-      name: Snail.MCP.Figma
-      native: false
       contract-variable: SNAIL_FIGMA_SERVER
+      contract-filter: FullyQualifiedName~StdioContract
 
   contracts:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
