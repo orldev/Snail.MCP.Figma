@@ -35,6 +35,12 @@ public sealed class EditorSession : IOpenDocument
 
     public string? EditorType { get; set; }
 
+    /// <summary>The bridge protocol the panel speaks, from <c>FILE_INFO</c>: 1 knows one agent per connection, 2 names each agent in its messages.</summary>
+    public int Protocol { get; set; } = 1;
+
+    /// <summary>Whether the panel tells agents apart within this connection (<see cref="EditorWireProtocol.Agents"/>).</summary>
+    public bool NamesAgents => Protocol >= EditorWireProtocol.AgentsProtocol;
+
     public DateTimeOffset ConnectedAt { get; }
 
     public DateTimeOffset LastActivityAt { get; set; }
@@ -84,12 +90,9 @@ public sealed class EditorSession : IOpenDocument
     /// <summary>Ring buffer of description and annotation edits, which REST version snapshots never expose.</summary>
     public RingBuffer<JsonNode> MetadataChanges { get; } = new(200);
 
-    /// <summary>Remarks typed in the plugin panel, waiting to be read.</summary>
-    public Remarks Remarks { get; } = new(20);
-
-    /// <summary>Tells the panel how many remarks are still waiting.</summary>
-    public Task PublishRemarksWaitingAsync(CancellationToken cancellationToken) =>
-        SendAsync(EditorWireProtocol.RemarksWaiting(Remarks.Count), cancellationToken);
+    /// <summary>Tells the panel how many remarks are still waiting for the agents working in this file.</summary>
+    public Task PublishRemarksWaitingAsync(int waiting, CancellationToken cancellationToken) =>
+        SendAsync(EditorWireProtocol.RemarksWaiting(waiting), cancellationToken);
 
     public Task PublishBuildProgressAsync(int step, int total, CancellationToken cancellationToken) =>
         SendAsync(EditorWireProtocol.BuildProgress(step, total), cancellationToken);

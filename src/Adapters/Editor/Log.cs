@@ -78,4 +78,22 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 124, Level = LogLevel.Debug, Message = "Could not push PORTS_ALIVE to {ConnectionId}: {Message}")]
     internal static partial void PortsNotPushed(ILogger logger, string? connectionId, string? message);
+
+    [LoggerMessage(EventId = 125, Level = LogLevel.Information, Message = "Agent {Name} ({Id}) arrived")]
+    internal static partial void AgentArrived(ILogger logger, string? name, string? id);
+
+    [LoggerMessage(EventId = 126, Level = LogLevel.Information, Message = "Agent {Name} ({Id}) left")]
+    internal static partial void AgentLeft(ILogger logger, string? name, string? id);
+
+    [LoggerMessage(EventId = 127, Level = LogLevel.Warning, Message = "A plugin message from {FileKey} could not be handled and was skipped")]
+    internal static partial void MessageFailed(ILogger logger, Exception failure, string? fileKey);
+
+    [LoggerMessage(EventId = 128, Level = LogLevel.Warning, Message = "The agents' files in {Path} could not be read; every agent starts without one")]
+    internal static partial void AgentTargetsUnreadable(ILogger logger, Exception failure, string? path);
+
+    [LoggerMessage(EventId = 129, Level = LogLevel.Warning, Message = "The agents' files could not be written to {Path}; after a restart the agents will have to name their files again")]
+    internal static partial void AgentTargetsNotSaved(ILogger logger, Exception failure, string? path);
+
+    [LoggerMessage(EventId = 130, Level = LogLevel.Information, Message = "Agent {Name} is back in {FileName} ({FileKey})")]
+    internal static partial void AgentReturned(ILogger logger, string? name, string? fileName, string? fileKey);
 }

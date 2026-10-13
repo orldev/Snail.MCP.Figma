@@ -20,7 +20,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         return plugin;
     }

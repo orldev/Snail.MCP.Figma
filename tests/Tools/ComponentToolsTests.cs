@@ -25,7 +25,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         var attempt = 0;
         plugin.Handlers[EditorCommands.CreateVariable.Name] = parameters => new JsonObject
@@ -51,7 +51,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         var response = Parse(await Nodes().SetStrokesAsync("1:2", "{not json"));
 
@@ -65,7 +65,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         var tools = new ComponentTools(_bridge.Gateway, NullLogger<ComponentTools>.Instance);
         var response = Parse(await tools.AddComponentPropertyAsync("1:2", "Size", "VARIANT"));

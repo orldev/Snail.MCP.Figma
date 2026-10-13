@@ -10,6 +10,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
     private readonly List<JsonNode> _received = [];
     private readonly object _gate = new();
     private CancellationTokenSource? _loop;
+    private bool _isDisposed;
 
     public IReadOnlyList<JsonNode> Received
     {
@@ -21,7 +22,10 @@ public sealed class FakeEditorExtension : IAsyncDisposable
 
     public Dictionary<string, string> Errors { get; } = new(StringComparer.Ordinal);
 
-    public async Task ConnectAsync(int port, string fileKey, string fileName, string path = "/")
+    /// <summary>Commands the plugin takes and never answers, as a script that is still running.</summary>
+    public HashSet<string> Silent { get; } = new(StringComparer.Ordinal);
+
+    public async Task ConnectAsync(int port, string fileKey, string fileName, string path = "/", int protocol = 1)
     {
         await _socket.ConnectAsync(new Uri($"ws://127.0.0.1:{port}{path}"), CancellationToken.None);
 
@@ -38,6 +42,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
                 ["pluginVersion"] = "1.40.0",
                 ["editorType"] = "figma",
                 ["currentPage"] = "Page 1",
+                ["protocol"] = protocol,
             },
         });
     }
@@ -86,6 +91,11 @@ public sealed class FakeEditorExtension : IAsyncDisposable
                     continue;
                 }
 
+                if (Silent.Contains(method))
+                {
+                    continue;
+                }
+
                 if (Errors.TryGetValue(method, out var error))
                 {
                     await SendAsync(new JsonObject { ["id"] = id, ["error"] = error });
@@ -108,9 +118,16 @@ public sealed class FakeEditorExtension : IAsyncDisposable
     }
 
     /// <summary>Says goodbye before the receive loop is cancelled: cancelling a receive aborts the socket, and a close started on an aborted socket throws instead of closing.</summary>
-    /// <remarks>Only the output side is closed here; the loop reads the server's close frame and ends by itself, so the two never race for the one receive the socket allows.</remarks>
+    /// <remarks>Only the output side is closed here; the loop reads the server's close frame and ends by itself, so the two never race for the one receive the socket allows. A test may drop the plugin itself before its <c>await using</c> does, so a second call does nothing.</remarks>
     public async ValueTask DisposeAsync()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
         if (_socket.State == WebSocketState.Open)
         {
             try

@@ -1,12 +1,15 @@
 <Project Sdk="Snail.Sdk.Mcp">
 
     <!--
-        A framework-dependent stdio server (Snail.Sdk.Mcp): the plugin bridge runs on ASP.NET Core, so it is not
-        published with Native AOT. A dotnet tool of the McpServer kind, installed into ~/.s3l-mcp with -p:Install=true.
+        A framework-dependent server (Snail.Sdk.Mcp) over stdio by default, or shared by every agent of the machine
+        over Streamable HTTP with SNAIL_MCP_FIGMA_TRANSPORT=Http (launchd keeps that one running). Not yet published
+        with Native AOT: tool registration, JSON and LiteDB are still reflection-based.
+        A dotnet tool of the McpServer kind, installed into ~/.s3l-mcp with -p:Install=true.
     -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <SnailMcpNative>false</SnailMcpNative>
+        <SnailMcpTransport>Both</SnailMcpTransport>
     </PropertyGroup>
 
     <!-- The tool reference goes into the MkDocs site (docs/mkdocs.yml reads docs/content): tools/ and schemas/ there. -->

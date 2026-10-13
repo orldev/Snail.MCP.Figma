@@ -9,6 +9,7 @@ namespace Snail.MCP.Figma.Adapters.Editor;
 /// <summary>WebSocket hub: accepts plugin connections, routes replies and dispatches events; the only path that can write into Figma.</summary>
 public sealed class EditorSocketHub(
     OpenDocumentRegistry registry,
+    AgentRoster agents,
     EditorCommandRouter router,
     SnapshotInvalidator invalidation,
     EditorLinkOptions options,
@@ -68,10 +69,13 @@ public sealed class EditorSocketHub(
         }
         finally
         {
-            await registry.RemoveAsync(session, CancellationToken.None);
+            registry.Remove(session);
+            router.FailFor(session, $"The plugin in {session.FileName ?? session.FileKey ?? "the file"} disconnected before it answered.");
         }
     }
 
+    /// <summary>Reads the plugin's messages until the socket closes; a message the hub cannot handle is logged and skipped, never allowed to end the connection.</summary>
+    /// <remarks>On a shared server one file's connection carries every agent working there: a field of an unexpected type in one event must not cut all of them off from the file.</remarks>
     private async Task ReceiveLoopAsync(EditorSession session, WebSocket socket, CancellationToken cancellationToken)
     {
         var buffer = new byte[ReceiveBufferSize];
@@ -98,7 +102,15 @@ public sealed class EditorSocketHub(
             while (!received.EndOfMessage);
 
             var text = Encoding.UTF8.GetString(payload.ToArray());
-            await DispatchAsync(session, text, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await DispatchAsync(session, text, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not WebSocketException)
+            {
+                Log.MessageFailed(logger, ex, session.FileKey);
+            }
         }
     }
 
@@ -167,8 +179,7 @@ public sealed class EditorSocketHub(
                 break;
 
             case EditorWireProtocol.Events.RemarksClear:
-                session.Remarks.TakeAll();
-                await session.PublishRemarksWaitingAsync(cancellationToken).ConfigureAwait(false);
+                await agents.ClearRemarksAsync(session, Addressee(data), cancellationToken).ConfigureAwait(false);
                 break;
 
             case EditorWireProtocol.Events.DocumentChange:
@@ -203,26 +214,22 @@ public sealed class EditorSocketHub(
         }
     }
 
-    /// <summary>Queues the human's remark, but only when this agent works in the file the remark was typed in.</summary>
-    /// <remarks>Every server is connected to every panel. A remark for another agent, queued here, would light this panel's queue for a reader that never comes and stop a build the human was not looking at.</remarks>
+    /// <summary>Queues the human's remark for the agents of this server that work in the file it was typed in.</summary>
     private async Task HandleBuildStopAsync(EditorSession session, JsonNode? data, CancellationToken cancellationToken)
     {
         session.LastInteractionAt = DateTimeOffset.UtcNow;
 
-        if (registry.ActiveFileKey != session.FileKey)
-        {
-            Log.RemarkForAnotherAgent(logger, session.FileKey, registry.ActiveFileKey ?? "no file yet");
-
-            return;
-        }
-
-        session.Remarks.Add(new BuildInterruption(
+        var remark = new BuildInterruption(
             data?["remark"]?.GetValue<string>(),
             data?["nodes"] as JsonArray is { } selected ? [.. selected.Select(node => node!.DeepClone())] : [],
-            DateTimeOffset.UtcNow));
-        Log.HumanSteppedIn(logger, session.FileKey);
-        await session.PublishRemarksWaitingAsync(cancellationToken).ConfigureAwait(false);
+            DateTimeOffset.UtcNow);
+
+        await agents.QueueRemarkAsync(session, remark, Addressee(data), cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>The agent a panel of protocol 2 addressed; <c>null</c> means every agent, which is what an older panel always means.</summary>
+    private static string? Addressee(JsonNode? data) =>
+        data?["agent"] is JsonValue value && value.TryGetValue<string>(out var agent) && !string.IsNullOrWhiteSpace(agent) ? agent : null;
 
     private async Task HandleFileInfoAsync(EditorSession session, JsonNode? data, CancellationToken cancellationToken)
     {
@@ -238,8 +245,10 @@ public sealed class EditorSocketHub(
         session.PluginVersion = data?["pluginVersion"]?.GetValue<string>();
         session.EditorType = data?["editorType"]?.GetValue<string>();
         session.CurrentPage = data?["currentPage"]?.GetValue<string>();
+        session.Protocol = data?["protocol"] is JsonValue protocol && protocol.TryGetValue<int>(out var spoken) ? spoken : 1;
 
-        await registry.RegisterAsync(session, fileKey, data?["fileName"]?.GetValue<string>(), cancellationToken).ConfigureAwait(false);
+        registry.Register(session, fileKey, data?["fileName"]?.GetValue<string>());
+        await agents.OnConnectedAsync(session, cancellationToken).ConfigureAwait(false);
 
         if (ExpectedPluginVersion is { } expected && session.PluginVersion != expected)
         {

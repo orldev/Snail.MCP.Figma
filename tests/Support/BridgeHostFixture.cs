@@ -13,7 +13,7 @@ using Snail.MCP.Figma.Extensions;
 namespace Snail.MCP.Figma.Tests.Support;
 
 /// <summary>Hosts a real WebSocket hub on a free port, wired through the production <c>UseBridge()</c> — the same route, WebSocket upgrade and /health the real server maps; the bridge is the only write path and half of its contract lives in the socket.</summary>
-public sealed class BridgeHostFixture : IAsyncLifetime
+public class BridgeHostFixture : IAsyncLifetime
 {
     /// <summary>Outside 9223-9232 — the range the real Figma plugin scans; inside it the plugin would hijack the test hub.</summary>
     private const int SafePortRangeStart = 19223;
@@ -29,9 +29,18 @@ public sealed class BridgeHostFixture : IAsyncLifetime
 
     public int Port { get; private set; }
 
+    /// <summary>stdio here: one agent, the one that started the process.</summary>
+    protected virtual Transport Transport => Transport.Stdio;
+
+    /// <summary>Every agent of this host.</summary>
+    public AgentRoster Roster { get; private set; } = null!;
+
     public LiveEditorGateway Gateway { get; private set; } = null!;
 
     public OpenDocumentRegistry Registry { get; private set; } = null!;
+
+    /// <summary>The one agent of this host, as over stdio.</summary>
+    public AgentSlot Agent { get; private set; } = null!;
 
     public LiteDbNodeSnapshotStore Cache { get; private set; } = null!;
 
@@ -64,6 +73,7 @@ public sealed class BridgeHostFixture : IAsyncLifetime
             DataDirectory = Path.Combine(Path.GetTempPath(), "snail-bridge-tests", Guid.NewGuid().ToString("N")),
             Cache = { Enabled = false },
             Bridge = { RequestTimeoutSeconds = 5, PortRangeStart = SafePortRangeStart, PortRangeEnd = SafePortRangeEnd, AgentName = "test-agent" },
+            Transport = Transport,
         };
 
         Port = PortDiscovery.FindAvailablePort(config.Bridge)
@@ -74,7 +84,6 @@ public sealed class BridgeHostFixture : IAsyncLifetime
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(config.Bridge);
         builder.Services.AddSingleton(config.Cache);
-        builder.Services.AddSingleton<ActiveDocumentTracker>();
         builder.Services.AddSingleton<ILiteDatabaseProvider, DisabledLiteDatabaseProvider>();
         builder.Services.AddSingleton<LiteDbNodeSnapshotStore>();
         builder.Services.AddSingleton<INodeSnapshotStore>(provider => provider.GetRequiredService<LiteDbNodeSnapshotStore>());
@@ -87,6 +96,9 @@ public sealed class BridgeHostFixture : IAsyncLifetime
         builder.Services.AddSingleton<IDocumentVersionLedger>(provider => provider.GetRequiredService<LiteDbDocumentVersionLedger>());
         builder.Services.AddSingleton<SnapshotInvalidator>();
         builder.Services.AddSingleton<OpenDocumentRegistry>();
+        builder.Services.AddSingleton<AgentRoster>();
+        builder.Services.AddTransient(provider => provider.GetRequiredService<AgentRoster>().Current);
+        builder.Services.AddTransient(provider => provider.GetRequiredService<AgentSlot>().Tracker);
         builder.Services.AddSingleton<EditorCommandRouter>();
         builder.Services.AddSingleton<EditorSocketHub>();
         builder.Services.AddSingleton<LiveEditorGateway>();
@@ -103,7 +115,9 @@ public sealed class BridgeHostFixture : IAsyncLifetime
         Hub = _app.Services.GetRequiredService<EditorSocketHub>();
         Registry = _app.Services.GetRequiredService<OpenDocumentRegistry>();
         Cache = _app.Services.GetRequiredService<LiteDbNodeSnapshotStore>();
-        ActiveFile = _app.Services.GetRequiredService<ActiveDocumentTracker>();
+        Roster = _app.Services.GetRequiredService<AgentRoster>();
+        Agent = Roster.Default;
+        ActiveFile = Agent.Tracker;
     }
 
     public async Task DisposeAsync()
@@ -116,12 +130,12 @@ public sealed class BridgeHostFixture : IAsyncLifetime
     }
 
     /// <summary>Connects a fake plugin and waits until the hub recognizes it.</summary>
-    public async Task<FakeEditorExtension> ConnectPluginAsync(string fileKey, string fileName = "Test file")
+    public async Task<FakeEditorExtension> ConnectPluginAsync(string fileKey, string fileName = "Test file", int protocol = 1)
     {
         var plugin = new FakeEditorExtension();
-        await plugin.ConnectAsync(Port, fileKey, fileName, _bridgePath);
+        await plugin.ConnectAsync(Port, fileKey, fileName, _bridgePath, protocol);
 
-        await WaitUntilAsync(() => Registry.Resolve(fileKey) is not null,
+        await WaitUntilAsync(() => Registry.Open(fileKey) is not null,
             $"hub did not register file {fileKey}");
 
         return plugin;
@@ -147,3 +161,9 @@ public sealed class BridgeHostFixture : IAsyncLifetime
 
 [CollectionDefinition(nameof(BridgeHostFixture))]
 public sealed class BridgeCollection : ICollectionFixture<BridgeHostFixture>;
+
+/// <summary>The same host as a shared server: an agent per MCP session, and none of its own.</summary>
+public sealed class SharedBridgeHostFixture : BridgeHostFixture
+{
+    protected override Transport Transport => Transport.Http;
+}

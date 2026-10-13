@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    The one Figma server of this Mac, shared by every agent: MCP over HTTP on 127.0.0.1:9233, the plugin bridge on the
+    first free port of 9223-9232, started at login and again whenever it ends. Publishing with -p:Install=true writes
+    this job with the machine's paths to ~/.s3l-mcp/Snail.MCP.Figma/ and restarts it when it is loaded.
+    The Figma token goes into the installed job's EnvironmentVariables as SNAIL_MCP_FIGMA_ACCESS_TOKEN, never into this
+    template; so does SNAIL_MCP_FIGMA_DATA_DIRECTORY when the plugin was imported into Figma from another folder.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>s3l.mcp.figma</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{DOTNET}}</string>
+        <string>{{CURRENT}}/Snail.MCP.Figma.dll</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>{{HOME}}</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>SNAIL_MCP_FIGMA_TRANSPORT</key>
+        <string>Http</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/Library/Logs/Snail.MCP.Figma.log</string>
+</dict>
+</plist>

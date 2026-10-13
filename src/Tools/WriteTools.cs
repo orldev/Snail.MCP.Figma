@@ -175,12 +175,12 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             {
                 var panel = Plugin.Documents.Resolve();
 
-                if (panel is not null && panel.Remarks.TakeSince(startedAt) is { } stepIn)
+                if (panel is not null && Plugin.Documents.RemarksIn(panel).TakeSince(startedAt) is { } stepIn)
                 {
                     interruption = stepIn;
                     stoppedAt = index;
 
-                    await panel.PublishRemarksWaitingAsync(ct).ConfigureAwait(false);
+                    await Plugin.Documents.PublishRemarksWaitingAsync(panel, ct).ConfigureAwait(false);
 
                     break;
                 }
