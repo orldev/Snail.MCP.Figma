@@ -42,9 +42,12 @@ public static class PipelineRegistrationExtensions
             return services;
         }
 
-        /// <summary>Driving adapter over Streamable HTTP: every client that opens with initialize keeps a session, and every session is an agent of its own.</summary>
-        /// <remarks>A session nobody has used for <see cref="SessionIdleTimeout"/> ends, and its agent leaves with it: a VS Code window that was killed never says goodbye, and its agent would otherwise stay in the panel of the file it worked in.
-        /// <para>The SDK marks the session timeout obsolete (MCP9006) because sessions are kept only for clients of the 2025 protocol revisions, which is every agent's client today, and the session runner experimental (MCPEXP002); it is the one place that sees a session end.</para></remarks>
+        /// <summary>Driving adapter over Streamable HTTP: every client keeps a session, and every session is an agent of its own.</summary>
+        /// <remarks>
+        /// <para>Every request must belong to a session, which <c>WithLocalHttpTransport</c> of Snail.Sdk requires: the 2026-07-28 revision has none and is refused (-32022), so every Claude Code window falls back to initialize and becomes an agent of its own, with its folder.</para>
+        /// <para>A session nobody has used for <see cref="SessionIdleTimeout"/> ends, and its agent leaves with it: a VS Code window that was killed never says goodbye, and its agent would otherwise stay in the panel of the file it worked in.</para>
+        /// <para>The SDK marks sessions obsolete (MCP9006), kept for clients of the 2025 revisions, which every agent's client still speaks; and the session runner experimental (MCPEXP002), the one place that sees a session end.</para>
+        /// </remarks>
         public IServiceCollection AddMcpHttpTransport()
         {
             services.AddMcpServerWithTools().WithLocalHttpTransport();
@@ -129,7 +132,7 @@ public static class PipelineRegistrationExtensions
             using var serving = agents.Serve(context.Server.SessionId, context.Server.ClientInfo?.Name);
             var agent = agents.Current;
 
-            if (agents.IsShared && agent.IsFirstToAskForTheFolder() && await ClientFolder.NameAsync(context.Server, cancellationToken) is { } folder)
+            if (agents.IsShared && agent.IsFirstToAskForTheFolder() && await ClientFolder.NameAsync(context.Server, context.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ClientFolder)), cancellationToken) is { } folder)
             {
                 await agents.NameAsync(agent, folder);
             }

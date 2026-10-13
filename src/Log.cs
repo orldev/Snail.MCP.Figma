@@ -26,4 +26,16 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 406, Level = LogLevel.Warning, Message = "No MCP tool has been called for {IdleFor}; the process looks orphaned, shutting down")]
     internal static partial void IdleShutdown(ILogger logger, TimeSpan idleFor);
+
+    [LoggerMessage(EventId = 301, Level = LogLevel.Information, Message = "The client did not declare roots, so its agent keeps the name it gave")]
+    internal static partial void RootsNotDeclared(ILogger logger);
+
+    [LoggerMessage(EventId = 302, Level = LogLevel.Information, Message = "The client listed {Count} roots and none of them is a folder, so its agent keeps the name it gave")]
+    internal static partial void NoFolderRoot(ILogger logger, int count);
+
+    [LoggerMessage(EventId = 303, Level = LogLevel.Warning, Message = "The client did not answer roots/list within {Seconds} s")]
+    internal static partial void RootsUnanswered(ILogger logger, double seconds);
+
+    [LoggerMessage(EventId = 304, Level = LogLevel.Warning, Message = "The client refused roots/list")]
+    internal static partial void RootsRefused(ILogger logger, Exception failure);
 }

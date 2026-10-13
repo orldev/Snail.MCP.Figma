@@ -96,4 +96,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 130, Level = LogLevel.Information, Message = "Agent {Name} is back in {FileName} ({FileKey})")]
     internal static partial void AgentReturned(ILogger logger, string? name, string? fileName, string? fileKey);
+
+    [LoggerMessage(EventId = 131, Level = LogLevel.Information, Message = "Agent {Id} is named after its folder: {Name}")]
+    internal static partial void AgentNamed(ILogger logger, string? id, string? name);
 }

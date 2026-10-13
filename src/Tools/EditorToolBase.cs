@@ -73,14 +73,14 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
     {
         var described = session.Describe();
         described["target"] = session.FileKey == Plugin.Documents.ActiveFileKey;
-        described["othersHere"] = new JsonArray([.. session.Peers.Select(agent => (JsonNode)agent)]);
+        described["othersHere"] = new JsonArray([.. Plugin.Documents.OthersIn(session).Select(agent => (JsonNode)agent)]);
 
         return (JsonNode)described;
     })]);
 
     /// <summary>Names of the other agents working in the target file; empty without a target.</summary>
     protected IReadOnlyList<string> OthersInTarget() =>
-        Plugin.Documents.ActiveFileKey is { } target ? Plugin.Documents.Resolve(target)?.Peers ?? [] : [];
+        Plugin.Documents.ActiveFileKey is { } target && Plugin.Documents.Resolve(target) is { } session ? Plugin.Documents.OthersIn(session) : [];
 
     /// <summary>Peels the EXECUTE_CODE envelope; the clone detaches the payload so callers can embed it into their own response, and a bridge failure comes back as an <c>__error</c> field.</summary>
     protected static JsonNode? Unwrap(JsonNode? raw)

@@ -89,7 +89,10 @@ a process per client over stdio. What a process holds falls into two kinds, and 
   emptying a buffer another agent reads. `AgentRoster` keeps the slots.
 
 Over stdio there is one slot, named after the launch folder, so both ways run the same code. On a shared server every
-MCP session opens a slot of its own. A call filter serves each tool call as its session's agent, and services built once,
+MCP session opens a slot of its own, and every request has to belong to one. The 2026-07-28 revision of the protocol has
+no sessions: its requests carry nothing that tells one window of a client from another, and the server cannot ask a
+window for its folder. Claude Code opens with that revision and falls back to `initialize` when it is refused, so the
+server refuses it (`-32022`) and each window gets a session of its own. A call filter serves each tool call as its session's agent, and services built once,
 such as the gateway, ask the roster whose call is in hand each time rather than holding an agent. The agent is named
 after the first folder its client lists as an MCP root, otherwise after the client's name, otherwise `agent N`. Two
 sessions of one project are `Keynex` and `Keynex 2`.

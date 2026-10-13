@@ -36,4 +36,7 @@ public interface IOpenDocuments
 
     /// <summary>Starts this agent's console of the document from now.</summary>
     void ClearConsole(IOpenDocument document);
+
+    /// <summary>Names of the other agents working in the document, of this server and of others.</summary>
+    IReadOnlyList<string> OthersIn(IOpenDocument document);
 }

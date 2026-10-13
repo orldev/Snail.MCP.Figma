@@ -118,6 +118,8 @@ public class IdleShutdownWatcherTests
 
         public long ConsoleMark(IOpenDocument document) => 0;
 
+        public IReadOnlyList<string> OthersIn(IOpenDocument document) => [];
+
         public void ClearConsole(IOpenDocument document)
         {
         }

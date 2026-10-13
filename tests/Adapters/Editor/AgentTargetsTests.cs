@@ -71,4 +71,21 @@ public sealed class AgentTargetsTests : IDisposable
 
         Assert.Equal("web", returning.ActiveFileKey);
     }
+
+    /// <summary>A window that reconnects opens a new session while its old one has not timed out yet: it is named Keynex 2 for that while, and is still Keynex with Keynex's file.</summary>
+    [Fact]
+    public async Task AReconnectedWindowNamedWithANumberGetsItsFolderFileBack()
+    {
+        Targets().Remember("Keynex", "web", "Web", DateTimeOffset.UtcNow);
+        var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var lingering = roster.Open("old-session", "claude-code");
+        await roster.NameAsync(lingering, "Keynex");
+        var reconnected = roster.Open("new-session", "claude-code");
+
+        await roster.NameAsync(reconnected, "Keynex");
+
+        Assert.Equal("Keynex 2", reconnected.Name);
+        Assert.Equal("web", reconnected.ActiveFileKey);
+    }
 }
