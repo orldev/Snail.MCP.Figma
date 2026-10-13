@@ -81,4 +81,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 225, Level = LogLevel.Error, Message = "The snapshot cache failed to open")]
     internal static partial void CacheNotOpened(ILogger logger, Exception failure);
+
+    [LoggerMessage(EventId = 226, Level = LogLevel.Information, Message = "Snapshot cache warmed up in {ElapsedMs} ms, before any call needed it")]
+    internal static partial void CacheWarmedUp(ILogger logger, long elapsedMs);
 }

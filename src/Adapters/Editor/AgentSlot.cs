@@ -20,7 +20,7 @@ public sealed class AgentSlot : IOpenDocuments
     private readonly ConcurrentDictionary<string, long> _consoleMarks = new(StringComparer.Ordinal);
 
     /// <summary>One command of this agent in flight per connection; the rest wait their turn here.</summary>
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _lanes = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, CommandLane> _lanes = new(StringComparer.Ordinal);
 
     private CancellationTokenSource _departure = new();
 
@@ -170,10 +170,9 @@ public sealed class AgentSlot : IOpenDocuments
     /// <summary>Cancelled when the agent leaves, so its commands still waiting for their turn give the turn up.</summary>
     internal CancellationToken Departure => _departure.Token;
 
-    /// <summary>The turn of this agent's commands in the session's plugin: one in flight, the next one waits.</summary>
-    /// <remarks>The plugin runs on one thread and starts every command it is given. With one command per agent in flight, a long script of one agent cannot push another agent's short read behind a dozen of its own.</remarks>
-    internal SemaphoreSlim LaneTo(EditorSession session) =>
-        _lanes.GetOrAdd(session.ConnectionId, _ => new SemaphoreSlim(1, 1));
+    /// <summary>The turn of this agent's commands in the session's plugin: a few reads together, a write alone.</summary>
+    internal CommandLane LaneTo(EditorSession session) =>
+        _lanes.GetOrAdd(session.ConnectionId, _ => new CommandLane());
 
     /// <summary>How the agent stands in the file, as protocol 2 tells the panel.</summary>
     internal JsonObject DescribeIn(string? fileKey) => new()

@@ -15,6 +15,7 @@ public static class PersistenceRegistrationExtension
             services.AddSingleton<INodeSnapshotStore, SqliteNodeSnapshotStore>();
             services.AddSingleton<IRenderSnapshotStore, SqliteRenderSnapshotStore>();
             services.AddSingleton<IDocumentVersionLedger, SqliteDocumentVersionLedger>();
+            services.AddHostedService<SnapshotCacheWarmUp>();
 
             return services;
         }

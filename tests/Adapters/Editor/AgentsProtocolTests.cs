@@ -31,7 +31,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     {
         using var serving = bridge.Roster.Serve(session, "claude-code");
 
-        return bridge.Gateway.ReadAsync(EditorCommands.MoveNode, new JsonObject { ["nodeId"] = "1:1" });
+        return bridge.Gateway.ApplyAsync(EditorCommands.MoveNode, new JsonObject { ["nodeId"] = "1:1" });
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         Assert.Equal(agent.Id, command["agent"]!.GetValue<string>());
     }
 
-    /// <summary>One command per agent in flight: the second waits for the first, while another agent in the same file is not held up by either.</summary>
+    /// <summary>A write runs alone among the agent's commands: the next one waits for it, while another agent in the same file is not held up.</summary>
     [Fact]
     public async Task AnAgentsNextCommandWaitsForItsLastWhileAnotherAgentGoesAhead()
     {
@@ -160,5 +160,41 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         var refusal = await Assert.ThrowsAsync<EditorUnavailableException>(() => queued);
         Assert.Contains("session ended", refusal.Message, StringComparison.Ordinal);
         Assert.Equal(1, Commands(plugin));
+    }
+
+    private Task<JsonNode?> ReadSelectionAsync(string session)
+    {
+        using var serving = bridge.Roster.Serve(session, "claude-code");
+
+        return bridge.Gateway.ReadAsync(EditorCommands.GetFileInfo);
+    }
+
+    /// <summary>An agent's reads overlap in the plugin, up to the lane's limit; reloading the plugin waits for them, since it ends every command in flight.</summary>
+    [Fact]
+    public async Task AnAgentsReadsRunTogetherAndAReloadWaitsForThem()
+    {
+        var fileKey = NewKey("f");
+        var sessionId = NewKey("s");
+        await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
+        await ClaimAsync(sessionId, fileKey);
+        plugin.Silent.Add(EditorCommands.GetFileInfo.Name);
+
+        var reads = Enumerable.Range(0, CommandLane.ReadsAtOnce + 1).Select(_ => ReadSelectionAsync(sessionId)).ToList();
+        await BridgeHostFixture.WaitUntilAsync(() => Commands(plugin) == CommandLane.ReadsAtOnce, "the reads did not go out together");
+
+        Task<JsonNode?> reload;
+
+        using (bridge.Roster.Serve(sessionId, "claude-code"))
+        {
+            reload = bridge.Gateway.ReadAsync(EditorCommands.ReloadUi);
+        }
+
+        await Task.Delay(200);
+        Assert.Equal(CommandLane.ReadsAtOnce, Commands(plugin));
+        Assert.False(reload.IsCompleted);
+
+        await plugin.DisposeAsync();
+        await Assert.ThrowsAnyAsync<Exception>(() => Task.WhenAll(reads));
+        await Assert.ThrowsAsync<EditorUnavailableException>(() => reload);
     }
 }
