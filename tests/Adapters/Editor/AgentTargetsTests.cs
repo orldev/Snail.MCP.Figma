@@ -88,4 +88,46 @@ public sealed class AgentTargetsTests : IDisposable
         Assert.Equal("Keynex 2", reconnected.Name);
         Assert.Equal("web", reconnected.ActiveFileKey);
     }
+
+    /// <summary>A client opens with several calls at once: one asks for the folder, the others wait for that answer instead of going on unnamed.</summary>
+    [Fact]
+    public async Task TheFirstCallsOfAnAgentShareOneNaming()
+    {
+        var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var agent = roster.Open("session", "claude-code");
+        var answer = new TaskCompletionSource();
+        var asked = 0;
+
+        Task Naming()
+        {
+            Interlocked.Increment(ref asked);
+
+            return answer.Task.ContinueWith(_ => roster.NameAsync(agent, "Keynex"), TaskScheduler.Default).Unwrap();
+        }
+
+        var first = agent.NameOnceAsync(Naming);
+        var second = agent.NameOnceAsync(Naming);
+        Assert.False(second.IsCompleted);
+
+        answer.SetResult();
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(1, asked);
+        Assert.Equal("Keynex", agent.Name);
+    }
+
+    /// <summary>A file chosen before the client named its folder is written down once the name arrives.</summary>
+    [Fact]
+    public async Task AFileChosenBeforeTheNameIsWrittenDownWithIt()
+    {
+        var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var agent = roster.Open("session", "claude-code");
+        agent.Return("web", "Web");
+
+        await roster.NameAsync(agent, "Keynex");
+
+        Assert.Equal(("web", "Web"), Targets().Recall("Keynex", DateTimeOffset.UtcNow, IsNothingConnected));
+    }
 }

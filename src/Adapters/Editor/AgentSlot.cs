@@ -24,7 +24,9 @@ public sealed class AgentSlot : IOpenDocuments
 
     private CancellationTokenSource _departure = new();
 
-    private int _isFolderAsked;
+    private readonly Lock _naming = new();
+
+    private Task? _named;
 
     private string? _targetFileKey;
 
@@ -146,8 +148,15 @@ public sealed class AgentSlot : IOpenDocuments
     public void ClearConsole(IOpenDocument document) =>
         _consoleMarks[document.ConnectionId] = document.ConsoleLogs.Added;
 
-    /// <summary>Whether this call is the one to ask the client for its folder: the first call of the agent, and only that one.</summary>
-    internal bool IsFirstToAskForTheFolder() => Interlocked.Exchange(ref _isFolderAsked, 1) == 0;
+    /// <summary>Names the agent once: the first call starts <paramref name="naming"/>, and every call of the agent waits for that one answer.</summary>
+    /// <remarks>A client often opens with several calls at once. Before, the first asked for the folder while the others went on to their tools: one of them chose a file before the agent knew its folder, and the choice was never written down to come back to.</remarks>
+    internal Task NameOnceAsync(Func<Task> naming)
+    {
+        lock (_naming)
+        {
+            return _named ??= naming();
+        }
+    }
 
     /// <summary>The project folder the client works in, once it said so; the agent's file is kept by it across restarts and reconnects.</summary>
     /// <remarks>Not <see cref="Name"/>: a window that reconnects opens a new session while the old one has not yet timed out, and is named <c>Keynex 2</c> for that while — it is still Keynex, and its file is Keynex's.</remarks>

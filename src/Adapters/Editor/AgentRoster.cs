@@ -106,6 +106,10 @@ public sealed class AgentRoster
             agent.Return(fileKey, fileName);
             Log.AgentReturned(_logger, agent.Name, fileName, fileKey);
         }
+        else if (agent.ActiveFileKey is not null)
+        {
+            Remember(agent);
+        }
 
         await AnnounceEverywhereAsync().ConfigureAwait(false);
     }
