@@ -97,9 +97,12 @@ such as the gateway, ask the roster whose call is in hand each time rather than 
 after the first folder its client lists as an MCP root, otherwise after the client's name, otherwise `agent N`. Two
 sessions of one project are `Keynex` and `Keynex 2`.
 
-**Commands take turns.** The plugin runs on Figma's one plugin thread and starts every command it is given. The
-router keeps one command per agent in flight per file, so one agent's long script cannot push another's short read
-behind a dozen of its own. The timeout starts when a command leaves its agent's queue. An agent whose session ends
+**Commands take turns.** The plugin runs on Figma's one plugin thread and starts every command it is given, awaiting
+each one's Figma calls in between, so a few reads overlap well. Each agent has a lane per file: up to three of its
+reads in flight together, and a write alone. A write waits for the agent's reads in flight and holds back the reads
+sent after it, which must see it, and reloading the plugin counts as a write because it ends every command in flight.
+One agent's burst cannot push another agent's short read behind a dozen of its own. The timeout starts when a command
+leaves its agent's queue. An agent whose session ends
 gives up the commands still waiting. A connection that drops fails its waits at once instead of letting them run
 into their timeouts.
 
@@ -133,6 +136,10 @@ edited in its own panel, so age is the only signal for that. A doubted snapshot 
 `REFRESH_VARIABLES`, the one command that makes the plugin read the file again.
 
 ## One read, at most one request
+
+The snapshot cache is a SQLite file, opened in the background as soon as the server starts. Its first open costs up to
+a second, nearly all of it macOS looking into the native SQLite library the first time a publication loads it; opened
+at start, that second is spent while no call waits.
 
 A read costs at most one REST request, and none at all while the snapshot is fresh. The file version is taken
 from the response envelope that already arrived rather than from a separate `depth=1` probe — that probe sits
