@@ -128,6 +128,15 @@ public sealed class AgentSlot : IOpenDocuments
     public Remarks RemarksIn(IOpenDocument document) =>
         _remarks.GetOrAdd(document.FileKey ?? document.ConnectionId, _ => new Remarks(20));
 
+    /// <summary>Who else works in the document: this server's other agents there, and the agents of other servers the panel names.</summary>
+    /// <remarks>The panel names only the agents of its other connections; the agents sharing this server's connection are known here alone.</remarks>
+    public IReadOnlyList<string> OthersIn(IOpenDocument document)
+    {
+        var mine = _roster.WorkingIn(document.FileKey).Where(slot => slot != this).Select(slot => slot.Name);
+
+        return [.. mine.Concat(document.Peers).Distinct(StringComparer.Ordinal)];
+    }
+
     public Task PublishRemarksWaitingAsync(IOpenDocument document, CancellationToken cancellationToken) =>
         _roster.PublishWaitingAsync(document, cancellationToken);
 
@@ -140,13 +149,14 @@ public sealed class AgentSlot : IOpenDocuments
     /// <summary>Whether this call is the one to ask the client for its folder: the first call of the agent, and only that one.</summary>
     internal bool IsFirstToAskForTheFolder() => Interlocked.Exchange(ref _isFolderAsked, 1) == 0;
 
-    /// <summary>Whether the name is the agent's project folder, which is what makes it the same agent after a restart.</summary>
-    internal bool IsNamedByFolder { get; private set; }
+    /// <summary>The project folder the client works in, once it said so; the agent's file is kept by it across restarts and reconnects.</summary>
+    /// <remarks>Not <see cref="Name"/>: a window that reconnects opens a new session while the old one has not yet timed out, and is named <c>Keynex 2</c> for that while — it is still Keynex, and its file is Keynex's.</remarks>
+    internal string? Folder { get; private set; }
 
-    internal void NameAfterFolder(string name)
+    internal void NameAfterFolder(string folder, string name)
     {
+        Folder = folder;
         Name = name;
-        IsNamedByFolder = true;
     }
 
     /// <summary>Takes back the file the agent worked in before the server restarted; its panel is told with everyone else's.</summary>

@@ -95,13 +95,13 @@ public sealed class AgentRoster
     {
         lock (_gate)
         {
-            agent.NameAfterFolder(UniqueName(name, agent));
+            agent.NameAfterFolder(name, UniqueName(name, agent));
         }
 
         Log.AgentNamed(_logger, agent.Id, agent.Name);
 
         if (agent.ActiveFileKey is null &&
-            _targets?.Recall(agent.Name, DateTimeOffset.UtcNow, fileKey => _registry.Open(fileKey) is not null) is var (fileKey, fileName))
+            _targets?.Recall(name, DateTimeOffset.UtcNow, fileKey => _registry.Open(fileKey) is not null) is var (fileKey, fileName))
         {
             agent.Return(fileKey, fileName);
             Log.AgentReturned(_logger, agent.Name, fileName, fileKey);
@@ -110,12 +110,12 @@ public sealed class AgentRoster
         await AnnounceEverywhereAsync().ConfigureAwait(false);
     }
 
-    /// <summary>Writes down where an agent named after its folder works now, so it gets the file back after a restart.</summary>
+    /// <summary>Writes down where an agent named after its folder works now, by the folder, so it gets the file back after a restart or a reconnect.</summary>
     internal void Remember(AgentSlot agent)
     {
-        if (agent.IsNamedByFolder)
+        if (agent.Folder is { } folder)
         {
-            _targets?.Remember(agent.Name, agent.ActiveFileKey, agent.ActiveFileName, DateTimeOffset.UtcNow);
+            _targets?.Remember(folder, agent.ActiveFileKey, agent.ActiveFileName, DateTimeOffset.UtcNow);
         }
     }
 

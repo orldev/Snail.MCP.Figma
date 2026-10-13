@@ -187,4 +187,23 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
         Assert.True(session.IsOpen);
         Assert.Same(session, bridge.Registry.Open(fileKey));
     }
+
+    /// <summary>The panel names only the agents of its other connections; two agents sharing this server's connection learn of each other from the server.</summary>
+    [Fact]
+    public async Task TwoAgentsOfThisServerInOneFileAreToldOfEachOther()
+    {
+        var fileKey = NewKey("f");
+        await using var plugin = await bridge.ConnectPluginAsync(fileKey);
+        var first = NewKey("s");
+        var second = NewKey("s");
+        await ClaimAsync(first, fileKey);
+        await ClaimAsync(second, fileKey);
+        var firstAgent = bridge.Roster.Open(first, null);
+        var secondAgent = bridge.Roster.Open(second, null);
+        var session = bridge.Registry.Open(fileKey)!;
+
+        Assert.Contains(secondAgent.Name, firstAgent.OthersIn(session));
+        Assert.Contains(firstAgent.Name, secondAgent.OthersIn(session));
+        Assert.DoesNotContain(firstAgent.Name, firstAgent.OthersIn(session));
+    }
 }
