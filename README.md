@@ -6,7 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/orldev/Snail.MCP.Figma/blob/master/LICENSE)
 
 A local MCP server that gives your AI assistant **141 tools for reading and editing Figma**. It runs on your
-machine, talks to your client over stdio, and reaches Figma two ways: through the **Figma Desktop app**
+machine, talks to your client over stdio — or, with several agents at once, serves all of them from one process
+over HTTP — and reaches Figma two ways: through the **Figma Desktop app**
 (a bundled plugin — it sees unsaved edits and spends no API quota) and through the **Figma REST API**
 (behind a snapshot cache and a sanitizer that keeps raw Figma JSON out of the model's context).
 
@@ -281,6 +282,10 @@ Claude ── stdio ─┤
   so a refusal already known costs no network round trip. State: `csharp_diagnose → rateLimit`.
 - **Writes are confirmed by the plugin's answer**, never assumed; the node and its ancestors are invalidated after each one.
 - **Watchdog.** An hour without a tool call and the process exits on its own, so orphaned servers do not pile up.
+- **One server for several agents.** With `SNAIL_MCP_FIGMA_TRANSPORT=Http` one process under launchd serves every
+  agent on the machine instead of a process per client: each MCP session is an agent of its own, named after its
+  project folder, with its own target file, remarks and console position, and one command per agent in flight per
+  file. See [Installation](https://orldev.github.io/Snail.MCP.Figma/installation/#one-server-for-every-agent).
 - **One target per agent.** Commands go to the file the agent named with `figma_navigate`, and a human clicking
   in another file does not move it: with several files and several agents open, the click was meant for one of
   them. The panel sends a remark only to the agents working in its file, and names them when there are two.

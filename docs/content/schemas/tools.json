@@ -4897,7 +4897,7 @@
   },
   {
     "name": "figma_clear_console",
-    "description": "Clears the console buffer, both on the server and in the plugin. Handy before a new figma_execute run.",
+    "description": "Starts this agent\u0027s console from now: figma_get_console_logs and figma_watch_console then show only newer lines. Other agents working in the same file keep theirs. Handy before a new figma_execute run.",
     "inputSchema": {
       "type": "object",
       "properties": {}

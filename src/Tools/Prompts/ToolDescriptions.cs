@@ -539,7 +539,7 @@ public static class ToolDescriptions
             "only way to hear the human within a second rather than at the next turn. Requires the plugin.";
 
         /// <summary><c>figma_clear_console</c></summary>
-        public const string ClearConsole = "Clears the console buffer, both on the server and in the plugin. Handy before a new figma_execute run.";
+        public const string ClearConsole = "Starts this agent's console from now: figma_get_console_logs and figma_watch_console then show only newer lines. Other agents working in the same file keep theirs. Handy before a new figma_execute run.";
 
         /// <summary><c>figma_watch_console</c></summary>
         public const string WatchConsole =

@@ -38,7 +38,10 @@ public static class IntegrationRegistrationExtensions
         internal IServiceCollection AddLiveEditor()
         {
             services.AddSingleton<OpenDocumentRegistry>();
-            services.AddSingleton<IOpenDocuments>(provider => provider.GetRequiredService<OpenDocumentRegistry>());
+            services.AddSingleton<AgentRoster>();
+            services.AddTransient(provider => provider.GetRequiredService<AgentRoster>().Current);
+            services.AddTransient<IOpenDocuments>(provider => provider.GetRequiredService<AgentSlot>());
+            services.AddTransient(provider => provider.GetRequiredService<AgentSlot>().Tracker);
             services.AddSingleton<EditorCommandRouter>();
             services.AddSingleton<EditorSocketHub>();
             services.AddSingleton<ILiveEditorLink>(provider => provider.GetRequiredService<EditorSocketHub>());

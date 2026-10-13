@@ -138,7 +138,7 @@ Reads go through the Figma Desktop plugin while it runs in the file — unsaved 
 | [`figma_reload_plugin`](session.md#figma_reload_plugin) | Session and console | Reloads the plugin UI in Figma. |
 | [`figma_get_console_logs`](session.md#figma_get_console_logs) | Session and console | The latest console lines from the plugin sandbox. |
 | [`figma_get_remarks`](session.md#figma_get_remarks) | Session and console | Reads what the human typed in the plugin panel: their words plus the layers they had selected. |
-| [`figma_clear_console`](session.md#figma_clear_console) | Session and console | Clears the console buffer, both on the server and in the plugin. |
+| [`figma_clear_console`](session.md#figma_clear_console) | Session and console | Starts this agent's console from now: figma_get_console_logs and figma_watch_console then show only newer lines. |
 | [`figma_watch_console`](session.md#figma_watch_console) | Session and console | Waits for new lines to appear in the plugin console up to the given timeout. |
 | [`figma_export_node`](session.md#figma_export_node) | Session and console | Exports a node through the live editor: SVG returns the markup itself, PDF/PNG/JPG are saved to disk and the path is returned. |
 | [`figma_get_active_users`](session.md#figma_get_active_users) | Session and console | Who is in the file right now: the token owner (me) and the other live collaborators with their multiplayer colors. |

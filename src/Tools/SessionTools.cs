@@ -243,9 +243,10 @@ public sealed class SessionTools(
                 return Task.FromResult(NotConnected());
             }
 
+            var visible = session.ConsoleLogs.Since(Plugin.Documents.ConsoleMark(session));
             var logs = new JsonArray();
 
-            foreach (var entry in session.ConsoleLogs.Tail(Math.Clamp(limit, 1, 1000)))
+            foreach (var entry in visible.Skip(Math.Max(0, visible.Count - Math.Clamp(limit, 1, 1000))))
             {
                 if (!string.IsNullOrWhiteSpace(level) &&
                     !string.Equals(entry["level"]?.GetValue<string>(), level, StringComparison.OrdinalIgnoreCase))
@@ -260,7 +261,7 @@ public sealed class SessionTools(
             {
                 ["logs"] = logs,
                 ["returned"] = logs.Count,
-                ["buffered"] = session.ConsoleLogs.Count,
+                ["buffered"] = visible.Count,
             }));
         }, cancellationToken);
 
@@ -284,14 +285,16 @@ public sealed class SessionTools(
                 return ToolResponse.Error($"waitMs must be between 0 and {ToolLimits.MaxRemarkWaitMs}.");
             }
 
+            var remarks = Plugin.Documents.RemarksIn(session);
+
             if (waitMs > 0)
             {
-                await session.Remarks.TryWaitAsync(TimeSpan.FromMilliseconds(waitMs), ct).ConfigureAwait(false);
+                await remarks.TryWaitAsync(TimeSpan.FromMilliseconds(waitMs), ct).ConfigureAwait(false);
             }
 
-            var taken = session.Remarks.TakeAll();
+            var taken = remarks.TakeAll();
 
-            await session.PublishRemarksWaitingAsync(ct).ConfigureAwait(false);
+            await Plugin.Documents.PublishRemarksWaitingAsync(session, ct).ConfigureAwait(false);
 
             return ToolResponse.Ok(new JsonObject
             {
@@ -320,7 +323,7 @@ public sealed class SessionTools(
         {
             foreach (var session in Plugin.Documents.Sessions)
             {
-                session.ConsoleLogs.Clear();
+                Plugin.Documents.ClearConsole(session);
             }
 
             try
@@ -349,12 +352,12 @@ public sealed class SessionTools(
                 return NotConnected();
             }
 
-            var before = session.ConsoleLogs.Count;
+            var before = Math.Max(session.ConsoleLogs.Added, Plugin.Documents.ConsoleMark(session));
             var deadline = DateTimeOffset.UtcNow.AddSeconds(Math.Clamp(timeoutSeconds, 1, 120));
 
             while (DateTimeOffset.UtcNow < deadline)
             {
-                if (session.ConsoleLogs.Count - before >= minEntries)
+                if (session.ConsoleLogs.Added - before >= minEntries)
                 {
                     break;
                 }
@@ -362,8 +365,9 @@ public sealed class SessionTools(
                 await Task.Delay(200, ct).ConfigureAwait(false);
             }
 
-            var added = Math.Max(0, session.ConsoleLogs.Count - before);
-            var logs = new JsonArray(session.ConsoleLogs.Tail(added).Select(e => e.DeepClone()).ToArray());
+            var arrived = session.ConsoleLogs.Since(before);
+            var added = arrived.Count;
+            var logs = new JsonArray([.. arrived.Select(entry => entry.DeepClone())]);
 
             return ToolResponse.Ok(new JsonObject
             {

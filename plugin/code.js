@@ -8,7 +8,7 @@
 // files IT ships and asks the UI to show an update banner on mismatch.
 // Stays in the first 2048 characters: EditorExtensionInstaller.ParsePluginVersion
 // reads only that prefix.
-var PLUGIN_VERSION = '0.1.3'; // Bumped on every change to the bundled plugin files.
+var PLUGIN_VERSION = '0.2.0'; // Bumped on every change to the bundled plugin files.
 
 // ============================================================================
 // FILE MAP — search a banner name below to jump to its section

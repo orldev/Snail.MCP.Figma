@@ -315,7 +315,7 @@ Reads what the human typed in the plugin panel: their words plus the layers they
 
 ## <code>figma_<wbr>clear_<wbr>console</code>
 
-Clears the console buffer, both on the server and in the plugin. Handy before a new figma_execute run.
+Starts this agent's console from now: figma_get_console_logs and figma_watch_console then show only newer lines. Other agents working in the same file keep theirs. Handy before a new figma_execute run.
 
 *may overwrite or delete · repeat-safe · the connected file only.*
 

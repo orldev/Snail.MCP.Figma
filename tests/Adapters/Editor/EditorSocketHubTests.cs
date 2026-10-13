@@ -18,7 +18,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey, "Design System");
 
-        var session = _bridge.Registry.Resolve(fileKey);
+        var session = _bridge.Agent.Resolve(fileKey);
         Assert.NotNull(session);
         Assert.Equal("Design System", session!.FileName);
         Assert.Equal("1.40.0", session.PluginVersion);
@@ -143,10 +143,10 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         });
 
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.Selection is not null,
+            () => _bridge.Agent.Resolve(fileKey)?.Selection is not null,
             "selection did not reach the session");
 
-        var session = _bridge.Registry.Resolve(fileKey)!;
+        var session = _bridge.Agent.Resolve(fileKey)!;
         Assert.Equal("Button", session.Selection!["nodes"]![0]!["name"]!.GetValue<string>());
         Assert.True(session.LastInteractionAt > session.ConnectedAt.AddSeconds(-1));
     }
@@ -157,7 +157,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject
         {
@@ -166,14 +166,14 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         });
 
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.Remarks.Count > 0,
+            () => _bridge.Agent.Resolve(fileKey) is { } session && _bridge.Agent.RemarksIn(session).Count > 0,
             "the remark did not arrive");
 
-        var stepIn = Assert.Single(_bridge.Registry.Resolve(fileKey)!.Remarks.TakeAll());
+        var stepIn = Assert.Single(_bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).TakeAll());
 
         Assert.Equal("убери третий столбец", stepIn.Remark);
         Assert.Equal("Bar 3", Assert.Single(stepIn.Nodes)["name"]!.GetValue<string>());
-        Assert.Equal(0, _bridge.Registry.Resolve(fileKey)!.Remarks.Count);
+        Assert.Equal(0, _bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).Count);
     }
 
     /// <summary>The queue lives on the server, so the panel has to be told the count — otherwise the wave it lights on Enter would never go out.</summary>
@@ -182,7 +182,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "отступы гуляют" });
 
@@ -196,7 +196,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
         await plugin.SendEventAsync("BUILD_STOP", new JsonObject { ["remark"] = "передумал" });
         await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 1, "the remark did not arrive");
 
@@ -204,7 +204,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
         await BridgeHostFixture.WaitUntilAsync(() => Waiting(plugin) == 0, "the queue was not taken back");
 
-        Assert.Equal(0, _bridge.Registry.Resolve(fileKey)!.Remarks.Count);
+        Assert.Equal(0, _bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).Count);
     }
 
     private static int? Waiting(FakeEditorExtension plugin) => plugin.Received
@@ -215,15 +215,15 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         await plugin.SendEventAsync("BUILD_STOP", []);
 
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.Remarks.Count > 0,
+            () => _bridge.Agent.Resolve(fileKey) is { } session && _bridge.Agent.RemarksIn(session).Count > 0,
             "the remark did not arrive");
 
-        var stepIn = Assert.Single(_bridge.Registry.Resolve(fileKey)!.Remarks.TakeAll());
+        var stepIn = Assert.Single(_bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).TakeAll());
 
         Assert.Null(stepIn.Remark);
         Assert.Empty(stepIn.Nodes);
@@ -244,10 +244,10 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         });
 
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.DocumentChanges.Count > 0,
+            () => _bridge.Agent.Resolve(fileKey)?.DocumentChanges.Count > 0,
             "document change event did not arrive");
 
-        var change = _bridge.Registry.Resolve(fileKey)!.DocumentChanges.Tail(1)[0];
+        var change = _bridge.Agent.Resolve(fileKey)!.DocumentChanges.Tail(1)[0];
         Assert.Equal(2, change["changeCount"]!.GetValue<int>());
     }
 
@@ -261,15 +261,15 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         await using var agentPlugin = await _bridge.ConnectPluginAsync(agentFile, "Agent file");
         await using var userPlugin = await _bridge.ConnectPluginAsync(userFile, "User file");
 
-        Assert.True(await _bridge.Registry.TryClaimAsync(agentFile));
+        Assert.True(await _bridge.Agent.TryClaimAsync(agentFile));
 
         await userPlugin.SendEventAsync("SELECTION_CHANGE", new JsonObject { ["count"] = 1 });
         await userPlugin.SendEventAsync("PAGE_CHANGE", new JsonObject { ["pageId"] = "1:1", ["pageName"] = "Page 2" });
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(userFile)?.CurrentPage == "Page 2",
+            () => _bridge.Agent.Resolve(userFile)?.CurrentPage == "Page 2",
             "the events did not arrive");
 
-        Assert.Equal(agentFile, _bridge.Registry.ActiveFileKey);
+        Assert.Equal(agentFile, _bridge.Agent.ActiveFileKey);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
             ["variableCollections"] = new JsonArray(),
         });
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.VariablesSnapshot is not null,
+            () => _bridge.Agent.Resolve(fileKey)?.VariablesSnapshot is not null,
             "variables snapshot did not arrive");
 
         var served = await _bridge.Gateway.ReadAsync(
@@ -303,7 +303,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload("color/old"));
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            () => _bridge.Agent.Resolve(fileKey)?.HasFreshVariables == true,
             "variables snapshot did not arrive");
         plugin.Handlers[EditorCommands.RefreshVariables.Name] = _ => new JsonObject
         {
@@ -315,7 +315,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         var served = await _bridge.Gateway.ReadAsync(EditorCommands.GetVariablesData, fileKey: fileKey);
 
         Assert.Equal("color/new", served!["variables"]![0]!["name"]!.GetValue<string>());
-        Assert.True(_bridge.Registry.Resolve(fileKey)!.HasFreshVariables);
+        Assert.True(_bridge.Agent.Resolve(fileKey)!.HasFreshVariables);
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload());
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            () => _bridge.Agent.Resolve(fileKey)?.HasFreshVariables == true,
             "variables snapshot did not arrive");
 
         await plugin.SendEventAsync("DOCUMENT_CHANGE", new JsonObject
@@ -335,7 +335,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         });
 
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == false,
+            () => _bridge.Agent.Resolve(fileKey)?.HasFreshVariables == false,
             "the document change did not doubt the snapshot");
     }
 
@@ -347,10 +347,10 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         await plugin.SendEventAsync("VARIABLES_DATA", PluginVariables.Payload());
         await BridgeHostFixture.WaitUntilAsync(
-            () => _bridge.Registry.Resolve(fileKey)?.HasFreshVariables == true,
+            () => _bridge.Agent.Resolve(fileKey)?.HasFreshVariables == true,
             "variables snapshot did not arrive");
 
-        var session = _bridge.Registry.Resolve(fileKey)!;
+        var session = _bridge.Agent.Resolve(fileKey)!;
 
         Assert.True(session.HasFreshVariablesAt(DateTimeOffset.UtcNow + EditorSession.VariablesBelievedFor - TimeSpan.FromSeconds(5)));
         Assert.False(session.HasFreshVariablesAt(DateTimeOffset.UtcNow + EditorSession.VariablesBelievedFor));

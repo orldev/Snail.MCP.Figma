@@ -42,8 +42,8 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
-        _bridge.Registry.Resolve(fileKey)!.Remarks.Add(new BuildInterruption(
+        await _bridge.Agent.TryClaimAsync(fileKey);
+        _bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).Add(new BuildInterruption(
             "третий столбец выше остальных",
             [new JsonObject { ["id"] = "1:7", ["name"] = "Bar 3" }],
             DateTimeOffset.UtcNow));
@@ -66,13 +66,13 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
         var reading = Tools().GetRemarksAsync(waitMs: 5000);
 
         _ = Task.Run(async () =>
         {
             await Task.Delay(80);
-            _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
+            _bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).Add(
                 new BuildInterruption("тут отступ гуляет", [], DateTimeOffset.UtcNow));
         });
 
@@ -87,7 +87,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         var response = Parse(await Tools().GetRemarksAsync(waitMs: 120));
 
@@ -102,8 +102,8 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
-        _bridge.Registry.Resolve(fileKey)!.Remarks.Add(
+        await _bridge.Agent.TryClaimAsync(fileKey);
+        _bridge.Agent.RemarksIn(_bridge.Agent.Resolve(fileKey)!).Add(
             new BuildInterruption("правь отступы", [], DateTimeOffset.UtcNow));
 
         await Tools().GetRemarksAsync();
@@ -120,7 +120,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
-        await _bridge.Registry.TryClaimAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
 
         var response = Parse(await Tools().GetRemarksAsync());
 
@@ -166,7 +166,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         await plugin.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
-        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(fileKey)!.Peers.Count == 1, "the peers did not arrive");
+        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Agent.Resolve(fileKey)!.Peers.Count == 1, "the peers did not arrive");
 
         var response = Parse(await Tools().NavigateAsync(fileKey));
 
@@ -174,7 +174,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         Assert.True(response["data"]!["pluginConnected"]!.GetValue<bool>());
         Assert.Equal("Keynex", response["data"]!["othersHere"]![0]!.GetValue<string>());
         Assert.Contains("Keynex", response["data"]!["note"]!.GetValue<string>(), StringComparison.Ordinal);
-        Assert.Equal(fileKey, _bridge.Registry.ActiveFileKey);
+        Assert.Equal(fileKey, _bridge.Agent.ActiveFileKey);
     }
 
     [Fact]
@@ -184,9 +184,9 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         var other = NewFileKey();
         await using var pluginA = await _bridge.ConnectPluginAsync(target, "Web");
         await using var pluginB = await _bridge.ConnectPluginAsync(other, "Mobile");
-        await _bridge.Registry.TryClaimAsync(target);
+        await _bridge.Agent.TryClaimAsync(target);
         await pluginA.SendEventAsync("PEERS", new JsonObject { ["agents"] = new JsonArray("Keynex") });
-        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Registry.Resolve(target)!.Peers.Count == 1, "the peers did not arrive");
+        await BridgeHostFixture.WaitUntilAsync(() => _bridge.Agent.Resolve(target)!.Peers.Count == 1, "the peers did not arrive");
 
         var files = Parse(Text(await Tools().ListOpenFilesAsync()))["data"]!["files"]!.AsArray();
 
@@ -205,12 +205,12 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         var other = NewFileKey();
         await using var pluginA = await _bridge.ConnectPluginAsync(target);
         await using var pluginB = await _bridge.ConnectPluginAsync(other);
-        await _bridge.Registry.TryClaimAsync(target);
+        await _bridge.Agent.TryClaimAsync(target);
 
         var data = Parse(await Tools().ExecuteAcrossFilesAsync("return 1;", other))["data"]!;
 
         Assert.Equal(target, data["active_file_key"]!.GetValue<string>());
-        Assert.Equal(target, _bridge.Registry.ActiveFileKey);
+        Assert.Equal(target, _bridge.Agent.ActiveFileKey);
         Assert.Empty(ExecutedCode(pluginA));
         Assert.Single(ExecutedCode(pluginB));
     }
@@ -376,5 +376,28 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         {
             AssertShapedLike(items, instance[0]);
         }
+    }
+
+    /// <summary>The console belongs to the file and other agents may be reading it: clearing starts this agent's reading from now and empties nothing.</summary>
+    [Fact]
+    public async Task ClearingTheConsoleStartsThisAgentsReadingFromNowAndKeepsTheLines()
+    {
+        var fileKey = NewFileKey();
+        await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
+        await _bridge.Agent.TryClaimAsync(fileKey);
+        var session = _bridge.Agent.Resolve(fileKey)!;
+        await plugin.SendEventAsync("CONSOLE_CAPTURE", new JsonObject { ["level"] = "log", ["message"] = "before one" });
+        await plugin.SendEventAsync("CONSOLE_CAPTURE", new JsonObject { ["level"] = "log", ["message"] = "before two" });
+        await BridgeHostFixture.WaitUntilAsync(() => session.ConsoleLogs.Count == 2, "the console lines did not arrive");
+
+        await Tools().ClearConsoleAsync();
+        var afterClearing = Parse(await Tools().GetConsoleLogsAsync());
+        await plugin.SendEventAsync("CONSOLE_CAPTURE", new JsonObject { ["level"] = "log", ["message"] = "after" });
+        await BridgeHostFixture.WaitUntilAsync(() => session.ConsoleLogs.Count == 3, "the new line did not arrive");
+        var afterNewLine = Parse(await Tools().GetConsoleLogsAsync());
+
+        Assert.Equal(0, afterClearing["data"]!["returned"]!.GetValue<int>());
+        Assert.Equal(["after"], afterNewLine["data"]!["logs"]!.AsArray().Select(line => line!["message"]!.GetValue<string>()));
+        Assert.Equal(3, session.ConsoleLogs.Count);
     }
 }

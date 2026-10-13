@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Extensions;
 using Snail.Sdk.Mcp.Hosting;
 
@@ -10,8 +11,22 @@ var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { Args
 builder.WebHost.UseKestrelCore();
 builder.Services.AddRoutingCore();
 
+var config = builder.AddServerConfiguration();
+
+if (config.IsShared)
+{
+    await builder
+        .ConfigureSharedMcpServer(config)
+        .Build()
+        .UseBridge()
+        .UseSharedMcp()
+        .RunAsync();
+
+    return;
+}
+
 await builder
-    .ConfigureMcpServer()
+    .ConfigureMcpServer(config)
     .Build()
     .UseBridge()
     .RunAsync();

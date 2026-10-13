@@ -208,6 +208,16 @@ public class RestAdditionTests
         public Task<bool> TryClaimAsync(string fileKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public IOpenDocument? Resolve(string? fileKey = null) => null;
+
+        public Remarks RemarksIn(IOpenDocument document) => new(20);
+
+        public Task PublishRemarksWaitingAsync(IOpenDocument document, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public long ConsoleMark(IOpenDocument document) => 0;
+
+        public void ClearConsole(IOpenDocument document)
+        {
+        }
     }
 
     private sealed class StubQuota : IQuotaStatus

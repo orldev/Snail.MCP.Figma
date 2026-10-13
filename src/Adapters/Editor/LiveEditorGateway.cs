@@ -4,18 +4,20 @@ using Snail.MCP.Figma.Application.Snapshots;
 namespace Snail.MCP.Figma.Adapters.Editor;
 
 /// <summary>High-level bridge wrapper: sends a command, extracts affected nodes from the reply and invalidates their snapshots.</summary>
+/// <remarks>One gateway serves every agent: it asks the roster whose call is in hand each time rather than holding an agent, so a service built once still sends each agent's commands to that agent's file.</remarks>
 public sealed class LiveEditorGateway(
     EditorCommandRouter router,
-    OpenDocumentRegistry registry,
+    AgentRoster agents,
     SnapshotInvalidator invalidation,
     ILogger<LiveEditorGateway> logger)
     : ILiveEditor
 {
-    public bool IsConnected => registry.HasConnection;
+    public bool IsConnected => Agent.HasConnection;
 
-    public OpenDocumentRegistry Registry => registry;
+    /// <summary>The agent whose call is in hand.</summary>
+    public AgentSlot Agent => agents.Current;
 
-    public IOpenDocuments Documents => registry;
+    public IOpenDocuments Documents => Agent;
 
     /// <summary>Side-effect-free command — a read through the plugin.</summary>
     public Task<JsonNode?> ReadAsync(
@@ -27,32 +29,40 @@ public sealed class LiveEditorGateway(
     {
         return command == EditorCommands.GetVariablesData
             ? ReadVariablesAsync(fileKey, timeout, cancellationToken)
-            : router.SendAsync(command.Name, parameters, fileKey, timeout, cancellationToken);
+            : router.SendAsync(Target(fileKey), Agent, command.Name, parameters, timeout, cancellationToken);
+    }
+
+    /// <summary>The live session the command goes to: the named file, or the agent's target.</summary>
+    private EditorSession Target(string? fileKey)
+    {
+        var agent = Agent;
+
+        return agent.Resolve(fileKey) ?? throw agent.Unavailable(fileKey);
     }
 
     /// <summary>Variables from the session snapshot while it is fresh, otherwise read again in the plugin.</summary>
     /// <remarks>GET_VARIABLES_DATA is answered by ui.html from its own cache, which is exactly as old as ours; only REFRESH_VARIABLES makes code.js read the file, and its reply carries the data. A bundle whose reply carries none is asked the old way.</remarks>
     private async Task<JsonNode?> ReadVariablesAsync(string? fileKey, TimeSpan? timeout, CancellationToken cancellationToken)
     {
-        var session = registry.Resolve(fileKey);
+        var session = Target(fileKey);
 
-        if (session is { HasFreshVariables: true })
+        if (session.HasFreshVariables)
         {
             return session.VariablesSnapshot!.DeepClone();
         }
 
         var refreshed = await router
-            .SendAsync(EditorCommands.RefreshVariables.Name, null, fileKey, timeout, cancellationToken)
+            .SendAsync(session, Agent, EditorCommands.RefreshVariables.Name, null, timeout, cancellationToken)
             .ConfigureAwait(false);
 
         if (refreshed?["data"] is not JsonObject variables)
         {
             return await router
-                .SendAsync(EditorCommands.GetVariablesData.Name, null, fileKey, timeout, cancellationToken)
+                .SendAsync(session, Agent, EditorCommands.GetVariablesData.Name, null, timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        session?.RememberVariables(variables.DeepClone());
+        session.RememberVariables(variables.DeepClone());
 
         return variables.DeepClone();
     }
@@ -65,10 +75,10 @@ public sealed class LiveEditorGateway(
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
-        var session = registry.Resolve(fileKey);
-        session?.DoubtVariables();
+        var session = Target(fileKey);
+        session.DoubtVariables();
 
-        var result = await router.SendAsync(command.Name, parameters, fileKey, timeout, cancellationToken).ConfigureAwait(false);
+        var result = await router.SendAsync(session, Agent, command.Name, parameters, timeout, cancellationToken).ConfigureAwait(false);
 
         var affected = ExtractAffectedNodeIds(result, parameters);
         var ancestors = ExtractAncestorIds(result);
@@ -76,7 +86,7 @@ public sealed class LiveEditorGateway(
         if (affected.Count > 0 || ancestors.Count > 0)
         {
             await invalidation
-                .OnNodesMutatedAsync(session?.FileKey, affected, ancestors, cancellationToken)
+                .OnNodesMutatedAsync(session.FileKey, affected, ancestors, cancellationToken)
                 .ConfigureAwait(false);
 
             Log.NodesInvalidated(logger, command.Name, affected.Count, ancestors.Count);
@@ -98,9 +108,10 @@ public sealed class LiveEditorGateway(
     private async Task<JsonNode?> ExecuteScriptAsync(string fileKey, string code, CancellationToken cancellationToken)
     {
         var response = await router.SendAsync(
+            Target(fileKey),
+            Agent,
             EditorCommands.ExecuteCode.Name,
             new JsonObject { ["code"] = code, ["timeout"] = 20000 },
-            fileKey,
             TimeSpan.FromSeconds(25),
             cancellationToken).ConfigureAwait(false);
 

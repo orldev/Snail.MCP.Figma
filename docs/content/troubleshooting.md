@@ -43,6 +43,29 @@ Remarks go only to the servers that claimed this file. Either the agent has not 
 to `figma_navigate` there, or it works in another one. The words stay in the field; press Enter again once the
 agent is here.
 
+## "The file this agent works in, … is not connected"
+
+The agent chose that file with `figma_navigate`, and its plugin is no longer running there: the window was closed or
+the plugin stopped. The target is kept on purpose, so a write never lands in another agent's file. Run Snail Bridge in
+that file again, or let the agent call `figma_navigate` with the file it should work in now.
+
+## The panel calls an agent `claude-code` or `agent 2`
+
+A shared server names an agent after the first folder its client lists as an MCP root. A client that lists none keeps
+the name it gave in `initialize`, and one without that is numbered. Clients that open with the 2026-07-28 protocol
+revision no longer send roots at all.
+
+## The shared server answers 403
+
+The request carried an `Origin` header. Every browser sends one and an agent's client never does, so the server
+refuses it: no web page may drive Figma through it. A tool that sends `Origin` on purpose cannot use the shared
+server; give it a stdio server instead.
+
+## The shared server does not start
+
+Its log is `~/Library/Logs/Snail.MCP.Figma.log`. An address that is not loopback is refused at start; a busy port
+9233 needs another one in `SNAIL_MCP_FIGMA_URL`, in the job and in every client registration.
+
 ## Reads return `source: "cache-stale"`
 
 Figma was unreachable — usually the quota — so the last known snapshot was served instead of failing. The

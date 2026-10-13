@@ -35,19 +35,15 @@ public interface IOpenDocument
 
     RingBuffer<JsonNode> MetadataChanges { get; }
 
-    /// <summary>Remarks left from the plugin panel and not yet read.</summary>
-    /// <remarks>A remark typed while a build runs stops it between steps, which is the only moment a build can end without leaving half a node behind; one typed in the quiet waits here until the agent asks, because that is when a human actually reviews the result.</remarks>
-    Remarks Remarks { get; }
-
-    /// <summary>Tells the panel how many remarks are still waiting.</summary>
+    /// <summary>Tells the panel how many remarks are still waiting for the agents working in this file.</summary>
     /// <remarks>The queue lives on the server: without this the panel would light its wave on Enter and never learn that the agent has read anything.</remarks>
-    Task PublishRemarksWaitingAsync(CancellationToken cancellationToken);
+    Task PublishRemarksWaitingAsync(int waiting, CancellationToken cancellationToken);
 
     /// <summary>Tells the panel which step of a stepped build is running; step zero means it is over.</summary>
     /// <remarks>The plugin receives every step as its own command and cannot count them, so the share can only come from here.</remarks>
     Task PublishBuildProgressAsync(int step, int total, CancellationToken cancellationToken);
 
-    /// <summary>Tells the panel whether this agent works in the file, so remarks typed there reach it and nobody else.</summary>
+    /// <summary>Tells the panel whether an agent of this server works in the file, so remarks typed there reach it and nobody else.</summary>
     Task PublishTargetBoundAsync(bool bound, CancellationToken cancellationToken);
 
     /// <summary>Short summary for tool responses.</summary>

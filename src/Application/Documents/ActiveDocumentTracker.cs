@@ -30,6 +30,16 @@ public sealed class ActiveDocumentTracker
         }
     }
 
+    /// <summary>Forgets the file, as for an agent that has not named one yet.</summary>
+    public void Forget()
+    {
+        lock (_gate)
+        {
+            _fileKey = null;
+            _fileName = null;
+        }
+    }
+
     /// <summary>File key from the URL, or from the remembered context; throws a readable message when neither is known.</summary>
     public string Resolve(string? fileUrl)
     {

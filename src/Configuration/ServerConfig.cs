@@ -21,6 +21,16 @@ public enum SanitizationProfile
     Raw,
 }
 
+/// <summary>How clients reach the server.</summary>
+public enum Transport
+{
+    /// <summary>One process per client, started by it, over stdin and stdout.</summary>
+    Stdio,
+
+    /// <summary>One process for every client on this machine, kept by launchd, over Streamable HTTP on loopback.</summary>
+    Http,
+}
+
 /// <summary>Root server configuration, bound from a JSON file and environment variables.</summary>
 public sealed class ServerConfig
 {
@@ -30,6 +40,17 @@ public sealed class ServerConfig
     public string? AccessToken { get; set; }
 
     public ServerMode Mode { get; set; } = ServerMode.Local;
+
+    /// <summary>The address of the MCP endpoint when <see cref="Transport"/> is <see cref="Transport.Http"/>; outside the bridge's port range.</summary>
+    public const string DefaultUrl = "http://127.0.0.1:9233";
+
+    /// <summary>stdio by default; <c>SNAIL_MCP_FIGMA_TRANSPORT=Http</c> makes this the one server every agent on the machine shares.</summary>
+    public Transport Transport { get; set; } = Transport.Stdio;
+
+    /// <summary>Where the shared server listens for MCP; <see cref="DefaultUrl"/> when not set.</summary>
+    public string? Url { get; set; }
+
+    public bool IsShared => Transport is Transport.Http;
 
     /// <summary>Data root: database, installed plugin, logs; defaults to <c>~/.s3l-mcp-figma</c>.</summary>
     public string DataDirectory { get; set; } = ServerPaths.DefaultDataDirectory;

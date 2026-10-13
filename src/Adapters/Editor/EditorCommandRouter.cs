@@ -5,7 +5,6 @@ namespace Snail.MCP.Figma.Adapters.Editor;
 
 /// <summary>Matches plugin replies to outstanding requests by <c>requestId</c>; replies arrive out of order, so each wait has its own timeout.</summary>
 public sealed class EditorCommandRouter(
-    OpenDocumentRegistry registry,
     EditorLinkOptions options,
     ILogger<EditorCommandRouter> logger)
 {
@@ -16,23 +15,57 @@ public sealed class EditorCommandRouter(
     /// <summary>Requests currently awaiting a reply.</summary>
     public int PendingCount => _pending.Count;
 
-    /// <summary>Sends a command and awaits the reply; throws <see cref="EditorUnavailableException"/> without a plugin and <see cref="TimeoutException"/> on silence.</summary>
+    /// <summary>Sends an agent's command to the file's plugin when its turn comes and awaits the reply; throws <see cref="EditorUnavailableException"/> when the send fails or the agent left while waiting, and <see cref="TimeoutException"/> on silence.</summary>
+    /// <remarks>Which file is the caller's decision: the router serves every agent and knows none of their targets. The timeout starts when the command leaves the agent's queue: waiting for its own previous command is not the plugin's silence.</remarks>
     public async Task<JsonNode?> SendAsync(
+        EditorSession session,
+        AgentSlot? agent,
         string method,
         JsonObject? parameters = null,
-        string? fileKey = null,
         TimeSpan? timeout = null,
         CancellationToken cancellationToken = default)
     {
-        var session = registry.Resolve(fileKey)
-                      ?? throw new EditorUnavailableException(
-                          "The Snail Bridge plugin is not connected. Open the file in Figma Desktop and run the plugin " +
-                          "(Plugins → Development → Snail Bridge).");
+        if (agent is null)
+        {
+            return await DispatchAsync(session, null, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
+        }
 
+        var lane = agent.LaneTo(session);
+
+        using (var turn = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Departure))
+        {
+            try
+            {
+                await lane.WaitAsync(turn.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new EditorUnavailableException($"{method} was not sent: the agent's session ended while the command waited for its turn.");
+            }
+        }
+
+        try
+        {
+            return await DispatchAsync(session, agent.Id, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            lane.Release();
+        }
+    }
+
+    private async Task<JsonNode?> DispatchAsync(
+        EditorSession session,
+        string? agent,
+        string method,
+        JsonObject? parameters,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken)
+    {
         var id = $"snail_{Interlocked.Increment(ref _counter)}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(options.RequestTimeoutSeconds);
 
-        var pending = new PendingRequest(method, effectiveTimeout);
+        var pending = new PendingRequest(method, effectiveTimeout, session.ConnectionId);
         _pending[id] = pending;
 
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -52,7 +85,7 @@ public sealed class EditorCommandRouter(
 
         try
         {
-            await session.SendAsync(EditorWireProtocol.Request(id, method, parameters), cancellationToken).ConfigureAwait(false);
+            await session.SendAsync(EditorWireProtocol.Request(id, method, parameters, agent), cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -92,19 +125,19 @@ public sealed class EditorCommandRouter(
         return true;
     }
 
-    /// <summary>Fails every pending wait when the connection drops, instead of letting them run into their timeouts.</summary>
-    public void FailAll(string reason)
+    /// <summary>Fails the waits of a connection that dropped at once, instead of letting them run into their timeouts.</summary>
+    public void FailFor(EditorSession session, string reason)
     {
-        foreach (var id in _pending.Keys.ToArray())
+        foreach (var (id, pending) in _pending.ToArray())
         {
-            if (_pending.TryRemove(id, out var pending))
+            if (pending.ConnectionId == session.ConnectionId && _pending.TryRemove(id, out var failed))
             {
-                pending.Completion.TrySetException(new EditorUnavailableException(reason));
+                failed.Completion.TrySetException(new EditorUnavailableException(reason));
             }
         }
     }
 
-    private sealed record PendingRequest(string Method, TimeSpan Timeout)
+    private sealed record PendingRequest(string Method, TimeSpan Timeout, string ConnectionId)
     {
         public TaskCompletionSource<JsonNode?> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
