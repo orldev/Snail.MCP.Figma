@@ -20,7 +20,6 @@ public sealed class EditorCommandRouter(
     public async Task<JsonNode?> SendAsync(
         EditorSession session,
         AgentSlot? agent,
-        CommandAccess access,
         string method,
         JsonObject? parameters = null,
         TimeSpan? timeout = null,
@@ -31,13 +30,13 @@ public sealed class EditorCommandRouter(
             return await DispatchAsync(session, null, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
         }
 
-        IDisposable turn;
+        var lane = agent.LaneTo(session);
 
-        using (var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Departure))
+        using (var turn = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Departure))
         {
             try
             {
-                turn = await agent.LaneTo(session).EnterAsync(access, waiting.Token).ConfigureAwait(false);
+                await lane.WaitAsync(turn.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -45,9 +44,13 @@ public sealed class EditorCommandRouter(
             }
         }
 
-        using (turn)
+        try
         {
             return await DispatchAsync(session, agent.Address, method, parameters, timeout, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            lane.Release();
         }
     }
 

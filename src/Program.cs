@@ -20,7 +20,7 @@ if (config.IsShared)
         .Build()
         .UseBridge()
         .UseSharedMcp()
-        .RunAsync();
+        .RunUntilStoppedAsync();
 
     return;
 }
@@ -29,4 +29,4 @@ await builder
     .ConfigureMcpServer(config)
     .Build()
     .UseBridge()
-    .RunAsync();
+    .RunUntilStoppedAsync();

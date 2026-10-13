@@ -169,9 +169,9 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         return bridge.Gateway.ReadAsync(EditorCommands.GetFileInfo);
     }
 
-    /// <summary>An agent's reads overlap in the plugin, up to the lane's limit; reloading the plugin waits for them, since it ends every command in flight.</summary>
+    /// <summary>Reads take turns too: a read's timeout runs from the moment it is sent, and must not be spent waiting in the plugin behind the agent's own earlier reads.</summary>
     [Fact]
-    public async Task AnAgentsReadsRunTogetherAndAReloadWaitsForThem()
+    public async Task AnAgentsReadsGoToThePluginOneAtATime()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");
@@ -179,23 +179,17 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         await ClaimAsync(sessionId, fileKey);
         plugin.Silent.Add(EditorCommands.GetFileInfo.Name);
 
-        var reads = Enumerable.Range(0, CommandLane.ReadsAtOnce + 1).Select(_ => ReadSelectionAsync(sessionId)).ToList();
-        await BridgeHostFixture.WaitUntilAsync(() => Commands(plugin) == CommandLane.ReadsAtOnce, "the reads did not go out together");
-
-        Task<JsonNode?> reload;
-
-        using (bridge.Roster.Serve(sessionId, "claude-code"))
-        {
-            reload = bridge.Gateway.ReadAsync(EditorCommands.ReloadUi);
-        }
+        var first = ReadSelectionAsync(sessionId);
+        var second = ReadSelectionAsync(sessionId);
+        await BridgeHostFixture.WaitUntilAsync(() => Commands(plugin) == 1, "the first read was not sent");
 
         await Task.Delay(200);
-        Assert.Equal(CommandLane.ReadsAtOnce, Commands(plugin));
-        Assert.False(reload.IsCompleted);
+        Assert.Equal(1, Commands(plugin));
+        Assert.False(second.IsCompleted);
 
         await plugin.DisposeAsync();
-        await Assert.ThrowsAnyAsync<Exception>(() => Task.WhenAll(reads));
-        await Assert.ThrowsAsync<EditorUnavailableException>(() => reload);
+        await Assert.ThrowsAsync<EditorUnavailableException>(() => first);
+        await Assert.ThrowsAsync<EditorUnavailableException>(() => second);
     }
 
     private static int Entries(FakeEditorExtension plugin, string name) => plugin.Received
