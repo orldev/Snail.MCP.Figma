@@ -4,7 +4,8 @@
         A native server (Snail.Sdk.Mcp: SnailMcpNative at its default): published with Native AOT, settings and the bridge's
         endpoints bound by generated code, a native dotnet tool package for each platform with a framework-dependent one for
         the rest. Over stdio by default, or shared by every agent of the machine over Streamable HTTP with
-        SNAIL_MCP_FIGMA_TRANSPORT=Http (launchd keeps that one running). Installed into ~/.s3l-mcp with -p:Install=true.
+        SNAIL_MCP_FIGMA_TRANSPORT=Http (launchd keeps that one running). Installed into ~/.s3l-mcp with
+        -p:SnailMcpInstall=true.
     -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
