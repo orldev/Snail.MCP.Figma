@@ -29,8 +29,12 @@ public sealed class LiveEditorGateway(
     {
         return command == EditorCommands.GetVariablesData
             ? ReadVariablesAsync(fileKey, timeout, cancellationToken)
-            : router.SendAsync(Target(fileKey), Agent, command.Name, parameters, timeout, cancellationToken);
+            : router.SendAsync(Target(fileKey), Agent, AccessOf(command), command.Name, parameters, timeout, cancellationToken);
     }
+
+    /// <summary>A read runs alongside the agent's other reads; reloading the plugin ends every command in flight, so it runs alone like a write.</summary>
+    private static CommandAccess AccessOf(EditorCommand command) =>
+        command == EditorCommands.ReloadUi ? CommandAccess.Write : CommandAccess.Read;
 
     /// <summary>The live session the command goes to: the named file, or the agent's target.</summary>
     private EditorSession Target(string? fileKey)
@@ -52,13 +56,13 @@ public sealed class LiveEditorGateway(
         }
 
         var refreshed = await router
-            .SendAsync(session, Agent, EditorCommands.RefreshVariables.Name, null, timeout, cancellationToken)
+            .SendAsync(session, Agent, CommandAccess.Read, EditorCommands.RefreshVariables.Name, null, timeout, cancellationToken)
             .ConfigureAwait(false);
 
         if (refreshed?["data"] is not JsonObject variables)
         {
             return await router
-                .SendAsync(session, Agent, EditorCommands.GetVariablesData.Name, null, timeout, cancellationToken)
+                .SendAsync(session, Agent, CommandAccess.Read, EditorCommands.GetVariablesData.Name, null, timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -78,7 +82,7 @@ public sealed class LiveEditorGateway(
         var session = Target(fileKey);
         session.DoubtVariables();
 
-        var result = await router.SendAsync(session, Agent, command.Name, parameters, timeout, cancellationToken).ConfigureAwait(false);
+        var result = await router.SendAsync(session, Agent, CommandAccess.Write, command.Name, parameters, timeout, cancellationToken).ConfigureAwait(false);
 
         var affected = ExtractAffectedNodeIds(result, parameters);
         var ancestors = ExtractAncestorIds(result);
@@ -110,6 +114,7 @@ public sealed class LiveEditorGateway(
         var response = await router.SendAsync(
             Target(fileKey),
             Agent,
+            CommandAccess.Read,
             EditorCommands.ExecuteCode.Name,
             new JsonObject { ["code"] = code, ["timeout"] = 20000 },
             TimeSpan.FromSeconds(25),
