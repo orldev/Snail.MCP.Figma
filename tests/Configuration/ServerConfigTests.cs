@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tests.Configuration;
 
@@ -83,7 +84,7 @@ public class ServerConfigTests
         };
 
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(EnvironmentSettings.Read(variables))
+            .AddServerSettings(ServerPaths.ShortName, file: null, variables)
             .Build();
         var config = new ServerConfig();
         configuration.Bind(config);
@@ -118,19 +119,6 @@ public class ServerConfigTests
         {
             File.Delete(file);
         }
-    }
-
-    [Fact]
-    public void ConfigCandidates_PutEnvironmentOverrideFirst()
-    {
-        var candidates = RunWithEnvironment(
-            new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = "/tmp/snail-mcp-figma-explicit.json" },
-            () => ServerPaths.ConfigCandidates().ToList());
-
-        Assert.Equal("/tmp/snail-mcp-figma-explicit.json", candidates[0]);
-        Assert.Contains(candidates, c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal));
-        Assert.True(candidates.FindIndex(c => c.EndsWith(".s3l-mcp-figma.json", StringComparison.Ordinal))
-            < candidates.FindIndex(c => c.EndsWith(".snail-mcp-figma.json", StringComparison.Ordinal)));
     }
 
     private static void RunWithEnvironment(Dictionary<string, string?> values, Action action) =>

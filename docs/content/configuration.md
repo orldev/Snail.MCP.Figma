@@ -57,7 +57,8 @@ Only `command` and the token are needed in practice; the rest is shown to make t
 
 ## Settings file
 
-Optional — without it the server runs on defaults. It is looked up along the chain
+Optional — without it the server runs on defaults. It is looked up along the chain every Snail server shares
+(`ServerSettings` of Snail.Sdk), and the first file found is the only one read:
 
 1. `$SNAIL_MCP_FIGMA_CONFIG`
 2. `./.s3l-mcp-figma.json`

@@ -1,23 +1,17 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Configuration;
 
-/// <summary>Builds <see cref="ServerConfig"/>: defaults → JSON file → environment variables.</summary>
+/// <summary>Builds <see cref="ServerConfig"/>: defaults → the settings file → <c>SNAIL_MCP_FIGMA_</c> variables, read through <see cref="ServerSettings"/>.</summary>
 public static class ServerConfigExtensions
 {
     /// <summary>Adds configuration sources and registers the built <see cref="ServerConfig"/> in DI, returning it for host setup.</summary>
     public static ServerConfig AddServerConfiguration(this IHostApplicationBuilder builder)
     {
-        var configFile = ServerPaths.FindConfigFile();
-
-        if (configFile is not null)
-        {
-            builder.Configuration.AddJsonFile(configFile, optional: true, reloadOnChange: false);
-        }
-
-        builder.Configuration.AddEnvironment();
+        builder.Configuration.AddServerSettings(ServerPaths.ShortName);
 
         var config = new ServerConfig();
         builder.Configuration.GetSection(ServerConfig.SectionName).Bind(config);
