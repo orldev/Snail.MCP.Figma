@@ -506,14 +506,14 @@
       if (!field || !input || !orb || !count || !stateText) return;
 
       var conns = (typeof window.__wsGetActiveConnections === 'function') ? (window.__wsGetActiveConnections() || []) : [];
-      var live = 0;
-      var here = 0;
+      var connected = 0;
       for (var i = 0; i < conns.length; i++) {
-        if (conns[i] && conns[i].ws && conns[i].ws.readyState === 1) {
-          live++;
-          if (conns[i].bound) here++;
-        }
+        if (conns[i] && conns[i].ws && conns[i].ws.readyState === 1) connected++;
       }
+      // Считаются агенты, а не подключения: общий сервер — одно подключение на многих.
+      var agents = (typeof window.__wsAgents === 'function') ? window.__wsAgents() : [];
+      var live = agents.length;
+      var here = agents.filter(function(agent) { return agent.bound; }).length;
       var paused = (typeof window.__wsIsPaused === 'function') ? window.__wsIsPaused() : false;
 
       var mode, text, hint;
@@ -525,7 +525,7 @@
         mode = 'idle';
         text = 'paused — AI can\'t make changes';
         hint = 'Paused';
-      } else if (live >= 1) {
+      } else if (connected >= 1) {
         mode = 'live';
         text = 'live · ' + whoWorksHere(here, live) + lastActionSuffix();
         hint = '';
@@ -558,6 +558,8 @@
     // Панель подключена ко всем серверам, а работает в этом файле обычно один.
     // Строка называет оба числа, чтобы «3 apps» не читалось как «три агента тут».
     function whoWorksHere(here, live) {
+      // Общий сервер на связи, а сессий у него пока нет.
+      if (live === 0) return 'no app yet';
       if (here === live) return live + ' app' + (live === 1 ? ' works here' : 's work here');
       if (here === 0) return 'none of ' + live + ' apps works here';
       return here + ' of ' + live + ' apps work' + (here === 1 ? 's' : '') + ' here';
@@ -1230,7 +1232,14 @@
         window.sendPluginCommand('GET_FILE_INFO', {})
           .then(function(info) {
             if (connWs.readyState === 1 && info && info.success !== false) {
-              connWs.send(JSON.stringify({ type: 'FILE_INFO', data: info.fileInfo || info }));
+              var fileInfo = info.fileInfo || info;
+              var introduced = {};
+              for (var field in fileInfo) {
+                if (Object.prototype.hasOwnProperty.call(fileInfo, field)) introduced[field] = fileInfo[field];
+              }
+              // Протокол 2: панель различает агентов внутри одного подключения.
+              introduced.protocol = 2;
+              connWs.send(JSON.stringify({ type: 'FILE_INFO', data: introduced }));
             }
           })
           .catch(function() { /* non-critical */ });
@@ -1331,6 +1340,7 @@
                 conn.serverInfo = message.data;
                 if (message.data.serverVersion) conn.serverVersion = message.data.serverVersion;
                 conn.agent = message.data.agent || ('' + message.data.port);
+                conn.protocol = message.data.protocol || 1;
                 onAgentsChanged();
               }
               return;
@@ -1342,7 +1352,30 @@
               var claimed = activeConnections.find(function(c) { return c.ws === activeWs; });
               if (claimed) {
                 claimed.bound = !!message.data.bound;
-                if (!claimed.bound && addressee === claimed) addressee = null;
+                if (!claimed.bound && addressee === agentKey(agentsOf(claimed)[0])) addressee = null;
+                onAgentsChanged();
+              }
+              return;
+            }
+
+            // Протокол 2: сервер называет всех своих агентов и говорит про каждого,
+            // работает ли он в этом файле и сколько замечаний его ждёт.
+            if (message.type === 'AGENTS' && message.data) {
+              var carrier = activeConnections.find(function(c) { return c.ws === activeWs; });
+              if (carrier) {
+                var before = {};
+                (carrier.agents || []).forEach(function(agent) { before[agent.id] = agent.lastCommandAt || 0; });
+                carrier.protocol = 2;
+                carrier.agents = (message.data.agents || []).map(function(entry) {
+                  return {
+                    conn: carrier,
+                    id: entry.id,
+                    name: entry.name || entry.id,
+                    bound: !!entry.bound,
+                    waiting: entry.waiting || 0,
+                    lastCommandAt: before[entry.id] || 0
+                  };
+                });
                 onAgentsChanged();
               }
               return;
@@ -1390,7 +1423,13 @@
             // Но среди двух агентов, работающих тут, по умолчанию отвечает тот,
             // кто командовал последним.
             var commander = activeConnections.find(function(c) { return c.ws === activeWs; });
-            if (commander) commander.lastCommandAt = Date.now();
+            if (commander && commander.agents && message.agent) {
+              commander.agents.forEach(function(agent) {
+                if (agent.id === message.agent) agent.lastCommandAt = Date.now();
+              });
+            } else if (commander) {
+              commander.lastCommandAt = Date.now();
+            }
 
             var handler = methodMap[message.method];
             if (!handler) {
@@ -1442,16 +1481,43 @@
         };
       }
 
-      // Кто работает в этом файле — только те серверы, что сказали об этом сами.
-      function boundConnections() {
-        return activeConnections.filter(function(c) { return c.bound && c.ws.readyState === 1; });
+      // Агент — тот, кому панель адресует замечание. Сервер протокола 2 сам
+      // называет своих агентов (AGENTS), и одно подключение несёт нескольких;
+      // старый сервер — это один агент на подключение, как было всегда.
+      function agentsOf(conn) {
+        if (conn.agents) return conn.agents;
+        return [{
+          conn: conn,
+          id: null,
+          name: conn.agent || ('' + conn.port),
+          bound: !!conn.bound,
+          waiting: conn.remarksWaiting || 0,
+          lastCommandAt: conn.lastCommandAt || 0
+        }];
       }
 
-      function agentName(conn) {
-        return conn.agent || ('' + conn.port);
+      function agentKey(agent) {
+        return agent.conn.port + '/' + (agent.id || '');
       }
 
-      // Явный выбор человека: подключение или 'all'. Пусто — по умолчанию.
+      function liveAgents() {
+        var all = [];
+        activeConnections.forEach(function(conn) {
+          if (conn.ws.readyState === 1) all = all.concat(agentsOf(conn));
+        });
+        return all;
+      }
+
+      // Кто работает в этом файле — только те агенты, о которых это сказал их сервер.
+      function boundAgents() {
+        return liveAgents().filter(function(agent) { return agent.bound; });
+      }
+
+      function agentName(agent) {
+        return agent.name;
+      }
+
+      // Явный выбор человека: ключ агента или 'all'. Пусто — по умолчанию.
       var addressee = null;
 
       // По умолчанию отвечает тот из работающих тут, кто командовал последним;
@@ -1467,8 +1533,22 @@
       function currentAddressee(bound) {
         if (bound.length <= 1) return bound[0] || null;
         if (addressee === 'all') return 'all';
-        if (addressee && bound.indexOf(addressee) >= 0) return addressee;
+        for (var i = 0; i < bound.length; i++) {
+          if (agentKey(bound[i]) === addressee) return bound[i];
+        }
         return defaultAddressee(bound);
+      }
+
+      // Сообщение, адресованное агенту: серверу протокола 2 — с его id, старому — как есть.
+      function addressed(message, agent) {
+        if (!agent.id) return message;
+        var data = {};
+        var source = message.data || {};
+        for (var field in source) {
+          if (Object.prototype.hasOwnProperty.call(source, field)) data[field] = source[field];
+        }
+        data.agent = agent.id;
+        return { type: message.type, data: data };
       }
 
       /**
@@ -1476,12 +1556,11 @@
        * them when the human said so. An empty answer means there is nobody.
        */
       function sendToAgents(message) {
-        var bound = boundConnections();
+        var bound = boundAgents();
         var current = currentAddressee(bound);
         var targets = current === 'all' ? bound : (current ? [current] : []);
-        var json = JSON.stringify(message);
-        targets.forEach(function(conn) {
-          try { conn.ws.send(json); } catch (e) { /* the close handler will drop it */ }
+        targets.forEach(function(agent) {
+          try { agent.conn.ws.send(JSON.stringify(addressed(message, agent))); } catch (e) { /* the close handler will drop it */ }
         });
         return targets;
       }
@@ -1491,12 +1570,12 @@
       }
 
       // Серверы друг друга не видят; кто ещё работает в файле, знает только
-      // панель. Каждому — имена остальных, чтобы агент держался своей страницы.
+      // панель. Каждому — имена агентов других подключений: своих он знает сам.
       function announcePeers() {
-        var bound = boundConnections();
+        var bound = boundAgents();
         activeConnections.forEach(function(conn) {
           if (conn.ws.readyState !== 1) return;
-          var others = bound.filter(function(c) { return c !== conn; }).map(agentName);
+          var others = bound.filter(function(agent) { return agent.conn !== conn; }).map(agentName);
           try { conn.ws.send(JSON.stringify({ type: 'PEERS', data: { agents: others } })); } catch (e) { /* ignore */ }
         });
       }
@@ -1508,15 +1587,13 @@
         if (typeof deriveAndRenderStatus === 'function') deriveAndRenderStatus();
       }
 
-      window.__wsBoundConnections = boundConnections;
+      window.__wsAgents = liveAgents;
+      window.__wsBoundAgents = boundAgents;
       window.__wsAgentName = agentName;
-      window.__wsCurrentAddressee = function() { return currentAddressee(boundConnections()); };
-      window.__wsChooseAgent = function(portOrAll) {
-        if (portOrAll === 'all') {
-          addressee = 'all';
-        } else {
-          addressee = activeConnections.find(function(c) { return c.port === portOrAll; }) || null;
-        }
+      window.__wsAgentKey = agentKey;
+      window.__wsCurrentAddressee = function() { return currentAddressee(boundAgents()); };
+      window.__wsChooseAgent = function(keyOrAll) {
+        addressee = keyOrAll;
         if (typeof window.renderAgents === 'function') window.renderAgents();
       };
 
@@ -1534,9 +1611,8 @@
       // Забрать очередь обратно, пока её никто не прочитал. Очередь есть только
       // у работающих тут серверов — остальные замечание и не принимали.
       window.cancelQueue = function() {
-        var json = JSON.stringify({ type: 'REMARKS_CLEAR' });
-        boundConnections().forEach(function(conn) {
-          try { conn.ws.send(json); } catch (e) { /* ignore */ }
+        boundAgents().forEach(function(agent) {
+          try { agent.conn.ws.send(JSON.stringify(addressed({ type: 'REMARKS_CLEAR' }, agent))); } catch (e) { /* ignore */ }
         });
         logWithHistory('Queue cleared — the remarks were taken back', 'warn');
       };
@@ -1843,9 +1919,9 @@
       var cancel = document.getElementById('cancel-queue');
       if (!field) return;
       var waiting = 0;
-      var conns = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
-      for (var i = 0; i < conns.length; i++) {
-        if (conns[i] && conns[i].remarksWaiting > waiting) waiting = conns[i].remarksWaiting;
+      var bound = (typeof window.__wsBoundAgents === 'function') ? window.__wsBoundAgents() : [];
+      for (var i = 0; i < bound.length; i++) {
+        if (bound[i] && bound[i].waiting > waiting) waiting = bound[i].waiting;
       }
       _remarksWaiting = waiting;
       field.classList.toggle('queued', waiting > 0 && !field.classList.contains('waiting'));
@@ -1881,7 +1957,7 @@
       if (_buildTotal > 0 && _buildStep > 0) return 'step ' + _buildStep + ' of ' + _buildTotal + '…';
       if (_remarksWaiting === 1) return 'queued';
       if (_remarksWaiting > 1) return _remarksWaiting + ' queued';
-      var bound = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
+      var bound = (typeof window.__wsBoundAgents === 'function') ? window.__wsBoundAgents() : [];
       if (bound.length === 0) return 'No agent is working in this file';
       var to = bound.length > 1 ? addresseeLabel() : '';
       if (!nodes || nodes.length === 0) return 'Remark to ' + (to || 'the build') + '…';
@@ -1902,7 +1978,7 @@
       var row = document.getElementById('to-row');
       var field = document.getElementById('field');
       if (!row || !field) return;
-      var bound = (typeof window.__wsBoundConnections === 'function') ? window.__wsBoundConnections() : [];
+      var bound = (typeof window.__wsBoundAgents === 'function') ? window.__wsBoundAgents() : [];
       if (bound.length < 2) {
         row.hidden = true;
         row.textContent = '';
@@ -1914,7 +1990,10 @@
       var current = window.__wsCurrentAddressee();
       row.textContent = '';
       row.appendChild(document.createTextNode('to '));
-      var choices = bound.map(function(conn) { return { key: conn.port, name: window.__wsAgentName(conn), chosen: current === conn }; });
+      var choices = bound.map(function(agent) {
+        var key = window.__wsAgentKey(agent);
+        return { key: key, name: window.__wsAgentName(agent), chosen: current !== 'all' && !!current && window.__wsAgentKey(current) === key };
+      });
       choices.push({ key: 'all', name: 'all', chosen: current === 'all' });
       choices.forEach(function(choice, index) {
         if (index > 0) row.appendChild(document.createTextNode(', '));
