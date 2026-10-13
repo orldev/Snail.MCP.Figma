@@ -67,6 +67,9 @@ Optional — without it the server runs on defaults. It is looked up along the c
 6. `./.snail-mcp-figma.json`, `./snail-mcp-figma.json`, `~/.snail-mcp-figma.json` — the names from before the rename
 
 Every field is optional and the values below are the defaults, so an empty `{}` behaves exactly like no file.
+The token is a field too, `"AccessToken": "figd_..."`, and this file is the place for it when the server runs as a
+service: a secret in a launchd job or a client's config is copied wherever that file goes, while this one stays
+readable by you alone (`chmod 600`). A token in the environment still wins over the file.
 
 ```json
 {

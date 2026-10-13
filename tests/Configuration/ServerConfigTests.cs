@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Tests.Configuration;
@@ -92,6 +93,31 @@ public class ServerConfigTests
         Assert.Equal(SanitizationProfile.Raw, config.Sanitization.Profile);
         Assert.Equal(ServerMode.Local, config.Mode);
         Assert.Null(configuration["PATH"]);
+    }
+
+    /// <summary>The token kept in the settings file, out of the launchd job and every client's config, reaches the server; a token in the environment still wins.</summary>
+    [Fact]
+    public void AccessToken_IsReadFromTheSettingsFile_UnlessTheEnvironmentNamesOne()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"s3l-mcp-figma-{Guid.NewGuid():N}.json");
+        File.WriteAllText(file, """{ "AccessToken": "figd_from-file" }""");
+
+        try
+        {
+            var fromFile = RunWithEnvironment(
+                new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null },
+                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+            var fromEnvironment = RunWithEnvironment(
+                new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = "figd_from-env" },
+                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+
+            Assert.Equal("figd_from-file", fromFile.AccessToken);
+            Assert.Equal("figd_from-env", fromEnvironment.AccessToken);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
     }
 
     [Fact]
