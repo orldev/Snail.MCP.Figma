@@ -203,6 +203,56 @@ Ask your assistant to run these two:
 Then paste a file link and ask for something cheap, such as the list of pages
 (`figma_get_file_data` with `depth: 1`).
 
+## One server for every agent
+
+By default every client session starts a server of its own: four agents in Figma Desktop are four processes of
+about 88 MB each, and four panels' worth of connections in every file. With several agents working at once, run
+one server for all of them instead. Measured with four sessions: 353 MB as four stdio processes, 103 MB as one
+shared server, and a new session answered in about a millisecond instead of the 150 ms a process takes to start.
+stdio stays the default; the shared server is opt-in.
+
+1. **Publish and install the job.** From a clone of the repository:
+
+    ```bash
+    dotnet publish src -c Release -p:Install=true
+    ```
+
+    This publishes into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,
+    from `deploy/s3l.mcp.figma.plist`. The first time, it prints the two commands that load the job:
+
+    ```bash
+    cp ~/.s3l-mcp/Snail.MCP.Figma/s3l.mcp.figma.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/s3l.mcp.figma.plist
+    ```
+
+    Later installs restart a loaded job by themselves.
+
+2. **Give the job your settings.** The job runs with `SNAIL_MCP_FIGMA_TRANSPORT=Http` and nothing else. Add the
+   token as `SNAIL_MCP_FIGMA_ACCESS_TOKEN` to `EnvironmentVariables` of the copy in `~/Library/LaunchAgents/` (never
+   to the template in the repository), and `SNAIL_MCP_FIGMA_DATA_DIRECTORY` when the plugin was imported into Figma
+   from a folder other than `~/.s3l-mcp-figma`. Then `launchctl kickstart -k gui/$(id -u)/s3l.mcp.figma`.
+
+3. **Register it as an HTTP server** in every client, in place of the stdio entry:
+
+    ```json
+    {
+      "mcpServers": {
+        "s3l-mcp-figma": {
+          "type": "http",
+          "url": "http://127.0.0.1:9233/mcp"
+        }
+      }
+    }
+    ```
+
+4. **Restart the plugin** in each open file once (Plugins → Development → Snail Bridge). The panel learns the new
+   protocol from the server; nothing has to be imported again.
+
+The server listens on loopback only and refuses any request that carries an `Origin` header, so no web page can
+reach it. Each client session is an agent of its own, named in the panel after the folder it works in, and a
+session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MCP.Figma.log`. To go back to
+stdio, `launchctl bootout gui/$(id -u)/s3l.mcp.figma` and restore the stdio entry.
+
 ## Updating
 
 ```bash

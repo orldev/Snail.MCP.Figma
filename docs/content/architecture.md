@@ -9,7 +9,7 @@ ports only. Folder = layer = namespace.
 | `Application/Ports` | the published source split by intent, the live editor, the snapshot stores, diagnostics |
 | `Application` | the read pipeline, snapshot policy, sanitizer, tokens, extraction, version diffing |
 | `Adapters/Rest` | `RestDocumentGateway`, `QuotaGate` — the only place that speaks HTTP |
-| `Adapters/Editor` | the WebSocket hub, command router, session registry, server-side sibling discovery, embedded read scripts, capture store |
+| `Adapters/Editor` | the WebSocket hub, command router, file registry, the agents and their slots, server-side sibling discovery, embedded read scripts, capture store |
 | `Adapters/Persistence/LiteDb` | the three snapshot stores and the lazily opened database |
 | `Tools` | the MCP driving adapter: 141 tools and the prompt catalog |
 | `Extensions` / `Hosting` | the composition root and the process lifetime |
@@ -37,8 +37,9 @@ Commands without a file key go to the agent's target. It moves only on the agent
 the file it last named in any tool, and never on the human's clicks: with the plugin open in several files and
 several agents around, a click in another file was meant for one of them and the server cannot tell which.
 The only connected file is the target by itself; several with none named make the write tools refuse and list
-them. When the target's plugin disconnects, the only file left takes over; otherwise there is no target until
-the agent names one.
+them. When the target's plugin disconnects, the target stays with its file: a command then fails and names that
+file, and the agent's next command after the plugin returns goes there again. It is never handed to the file
+left behind, which belongs to another agent as often as not.
 
 ## The third channel: the panel
 
@@ -63,10 +64,57 @@ step as its own command and cannot count them, so the share can only come from t
 means the build is over.
 
 A remark is addressed, not broadcast. Every server is connected to every panel, so each server tells each
-panel whether its agent works in that file (`TARGET_BOUND`), and the panel sends a remark only to the servers
-that said yes; the server, in turn, queues a remark only for its target file. With two agents in one file the
-panel lets the human pick the addressee by name. The panel also tells every server who else has claimed the
-file (`PEERS`), which is how `figma_navigate` can name the other agents: servers never see each other.
+panel who of its agents works in that file, and the panel sends a remark only to them; the server, in turn,
+queues a remark only for agents whose target is that file. With two agents in one file the panel lets the human
+pick the addressee by name. The panel also tells every server who else has claimed the file (`PEERS`), which is
+how `figma_navigate` can name the other agents: servers never see each other.
+
+The bridge speaks two protocols, and each side says which in its first message (`SERVER_HELLO`, `FILE_INFO`).
+In protocol 1 a connection is one agent: `TARGET_BOUND` says whether it works in the file and `REMARKS_WAITING`
+how many remarks wait. In protocol 2 a connection carries every agent of its server: `AGENTS` lists them by id and
+name with `bound` and `waiting` each, and `BUILD_STOP`, `REMARKS_CLEAR` and every command name their `agent`. Each
+side answers the other in the older protocol until told otherwise, so a panel and a server of different ages still
+understand each other.
+
+## One server for several agents
+
+With `SNAIL_MCP_FIGMA_TRANSPORT=Http` one process serves every agent on the machine over Streamable HTTP, instead of
+a process per client over stdio. What a process holds falls into two kinds, and the split follows it.
+
+- **Facts about a file are kept once.** The open files and their sessions — selection, current page, document and
+  metadata changes, console lines, the variables snapshot — live in `OpenDocumentRegistry`, along with the snapshot
+  cache, the REST gateway and its quota breaker. They read the same whoever asks.
+- **An agent's intent is its own.** An `AgentSlot` holds the target, the file last named, the remarks left for the
+  agent in each file and its read position in each console. Clearing the console moves that position rather than
+  emptying a buffer another agent reads. `AgentRoster` keeps the slots.
+
+Over stdio there is one slot, named after the launch folder, so both ways run the same code. On a shared server every
+MCP session opens a slot of its own. A call filter serves each tool call as its session's agent, and services built once,
+such as the gateway, ask the roster whose call is in hand each time rather than holding an agent. The agent is named
+after the first folder its client lists as an MCP root, otherwise after the client's name, otherwise `agent N`. Two
+sessions of one project are `Keynex` and `Keynex 2`.
+
+**Commands take turns.** The plugin runs on Figma's one plugin thread and starts every command it is given. The
+router keeps one command per agent in flight per file, so one agent's long script cannot push another's short read
+behind a dozen of its own. The timeout starts when a command leaves its agent's queue. An agent whose session ends
+gives up the commands still waiting. A connection that drops fails its waits at once instead of letting them run
+into their timeouts.
+
+**Failure stays where it happened.** A plugin message the hub cannot read is logged and skipped, never allowed to
+end the connection every agent in that file shares. A background service that fails is left stopped rather than
+allowed to stop the host. launchd brings a process that falls back within seconds. The panels reconnect by
+themselves, and a client opens a new session on the 404 for the old one. The agent's file is written to
+`agents.json` in the data folder whenever it chooses one and when the server stops. An agent that comes back from the
+same folder gets its file again without a navigate, while the record is less than an hour old or the file is
+connected. A command that was in flight when the process fell is lost and has to be repeated.
+
+**The two ports stay apart.** MCP answers on `127.0.0.1:9233` and refuses any request with an `Origin` header: a
+browser always sends one, an agent's client never does. The bridge keeps its own port in 9223–9232 and its own
+origin check, which admits Figma. Each route is bound to its port. A refusal for the whole host, as the shared
+servers without a bridge map it, would have cut off the plugin, which always sends `Origin`.
+
+A session nobody has used for 15 minutes ends, and its agent leaves the panel: a VS Code window that was killed
+never says goodbye.
 
 ## Variables: one shape, a snapshot that can be doubted
 
@@ -128,8 +176,9 @@ from a sandbox. The server meets that in three places.
 
 ## Process lifetime
 
-The server talks JSON-RPC over stdio, so every log line goes to stderr — a single stray write to stdout would
-break the client. An hour without a tool call and the process exits on its own
+Over stdio the server talks JSON-RPC on stdin and stdout, so every log line goes to stderr — a single stray write to
+stdout would break the client. A shared server has no idle exit and logs to the file launchd gives it; the rest of
+this section is about stdio. An hour without a tool call and the process exits on its own
 (`IdleTimeoutMinutes`, `0` disables it) so that orphaned servers do not pile up. A connected plugin holds the
 countdown: while the WebSocket session is open the server is in use, and the full timeout starts over once the
 last session drops.

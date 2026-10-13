@@ -14,7 +14,9 @@ is a field like any other.
 | `SNAIL_MCP_FIGMA_CONFIG` | — | Explicit path to the settings file (read before the config is loaded) |
 | `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.s3l-mcp-figma` | Snapshot database, bundled plugin, captures |
 | `SNAIL_MCP_FIGMA_MODE` | `Local` | Server mode |
-| `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without a tool call before the process exits; the countdown is held while a plugin is connected, `0` disables it |
+| `SNAIL_MCP_FIGMA_TRANSPORT` | `Stdio` | `Stdio`: each client starts a server of its own. `Http`: one server for every agent on the machine, see [Installation](installation.md#one-server-for-every-agent) |
+| `SNAIL_MCP_FIGMA_URL` | `http://127.0.0.1:9233` | Where the shared server answers MCP (`/mcp`); loopback only, and outside the bridge's port range |
+| `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without a tool call before the process exits; the countdown is held while a plugin is connected, `0` disables it. A shared server has no idle exit: launchd keeps it running |
 | `SNAIL_MCP_FIGMA_SANITIZATION__PROFILE` | `Aggressive` | `Aggressive` / `Balanced` / `Raw` |
 | `SNAIL_MCP_FIGMA_SANITIZATION__DEFAULT_DEPTH` | `3` | Default tree depth for REST reads |
 | `SNAIL_MCP_FIGMA_SANITIZATION__DEFAULT_MAX_NODES` | `500` | Node cap for REST reads |

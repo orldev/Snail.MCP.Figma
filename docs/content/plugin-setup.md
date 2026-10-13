@@ -72,7 +72,14 @@ refuse and list the files instead of guessing. `figma_list_open_files` shows the
 target and which other agents work in each. `figma_execute_across_files` runs the same code in several files
 in parallel and demands explicit targets, so a fan-out never reaches the target file by accident.
 
-Two agents in one file are allowed. Each is named after the folder its server was started in, which is the
-agent's project, and `SNAIL_MCP_FIGMA_BRIDGE__AGENT_NAME` overrides the name. `figma_navigate` and
+Two agents in one file are allowed. Each is named after its project: over stdio the folder its server was started
+in (`SNAIL_MCP_FIGMA_BRIDGE__AGENT_NAME` overrides it), on a [shared server](installation.md#one-server-for-every-agent)
+the folder its client works in. A shared server carries all its agents over one connection per file and names each
+of them to the panel, so the addressee row and the counter read the same either way; the panel still connects to
+every stdio server it finds alongside it. `figma_navigate` and
 `figma_get_status` tell an agent who else works in the file, so it can keep to its own page or section:
 Figma does not lock nodes, and two agents editing one frame share its undo history.
+
+When the agent's file is closed or its plugin stops, the file stays the agent's target. Its commands fail and name
+the file until the plugin runs there again; they are never moved to the file left open, which belongs to another
+agent as often as not.
