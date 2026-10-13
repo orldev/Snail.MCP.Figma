@@ -214,10 +214,10 @@ stdio stays the default; the shared server is opt-in.
 1. **Publish and install the job.** From a clone of the repository:
 
     ```bash
-    dotnet publish src -c Release -p:Install=true
+    dotnet publish src -c Release -r osx-arm64 -p:Install=true
     ```
 
-    This publishes into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,
+    This publishes the native server into `~/.s3l-mcp/Snail.MCP.Figma/` and writes the launchd job `s3l.mcp.figma.plist` beside it,
     from `deploy/s3l.mcp.figma.plist`. The first time, it prints the two commands that load the job:
 
     ```bash
@@ -254,6 +254,10 @@ session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MC
 stdio, `launchctl bootout gui/$(id -u)/s3l.mcp.figma` and restore the stdio entry.
 
 ## Updating
+
+A native publication holds the program itself, `~/.s3l-mcp/Snail.MCP.Figma/current/Snail.MCP.Figma`, and no
+`Snail.MCP.Figma.dll`: a stdio registration that ran `dotnet …/Snail.MCP.Figma.dll` from there names the program as its
+`command` instead, with no arguments.
 
 ```bash
 dotnet tool update -g Snail.MCP.Figma
