@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.orldev/snail-mcp-figma",
-  "description": "Local MCP server for Figma: reads design documents through REST or a live desktop plugin with a LiteDB snapshot cache, and writes through the plugin (nodes, variables, components, FigJam, Slides).",
+  "description": "Local MCP server for Figma: 141 tools that read and edit designs through the desktop plugin or REST",
   "version": "0.1.0",
   "packages": [
     {
@@ -47,7 +47,79 @@
         },
         {
           "name": "SNAIL_MCP_FIGMA_CACHE__ENABLED",
-          "description": "Keep LiteDB snapshots of REST reads.",
+          "description": "Keep SQLite snapshots of REST reads.",
+          "isRequired": false,
+          "default": "true",
+          "choices": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES",
+          "description": "Minutes without a tool call after which the process exits on its own; 0 disables the watchdog.",
+          "isRequired": false,
+          "default": "60"
+        }
+      ]
+    },
+    {
+      "registryType": "nuget",
+      "identifier": "Snail.MCP.Figma",
+      "version": "0.1.0",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:9233/mcp"
+      },
+      "packageArguments": [],
+      "environmentVariables": [
+        {
+          "name": "SNAIL_MCP_FIGMA_ACCESS_TOKEN",
+          "description": "Figma personal access token (figd_…) or OAuth token (figu_…). Needed only for the REST channel: version history, comments, other teams' libraries, files not open in the desktop app. The live-editor channel works without it.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_DATA_DIRECTORY",
+          "description": "Data root: snapshot database, installed editor extension, captures. Default: ~/.s3l-mcp-figma.",
+          "isRequired": false
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_TRANSPORT",
+          "description": "Stdio when the client starts the server, which is how a client runs this package; Http when one server runs on its own for every agent on the machine (launchd keeps it running), and clients connect to its URL.",
+          "isRequired": false,
+          "value": "Http"
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_URL",
+          "description": "Where the shared server answers MCP (/mcp); loopback only, and outside the bridge's port range.",
+          "isRequired": false,
+          "default": "http://127.0.0.1:9233"
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_SANITIZATION__PROFILE",
+          "description": "How aggressively REST responses are trimmed before reaching the model.",
+          "isRequired": false,
+          "default": "Aggressive",
+          "choices": [
+            "Aggressive",
+            "Balanced",
+            "Raw"
+          ]
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_BRIDGE__PREFER_PLUGIN_FOR_READS",
+          "description": "Read through the live editor when it is connected; false always reads the last saved state via REST.",
+          "isRequired": false,
+          "default": "true",
+          "choices": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "SNAIL_MCP_FIGMA_CACHE__ENABLED",
+          "description": "Keep SQLite snapshots of REST reads.",
           "isRequired": false,
           "default": "true",
           "choices": [
