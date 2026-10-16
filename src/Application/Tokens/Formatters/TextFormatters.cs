@@ -85,8 +85,10 @@ internal static class TextFormatterCore
 /// <summary>SCSS variables such as <c>$color-primary: #FF0000;</c>; references stay $variable references.</summary>
 public sealed class ScssFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>scss</c>.</summary>
     public string Format => "scss";
 
+    /// <summary>Renders the document as SCSS variable declarations.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -120,8 +122,10 @@ public sealed class ScssFormatter : ITokenFormatter
 /// <summary>Less variables such as <c>@color-primary: #FF0000;</c>.</summary>
 public sealed class LessFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>less</c>.</summary>
     public string Format => "less";
 
+    /// <summary>Renders the document as Less variable declarations.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -155,8 +159,10 @@ public sealed class LessFormatter : ITokenFormatter
 /// <summary>Tailwind v4: the theme is declared in CSS with <c>@theme</c>; Tailwind derives utility classes from variable names.</summary>
 public sealed class TailwindV4Formatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>tailwind-v4</c>.</summary>
     public string Format => "tailwind-v4";
 
+    /// <summary>Renders the document as a Tailwind v4 <c>@theme</c> stylesheet.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -202,8 +208,10 @@ public sealed class TailwindV4Formatter : ITokenFormatter
 /// <summary>Tailwind v3: JavaScript config with a <c>theme.extend</c> section.</summary>
 public sealed class TailwindV3Formatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>tailwind-v3</c>.</summary>
     public string Format => "tailwind-v3";
 
+    /// <summary>Renders the document as a Tailwind v3 JavaScript config.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -282,8 +290,10 @@ public sealed class TailwindV3Formatter : ITokenFormatter
 /// <summary>TypeScript module with typed constants.</summary>
 public sealed class TsModuleFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>ts-module</c>.</summary>
     public string Format => "ts-module";
 
+    /// <summary>Renders the document as a TypeScript module of constants.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();

@@ -10,6 +10,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Creates a variable collection with its initial and additional modes through the plugin.</summary>
     [McpServerTool(Name = "figma_create_variable_collection", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.CreateVariableCollection)]
     public Task<string> CreateCollectionAsync(
@@ -24,6 +25,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             ["additionalModes"] = SplitList(additionalModes),
         }, cancellationToken);
 
+    /// <summary>Deletes a variable collection with all its variables through the plugin.</summary>
     [McpServerTool(Name = "figma_delete_variable_collection", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.DeleteVariableCollection)]
     public Task<string> DeleteCollectionAsync(
@@ -32,6 +34,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         ApplyAsync(EditorCommands.DeleteVariableCollection,
             new JsonObject { ["collectionId"] = collectionId }, cancellationToken);
 
+    /// <summary>Creates one variable in a collection through the plugin.</summary>
     [McpServerTool(Name = "figma_create_variable", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.CreateVariable)]
     public Task<string> CreateVariableAsync(
@@ -61,6 +64,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Sets the value of a variable in one mode through the plugin.</summary>
     [McpServerTool(Name = "figma_update_variable", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.UpdateVariable)]
     public Task<string> UpdateVariableAsync(
@@ -75,6 +79,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             ["value"] = ParseScalar(value),
         }, cancellationToken);
 
+    /// <summary>Deletes a variable through the plugin.</summary>
     [McpServerTool(Name = "figma_delete_variable", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.DeleteVariable)]
     public Task<string> DeleteVariableAsync(
@@ -83,6 +88,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         ApplyAsync(EditorCommands.DeleteVariable,
             new JsonObject { ["variableId"] = variableId }, cancellationToken);
 
+    /// <summary>Gives a variable a new name, and with it a new group path, through the plugin.</summary>
     [McpServerTool(Name = "figma_rename_variable", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.RenameVariable)]
     public Task<string> RenameVariableAsync(
@@ -92,6 +98,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         ApplyAsync(EditorCommands.RenameVariable,
             new JsonObject { ["variableId"] = variableId, ["newName"] = newName }, cancellationToken);
 
+    /// <summary>Sets the description designers see on a variable through the plugin.</summary>
     [McpServerTool(Name = "figma_set_variable_description", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.SetVariableDescription)]
     public Task<string> SetVariableDescriptionAsync(
@@ -101,6 +108,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         ApplyAsync(EditorCommands.SetVariableDescription,
             new JsonObject { ["variableId"] = variableId, ["description"] = description }, cancellationToken);
 
+    /// <summary>Adds a mode to a variable collection through the plugin.</summary>
     [McpServerTool(Name = "figma_add_mode", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.AddMode)]
     public Task<string> AddModeAsync(
@@ -110,6 +118,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         ApplyAsync(EditorCommands.AddMode,
             new JsonObject { ["collectionId"] = collectionId, ["modeName"] = modeName }, cancellationToken);
 
+    /// <summary>Renames one mode of a variable collection through the plugin.</summary>
     [McpServerTool(Name = "figma_rename_mode", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.RenameMode)]
     public Task<string> RenameModeAsync(
@@ -124,6 +133,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             ["newName"] = newName,
         }, cancellationToken);
 
+    /// <summary>Reads the variables of the file directly through the plugin, on any Figma plan.</summary>
     [McpServerTool(Name = "figma_get_token_values", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.GetTokenValues)]
     public Task<string> GetTokenValuesAsync(
@@ -142,6 +152,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             return ToolResponse.Ok(result ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Creates many variables in one collection in a single plugin command.</summary>
     [McpServerTool(Name = "figma_batch_create_variables", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.BatchCreateVariables)]
     public Task<string> BatchCreateVariablesAsync(
@@ -197,6 +208,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             });
         }, cancellationToken);
 
+    /// <summary>Updates the values of many variables in a single plugin command.</summary>
     [McpServerTool(Name = "figma_batch_update_variables", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.BatchUpdateVariables)]
     public Task<string> BatchUpdateVariablesAsync(
@@ -241,6 +253,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             });
         }, cancellationToken);
 
+    /// <summary>Creates a collection with its modes and fills it with variables in one call.</summary>
     [McpServerTool(Name = "figma_setup_design_tokens", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Variable.SetupDesignTokens)]
     public Task<string> SetupDesignTokensAsync(

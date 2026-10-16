@@ -16,6 +16,7 @@ public sealed class SessionTools(
     ILogger<SessionTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Lists the files the plugin is connected to, the target among them and the agents working in each.</summary>
     [McpServerTool(Name = "figma_list_open_files", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         UseStructuredContent = true, OutputSchemaType = typeof(Answer<OpenFiles>))]
     [Description(ToolDescriptions.Session.ListOpenFiles)]
@@ -26,6 +27,7 @@ public sealed class SessionTools(
             ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
         }), cancellationToken);
 
+    /// <summary>Binds the command target of this agent to a file given by link or key.</summary>
     [McpServerTool(Name = "figma_navigate", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.Navigate)]
     public Task<string> NavigateAsync(
@@ -61,6 +63,7 @@ public sealed class SessionTools(
             : $"The file is the target, and {string.Join(", ", others)} also works here: keep to your own page or section.";
     }
 
+    /// <summary>Runs one script in several connected files in parallel without moving the target.</summary>
     [McpServerTool(Name = "figma_execute_across_files", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Session.ExecuteAcrossFiles)]
     public Task<string> ExecuteAcrossFilesAsync(
@@ -212,6 +215,7 @@ public sealed class SessionTools(
 
     private sealed record FileOutcome(string FileKey, bool Succeeded, JsonObject Payload);
 
+    /// <summary>Refreshes the list of connected files and reports the current target.</summary>
     [McpServerTool(Name = "figma_reconnect", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.Reconnect)]
     public Task<string> ReconnectAsync(CancellationToken cancellationToken = default) =>
@@ -222,11 +226,13 @@ public sealed class SessionTools(
             ["activeFileKey"] = Plugin.Documents.ActiveFileKey,
         })), cancellationToken);
 
+    /// <summary>Asks the plugin to reload its UI.</summary>
     [McpServerTool(Name = "figma_reload_plugin", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.ReloadPlugin)]
     public Task<string> ReloadPluginAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.ReloadUi, null, cancellationToken);
 
+    /// <summary>Returns the recent console lines of the plugin sandbox.</summary>
     [McpServerTool(Name = "figma_get_console_logs", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.GetConsoleLogs)]
     public Task<string> GetConsoleLogsAsync(
@@ -264,6 +270,7 @@ public sealed class SessionTools(
             }));
         }, cancellationToken);
 
+    /// <summary>Takes the remarks the human typed in the plugin panel, optionally waiting for one to arrive.</summary>
     [McpServerTool(Name = "figma_get_remarks", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.GetRemarks)]
     public Task<string> GetRemarksAsync(
@@ -315,6 +322,7 @@ public sealed class SessionTools(
         ["selection"] = new JsonArray([.. remark.Nodes.Select(node => node.DeepClone())]),
     };
 
+    /// <summary>Restarts the console view of this agent so later reads show only newer lines.</summary>
     [McpServerTool(Name = "figma_clear_console", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.ClearConsole)]
     public Task<string> ClearConsoleAsync(CancellationToken cancellationToken = default) =>
@@ -336,6 +344,7 @@ public sealed class SessionTools(
             return ToolResponse.Ok(new JsonObject { ["cleared"] = true });
         }, cancellationToken);
 
+    /// <summary>Waits up to a timeout for new lines in the plugin console.</summary>
     [McpServerTool(Name = "figma_watch_console", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.WatchConsole)]
     public Task<string> WatchConsoleAsync(
@@ -376,6 +385,7 @@ public sealed class SessionTools(
             });
         }, cancellationToken);
 
+    /// <summary>Exports a node through the plugin as SVG markup or as a PDF, PNG or JPG file.</summary>
     [McpServerTool(Name = "figma_export_node", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.ExportNode)]
     public Task<CallToolResult> ExportNodeAsync(
@@ -438,6 +448,7 @@ public sealed class SessionTools(
             return ToolResponse.Textual(ToolResponse.Ok(payload ?? new JsonObject()));
         }, cancellationToken);
 
+    /// <summary>Lists the users currently in the file with their multiplayer colors.</summary>
     [McpServerTool(Name = "figma_get_active_users", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Session.GetActiveUsers)]
     public Task<string> GetActiveUsersAsync(CancellationToken cancellationToken = default) =>
@@ -468,6 +479,7 @@ public sealed class SessionTools(
             return ToolResponse.Ok(payload ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Shows a toast message in the Figma window.</summary>
     [McpServerTool(Name = "figma_notify", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Session.Notify)]
     public Task<string> NotifyAsync(
@@ -494,6 +506,7 @@ public sealed class SessionTools(
                 : ToolResponse.Ok(payload ?? new JsonObject { ["shown"] = true });
         }, cancellationToken);
 
+    /// <summary>Scrolls the viewport to a node, optionally selecting it.</summary>
     [McpServerTool(Name = "figma_scroll_to_node", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.ScrollToNode)]
     public Task<string> ScrollToNodeAsync(
@@ -532,6 +545,7 @@ public sealed class SessionTools(
                 : ToolResponse.Ok(payload ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Sets or resets the frame used as the cover of the file.</summary>
     [McpServerTool(Name = "figma_set_file_thumbnail", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.SetFileThumbnail)]
     public Task<string> SetFileThumbnailAsync(
@@ -567,6 +581,7 @@ public sealed class SessionTools(
                 : ToolResponse.Ok(payload ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Captures a node or the current page as it looks right now through the plugin.</summary>
     [McpServerTool(Name = "figma_take_screenshot", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.TakeScreenshot)]
     public Task<CallToolResult> TakeScreenshotAsync(
@@ -605,6 +620,7 @@ public sealed class SessionTools(
             return ToolResponse.Pictured(ToolResponse.Ok(result), picture);
         }, cancellationToken);
 
+    /// <summary>Returns the text styles of the file read through the plugin.</summary>
     [McpServerTool(Name = "figma_get_text_styles", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.GetTextStyles)]
     public Task<string> GetTextStylesAsync(CancellationToken cancellationToken = default) =>

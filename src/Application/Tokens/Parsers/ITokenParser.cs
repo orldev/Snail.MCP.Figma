@@ -22,5 +22,6 @@ public sealed record ParseContext(string SetName, TokenDocument Document)
 /// <summary>Parse result together with what raised doubts.</summary>
 public sealed record ParseResult(TokenDocument Document, IReadOnlyList<string> Warnings)
 {
+    /// <summary>Number of tokens in the document after the parse, across all sets.</summary>
     public int TokenCount => Document.TokenCount;
 }

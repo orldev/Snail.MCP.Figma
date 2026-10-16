@@ -14,6 +14,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
     private static TimeSpan ComponentSetTimeout(int variantCount) =>
         TimeSpan.FromMilliseconds(Math.Clamp(variantCount * 1200, 35_000, 125_000));
 
+    /// <summary>Finds components in the open file by name through the plugin.</summary>
     [McpServerTool(Name = "figma_search_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.SearchComponents)]
     public Task<string> SearchComponentsAsync(
@@ -54,6 +55,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             });
         }, cancellationToken);
 
+    /// <summary>Places an instance of a component, addressed by key or node id, through the plugin.</summary>
     [McpServerTool(Name = "figma_instantiate_component", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.InstantiateComponent)]
     public Task<string> InstantiateComponentAsync(
@@ -96,6 +98,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Builds a variant set from existing components or from a property matrix through the plugin.</summary>
     [McpServerTool(Name = "figma_create_component_set", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.CreateComponentSet)]
     public Task<string> CreateComponentSetAsync(
@@ -129,6 +132,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Reports the property axes of a variant set and which combinations are present or missing.</summary>
     [McpServerTool(Name = "figma_analyze_component_set", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.AnalyzeComponentSet)]
     public Task<string> AnalyzeComponentSetAsync(
@@ -137,6 +141,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
         ReadAsync(EditorCommands.AnalyzeComponentSet,
             new JsonObject { ["nodeId"] = NodeId.Normalize(nodeId) }, cancellationToken);
 
+    /// <summary>Lays the variants of a set out in a grid by their first two property axes through the plugin.</summary>
     [McpServerTool(Name = "figma_arrange_component_set", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.ArrangeComponentSet)]
     public Task<string> ArrangeComponentSetAsync(
@@ -190,6 +195,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Adds a text, boolean, instance-swap, variant or slot property to a component through the plugin.</summary>
     [McpServerTool(Name = "figma_add_component_property", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Component.AddComponentProperty)]
     public Task<string> AddComponentPropertyAsync(
@@ -242,6 +248,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Changes the default value of a component property through the plugin.</summary>
     [McpServerTool(Name = "figma_edit_component_property", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.EditComponentProperty)]
     public Task<string> EditComponentPropertyAsync(
@@ -256,6 +263,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             ["newValue"] = newValue,
         }, cancellationToken);
 
+    /// <summary>Removes a property from a component through the plugin.</summary>
     [McpServerTool(Name = "figma_delete_component_property", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.DeleteComponentProperty)]
     public Task<string> DeleteComponentPropertyAsync(
@@ -268,6 +276,7 @@ public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> l
             ["propertyName"] = propertyName,
         }, cancellationToken);
 
+    /// <summary>Reads the live state of a component from the plugin, optionally as a deep tree.</summary>
     [McpServerTool(Name = "figma_get_component_details", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Component.GetComponentDetails)]
     public Task<string> GetComponentDetailsAsync(

@@ -13,6 +13,12 @@ directory. This is done once — except when `manifest.json` itself changes, per
 grants those at import, so a new permission needs the plugin imported again, not merely restarted. The panel
 shows a *re-import plugin* banner when the bundled plugin is newer than the running one.
 
+The copy in that directory is this machine's own: the installer writes the machine's bridge token into `ui.html`, and
+the server serves only a panel that sends it back ([who the bridge trusts](architecture.md#who-the-bridge-trusts)).
+Import the plugin from that directory, never from the repository's `plugin/` folder, whose `ui.html` carries only the
+placeholder. After a server update that brought the token, restart the plugin once: the panel already running has none
+and shows the update banner instead of connecting.
+
 ## Run it
 
 Open the file you want to work in and start **Plugins → Development → Snail Bridge**. The plugin

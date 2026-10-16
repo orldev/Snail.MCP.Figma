@@ -5,8 +5,10 @@ namespace Snail.MCP.Figma.Application.Ports;
 /// <summary>Live editor: sees unsaved edits, costs no quota and is the only writer; transport and snapshot invalidation belong to the adapter.</summary>
 public interface ILiveEditor
 {
+    /// <summary>Whether at least one document has the extension connected.</summary>
     bool IsConnected { get; }
 
+    /// <summary>This agent's view of the documents open in the editor.</summary>
     IOpenDocuments Documents { get; }
 
     /// <summary>Side-effect-free command — a read through the editor.</summary>

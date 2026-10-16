@@ -14,6 +14,7 @@ public sealed class CommentTools(
     ILogger<CommentTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Lists the file's comment threads through REST, leaving resolved ones out unless asked.</summary>
     [McpServerTool(Name = "figma_get_comments", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.GetComments)]
     public Task<string> GetCommentsAsync(
@@ -48,6 +49,7 @@ public sealed class CommentTools(
             });
         }, cancellationToken);
 
+    /// <summary>Posts a new comment or a reply to a thread through REST, optionally pinned to a point on a node.</summary>
     [McpServerTool(Name = "figma_post_comment", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.PostComment)]
     public Task<string> PostCommentAsync(
@@ -82,6 +84,7 @@ public sealed class CommentTools(
             return ToolResponse.Ok(response, envelope => envelope["fileKey"] = fileKey);
         }, cancellationToken);
 
+    /// <summary>Removes one comment from the file through REST.</summary>
     [McpServerTool(Name = "figma_delete_comment", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Comment.DeleteComment)]
     public Task<string> DeleteCommentAsync(

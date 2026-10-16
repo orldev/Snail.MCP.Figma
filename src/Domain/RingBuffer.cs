@@ -7,8 +7,10 @@ public sealed class RingBuffer<T>(int capacity)
     private readonly object _gate = new();
     private long _added;
 
+    /// <summary>Most items held at once; beyond it the oldest is dropped.</summary>
     public int Capacity { get; } = capacity;
 
+    /// <summary>Number of items currently held.</summary>
     public int Count
     {
         get { lock (_gate) { return _items.Count; } }
@@ -20,6 +22,7 @@ public sealed class RingBuffer<T>(int capacity)
         get { lock (_gate) { return _added; } }
     }
 
+    /// <summary>Appends the item, dropping the oldest once the capacity is reached.</summary>
     public void Add(T item)
     {
         lock (_gate)
@@ -54,6 +57,7 @@ public sealed class RingBuffer<T>(int capacity)
         }
     }
 
+    /// <summary>Drops every held item; <see cref="Added"/> keeps its count.</summary>
     public void Clear()
     {
         lock (_gate)

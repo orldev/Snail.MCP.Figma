@@ -13,11 +13,13 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
     private const int MaxGridRows = 50;
     private const int MaxGridRow = 50;
 
+    /// <summary>Lists the slides of a Figma Slides file through the plugin.</summary>
     [McpServerTool(Name = "figma_list_slides", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.ListSlides)]
     public Task<string> ListSlidesAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.ListSlides, [], cancellationToken);
 
+    /// <summary>Returns the content tree of one slide.</summary>
     [McpServerTool(Name = "figma_get_slide_content", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideContent)]
     public Task<string> GetSlideContentAsync(
@@ -28,11 +30,13 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
+    /// <summary>Returns the row-and-column layout of the slides.</summary>
     [McpServerTool(Name = "figma_get_slide_grid", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideGrid)]
     public Task<string> GetSlideGridAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetSlideGrid, [], cancellationToken);
 
+    /// <summary>Returns the transition settings of one slide.</summary>
     [McpServerTool(Name = "figma_get_slide_transition", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetSlideTransition)]
     public Task<string> GetSlideTransitionAsync(
@@ -43,11 +47,13 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
+    /// <summary>Returns the slide open in single-slide view.</summary>
     [McpServerTool(Name = "figma_get_focused_slide", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.GetFocusedSlide)]
     public Task<string> GetFocusedSlideAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetFocusedSlide, [], cancellationToken);
 
+    /// <summary>Creates an empty slide, optionally at a given grid position.</summary>
     [McpServerTool(Name = "figma_create_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.CreateSlide)]
     public Task<string> CreateSlideAsync(
@@ -60,6 +66,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["col"] = col,
         }, cancellationToken);
 
+    /// <summary>Removes a slide from the presentation.</summary>
     [McpServerTool(Name = "figma_delete_slide", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.DeleteSlide)]
     public Task<string> DeleteSlideAsync(
@@ -70,6 +77,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
+    /// <summary>Copies a slide next to the original.</summary>
     [McpServerTool(Name = "figma_duplicate_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.DuplicateSlide)]
     public Task<string> DuplicateSlideAsync(
@@ -80,6 +88,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["slideId"] = NodeId.Normalize(slideId),
         }, cancellationToken);
 
+    /// <summary>Replaces the whole slide grid with a new arrangement of slide ids.</summary>
     [McpServerTool(Name = "figma_reorder_slides", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.ReorderSlides)]
     public Task<string> ReorderSlidesAsync(
@@ -109,6 +118,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Sets the transition style, duration and curve of a slide.</summary>
     [McpServerTool(Name = "figma_set_slide_transition", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlideTransition)]
     public Task<string> SetSlideTransitionAsync(
@@ -125,6 +135,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["curve"] = curve,
         }, cancellationToken);
 
+    /// <summary>Marks a slide as skipped or shown in presentation mode.</summary>
     [McpServerTool(Name = "figma_skip_slide", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SkipSlide)]
     public Task<string> SkipSlideAsync(
@@ -137,6 +148,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["skip"] = skip,
         }, cancellationToken);
 
+    /// <summary>Adds formatted text to a slide.</summary>
     [McpServerTool(Name = "figma_add_text_to_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.AddTextToSlide)]
     public Task<string> AddTextToSlideAsync(
@@ -171,6 +183,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["textCase"] = textCase,
         }, cancellationToken);
 
+    /// <summary>Adds a rectangle or an ellipse to a slide.</summary>
     [McpServerTool(Name = "figma_add_shape_to_slide", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.AddShapeToSlide)]
     public Task<string> AddShapeToSlideAsync(
@@ -193,6 +206,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["fillColor"] = fillColor,
         }, cancellationToken);
 
+    /// <summary>Sets the background color of a slide through a rectangle covering it.</summary>
     [McpServerTool(Name = "figma_set_slide_background", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlideBackground)]
     public Task<string> SetSlideBackgroundAsync(
@@ -205,6 +219,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["color"] = color,
         }, cancellationToken);
 
+    /// <summary>Switches the presentation between grid and single-slide view.</summary>
     [McpServerTool(Name = "figma_set_slides_view_mode", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.SetSlidesViewMode)]
     public Task<string> SetSlidesViewModeAsync(
@@ -215,6 +230,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
             ["mode"] = mode,
         }, cancellationToken);
 
+    /// <summary>Opens a given slide in single-slide view.</summary>
     [McpServerTool(Name = "figma_focus_slide", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slides.FocusSlide)]
     public Task<string> FocusSlideAsync(

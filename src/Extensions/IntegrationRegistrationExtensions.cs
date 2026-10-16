@@ -10,6 +10,7 @@ public static class IntegrationRegistrationExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>Registers the REST gateway behind its ports and the live editor's bridge, agents and plugin installer.</summary>
         public IServiceCollection AddIntegration() =>
             services
                 .AddPublishedSource()

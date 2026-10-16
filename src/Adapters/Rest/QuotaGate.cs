@@ -8,6 +8,7 @@ public sealed class QuotaGate : IQuotaStatus
     private readonly ConcurrentDictionary<string, DateTimeOffset> _blockedUntil = new(StringComparer.Ordinal);
     private readonly Func<DateTimeOffset> _now;
 
+    /// <summary>Creates a gate that reads the system clock.</summary>
     public QuotaGate()
         : this(now: null)
     {

@@ -3,8 +3,10 @@ namespace Snail.MCP.Figma.Application.Snapshots;
 /// <summary>Link to a rendered node picture; rendering is the most expensive bucket while the link lives 30 days.</summary>
 public sealed class RenderSnapshot
 {
+    /// <summary>Record identifier; the SQLite store neither sets nor reads it and keys links by file, node and variant.</summary>
     public string? Id { get; set; }
 
+    /// <summary>Key of the file the node belongs to.</summary>
     public required string FileKey { get; set; }
 
     /// <summary>Node id in canonical colon form.</summary>
@@ -19,7 +21,9 @@ public sealed class RenderSnapshot
     /// <summary>Link returned by Figma; valid for 30 days.</summary>
     public required string Url { get; set; }
 
+    /// <summary>When the link was stored.</summary>
     public DateTimeOffset LastFetchedAt { get; set; }
 
+    /// <summary>When the link stops being served from the store.</summary>
     public DateTimeOffset ExpiresAt { get; set; }
 }

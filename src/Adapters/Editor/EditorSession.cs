@@ -11,6 +11,7 @@ public sealed class EditorSession : IOpenDocument
 
     private readonly WebSocket _socket;
 
+    /// <summary>Wraps a freshly accepted plugin socket, unidentified until its <c>FILE_INFO</c> arrives.</summary>
     public EditorSession(WebSocket socket, string connectionId)
     {
         _socket = socket;
@@ -20,19 +21,25 @@ public sealed class EditorSession : IOpenDocument
         LastInteractionAt = DateTimeOffset.MinValue;
     }
 
+    /// <summary>The hub's id for this socket, unique for as long as the process runs.</summary>
     public string ConnectionId { get; }
 
     /// <summary>Filled from <c>FILE_INFO</c>; until then the session is unidentified.</summary>
     public string? FileKey { get; set; }
 
+    /// <summary>The file's name as the plugin reported it in <c>FILE_INFO</c>.</summary>
     public string? FileName { get; set; }
 
+    /// <summary>Name of the page the human has open, updated on every page change.</summary>
     public string? CurrentPage { get; set; }
 
+    /// <summary>Id of the page the human has open, known once the human switches a page.</summary>
     public string? CurrentPageId { get; set; }
 
+    /// <summary>Version of the plugin code running in the file, compared with the installed bundle.</summary>
     public string? PluginVersion { get; set; }
 
+    /// <summary>Which Figma editor the file is open in, as reported by the plugin.</summary>
     public string? EditorType { get; set; }
 
     /// <summary>The bridge protocol the panel speaks, from <c>FILE_INFO</c>: 1 knows one agent per connection, 2 names each agent in its messages.</summary>
@@ -41,13 +48,16 @@ public sealed class EditorSession : IOpenDocument
     /// <summary>Whether the panel tells agents apart within this connection (<see cref="EditorWireProtocol.Agents"/>).</summary>
     public bool NamesAgents => Protocol >= EditorWireProtocol.AgentsProtocol;
 
+    /// <summary>When the plugin's socket was accepted.</summary>
     public DateTimeOffset ConnectedAt { get; }
 
+    /// <summary>When a message last went either way between the server and this plugin.</summary>
     public DateTimeOffset LastActivityAt { get; set; }
 
     /// <summary>When the human last selected, switched a page or wrote a remark; the minimum until they do.</summary>
     public DateTimeOffset LastInteractionAt { get; set; }
 
+    /// <inheritdoc/>
     public IReadOnlyList<string> Peers { get; set; } = [];
 
     /// <summary>Last known selection — the source of coordinates for mutations.</summary>

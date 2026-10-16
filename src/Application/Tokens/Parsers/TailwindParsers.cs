@@ -9,8 +9,10 @@ public sealed partial class TailwindV4Parser : ITokenParser
     [GeneratedRegex(@"@theme[^{]*\{(?<body>.*?)\n\}", RegexOptions.Singleline)]
     private static partial Regex ThemeBlockPattern();
 
+    /// <summary>Configuration name of this format, <c>tailwind-v4</c>.</summary>
     public string Format => "tailwind-v4";
 
+    /// <summary>Reads the variables of the <c>@theme</c> block into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var match = ThemeBlockPattern().Match(content);
@@ -62,8 +64,10 @@ public sealed partial class TailwindV3Parser : ITokenParser
         ["fontFamily"] = ("font-family", TokenTypes.FontFamily),
     };
 
+    /// <summary>Configuration name of this format, <c>tailwind-v3</c>.</summary>
     public string Format => "tailwind-v3";
 
+    /// <summary>Reads the <c>theme.extend</c> section of a Tailwind v3 config into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();

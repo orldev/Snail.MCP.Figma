@@ -10,6 +10,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Runs design lint rules over a subtree through the plugin.</summary>
     [McpServerTool(Name = "figma_lint_design", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.LintDesign)]
     public Task<string> LintDesignAsync(
@@ -26,6 +27,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["maxFindings"] = maxFindings,
         }, cancellationToken, TimeSpan.FromSeconds(60));
 
+    /// <summary>Audits a component for contrast, target size and text alternatives through the plugin.</summary>
     [McpServerTool(Name = "figma_audit_component_accessibility", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.AuditComponentAccessibility)]
     public Task<string> AuditAccessibilityAsync(
@@ -38,6 +40,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["targetSize"] = targetSize,
         }, cancellationToken, TimeSpan.FromSeconds(60));
 
+    /// <summary>Reads the developer annotations on a node through the plugin.</summary>
     [McpServerTool(Name = "figma_get_annotations", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.GetAnnotations)]
     public Task<string> GetAnnotationsAsync(
@@ -48,6 +51,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             ["nodeId"] = nodeId is null ? null : NodeId.Normalize(nodeId),
         }, cancellationToken);
 
+    /// <summary>Writes annotations onto a node through the plugin.</summary>
     [McpServerTool(Name = "figma_set_annotations", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.SetAnnotations)]
     public Task<string> SetAnnotationsAsync(
@@ -71,11 +75,13 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Lists the annotation categories of the file through the plugin.</summary>
     [McpServerTool(Name = "figma_get_annotation_categories", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.GetAnnotationCategories)]
     public Task<string> GetAnnotationCategoriesAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(EditorCommands.GetAnnotationCategories, null, cancellationToken);
 
+    /// <summary>Creates a new annotation category through the plugin.</summary>
     [McpServerTool(Name = "figma_add_annotation_category", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Quality.AddAnnotationCategory)]
     public Task<string> AddAnnotationCategoryAsync(

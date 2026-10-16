@@ -12,10 +12,12 @@ public sealed class SiblingDiscovery(
     ILogger<SiblingDiscovery> logger)
     : BackgroundService
 {
+    /// <summary>Name of the HTTP client that probes the other bridge ports, registered with a one-second timeout.</summary>
     public const string HttpClientName = "sibling-discovery";
 
     internal static readonly TimeSpan Cadence = TimeSpan.FromSeconds(45);
 
+    /// <summary>Probes the port range every 45 seconds and tells connected plugins which other servers answer, until the host stops.</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(Cadence);

@@ -6,6 +6,7 @@ public interface ILibraryCatalog
     /// <summary>Throws <see cref="PublishedSourceException"/> with <see cref="SourceFailure.NotFound"/> when the key is not a component.</summary>
     Task<JsonNode> GetPublishedComponentAsync(string componentKey, CancellationToken cancellationToken = default);
 
+    /// <summary>Published component set by key, in the published-source shape.</summary>
     Task<JsonNode> GetPublishedComponentSetAsync(string componentSetKey, CancellationToken cancellationToken = default);
 
     /// <summary>Published style by key; throws <see cref="SourceFailure.NotFound"/> when the key is not a style.</summary>

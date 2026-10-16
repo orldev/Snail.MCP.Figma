@@ -10,13 +10,19 @@ public sealed record WalkedFile(string Path, string RelativePath, string Extensi
 /// <summary>What the walk skipped — goes into target statistics.</summary>
 public sealed class WalkSkipped
 {
+    /// <summary>How many files were left out for exceeding the size cap.</summary>
     public int TooLarge { get; set; }
 
+    /// <summary>How many files were left out by the extension, include or exclude filters.</summary>
     public int Ignored { get; set; }
 
+    /// <summary>Whether the walk stopped early because it reached the file limit.</summary>
     public bool IsOverMaxFiles { get; set; }
 }
 
+/// <summary>The files a walk collected and what it left out on the way.</summary>
+/// <param name="Files">Files that passed every filter, in the order they were visited.</param>
+/// <param name="Skipped">Counts of what the walk skipped.</param>
 public sealed record WalkResult(IReadOnlyList<WalkedFile> Files, WalkSkipped Skipped);
 
 /// <summary>Walk limits; without them a large app scan runs away.</summary>
@@ -31,11 +37,13 @@ public sealed record WalkOptions
     /// <summary>Relative-path substrings; matching any drops the file.</summary>
     public IReadOnlyList<string>? Exclude { get; init; }
 
+    /// <summary>Number of files after which the walk stops collecting.</summary>
     public int MaxFiles { get; init; } = 5000;
 
     /// <summary>File size cap in kilobytes; anything larger is almost certainly generated.</summary>
     public int MaxFileSizeKb { get; init; } = 512;
 
+    /// <summary>Number of directory levels below the root the walk descends at most.</summary>
     public int MaxDepth { get; init; } = 12;
 }
 
@@ -50,6 +58,7 @@ public static class CodeWalker
         ".vercel", ".netlify", "vendor", "__snapshots__", ".extraction",
     };
 
+    /// <summary>The files under <c>root</c> that pass the options' filters and limits, plus a count of what was skipped.</summary>
     public static WalkResult Walk(string root, WalkOptions? options = null)
     {
         var opts = options ?? new WalkOptions();

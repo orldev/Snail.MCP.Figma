@@ -29,6 +29,7 @@ public sealed class AgentRoster
 
     private int _issued = 1;
 
+    /// <summary>Opens the roster with its default agent, which over stdio is the only one and on a shared server holds no file.</summary>
     public AgentRoster(OpenDocumentRegistry registry, ServerConfig config, ILogger<AgentRoster> logger)
     {
         _registry = registry;

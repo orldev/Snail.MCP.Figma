@@ -14,22 +14,31 @@ public sealed record VersionMeta(
 /// <summary>Everything a changelog is built from.</summary>
 public sealed record ChangelogInput
 {
+    /// <summary>Key of the Figma file the two versions belong to.</summary>
     public required string FileKey { get; init; }
 
+    /// <summary>File name used in the changelog title; <c>null</c> falls back to a generic title.</summary>
     public string? FileName { get; init; }
 
+    /// <summary>Version the comparison starts from.</summary>
     public required string FromVersionId { get; init; }
 
+    /// <summary>Version the comparison ends at.</summary>
     public required string ToVersionId { get; init; }
 
+    /// <summary>Author and date of the starting version; <c>null</c> when the version list does not carry it.</summary>
     public VersionMeta? FromMeta { get; init; }
 
+    /// <summary>Author and date of the ending version; <c>null</c> when the version list does not carry it.</summary>
     public VersionMeta? ToMeta { get; init; }
 
+    /// <summary>The diff's <c>page_structure</c> object: pages added, removed and renamed, with their summary counts.</summary>
     public required JsonObject PageStructure { get; init; }
 
+    /// <summary>Per-component diffs from the diff's <c>scoped_nodes</c>; <c>null</c> or empty when no component fell into the comparison scope.</summary>
     public IReadOnlyList<JsonObject>? ScopedNodes { get; init; }
 
+    /// <summary>Diff notes appended at the end of the changelog.</summary>
     public IReadOnlyList<string>? Notes { get; init; }
 }
 
@@ -39,6 +48,7 @@ public static partial class ChangelogFormatter
     [GeneratedRegex(@"([\\`*_{}\[\]<>])")]
     private static partial Regex MarkdownSpecialPattern();
 
+    /// <summary>Markdown changelog for the input, at the verbosity of a <see cref="DiffModes"/> value.</summary>
     public static string Render(ChangelogInput input, string mode = DiffModes.Standard)
     {
         var lines = new List<string>();

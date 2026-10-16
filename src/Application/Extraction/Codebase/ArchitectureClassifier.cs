@@ -5,10 +5,15 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 /// <summary>Classifies the inventory into atomic-design levels, maps domain names to generic components (FollowButton → Button) and lists missing generics.</summary>
 public static partial class ArchitectureClassifier
 {
+    /// <summary>Level label for the smallest indivisible components, such as a button or an icon.</summary>
     public const string Atom = "atom";
+    /// <summary>Level label for small groups of atoms that act as one unit, such as a search field.</summary>
     public const string Molecule = "molecule";
+    /// <summary>Level label for larger sections composed of molecules and atoms, such as a header or a card list.</summary>
     public const string Organism = "organism";
+    /// <summary>Level label for page-level layouts, recognised by names like page, layout, shell or screen.</summary>
     public const string Template = "template";
+    /// <summary>Level label for a component no rule could place on the atomic-design scale.</summary>
     public const string Unclassified = "unclassified";
 
     /// <summary>Generic nouns and their level.</summary>
@@ -99,6 +104,7 @@ public static partial class ArchitectureClassifier
     [GeneratedRegex(@"page|layout|template|shell|view|screen", RegexOptions.IgnoreCase)]
     private static partial Regex TemplateNamePattern();
 
+    /// <summary>The atomic-design levels of every component that is not pure vendor code, together with the generics it implies and those still missing.</summary>
     public static DsArchitecture Classify(IReadOnlyList<DsComponentEntry> components)
     {
         var portable = components

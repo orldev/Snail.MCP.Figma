@@ -74,10 +74,13 @@ public sealed class SqliteSnapshotDatabase(ServerConfig config, ILogger<SqliteSn
 
     private DateTimeOffset _nextRetryAt = DateTimeOffset.MinValue;
 
+    /// <inheritdoc/>
     public bool IsStarted => _isPrepared;
 
+    /// <inheritdoc/>
     public string? LastError { get; private set; }
 
+    /// <inheritdoc/>
     public SqliteConnection Open()
     {
         if (!_isPrepared)
@@ -88,6 +91,7 @@ public sealed class SqliteSnapshotDatabase(ServerConfig config, ILogger<SqliteSn
         return Connect();
     }
 
+    /// <inheritdoc/>
     public SqliteConnection? TryOpen()
     {
         if (!config.Cache.Enabled || (!_isPrepared && DateTimeOffset.UtcNow < _nextRetryAt))
@@ -107,6 +111,7 @@ public sealed class SqliteSnapshotDatabase(ServerConfig config, ILogger<SqliteSn
         }
     }
 
+    /// <inheritdoc/>
     public Task<SqliteConnection?> TryOpenAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

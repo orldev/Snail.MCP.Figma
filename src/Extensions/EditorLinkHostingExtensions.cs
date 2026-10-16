@@ -37,6 +37,7 @@ public static class EditorLinkHostingExtensions
 
     extension(WebApplication app)
     {
+        /// <summary>Hands the picked port and versions to the hub, maps the plugin WebSocket and the <c>/health</c> endpoint on the bridge port.</summary>
         public WebApplication UseBridge()
         {
             var endpoint = app.Services.GetRequiredService<EditorLinkEndpoint>();

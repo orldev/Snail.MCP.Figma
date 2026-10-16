@@ -17,8 +17,10 @@ public sealed partial class ScssParser : ITokenParser
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex BlockCommentPattern();
 
+    /// <summary>Configuration name of this format, <c>scss</c>.</summary>
     public string Format => "scss";
 
+    /// <summary>Reads SCSS variables and Sass maps into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();

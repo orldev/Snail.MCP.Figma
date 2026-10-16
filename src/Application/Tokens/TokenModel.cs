@@ -5,19 +5,33 @@ namespace Snail.MCP.Figma.Application.Tokens;
 /// <summary>DTCG token types kept as strings, not an enum: the spec grows and unknown types must pass through.</summary>
 public static class TokenTypes
 {
+    /// <summary>Colour value, such as a hex string.</summary>
     public const string Color = "color";
+    /// <summary>Length with a unit, such as <c>16px</c> or <c>1rem</c>.</summary>
     public const string Dimension = "dimension";
+    /// <summary>Font family name or a list of fallbacks.</summary>
     public const string FontFamily = "fontFamily";
+    /// <summary>Font weight, numeric or named.</summary>
     public const string FontWeight = "fontWeight";
+    /// <summary>Length of time for animations, such as <c>200ms</c>.</summary>
     public const string Duration = "duration";
+    /// <summary>Easing curve given by four control-point numbers.</summary>
     public const string CubicBezier = "cubicBezier";
+    /// <summary>Unitless number.</summary>
     public const string Number = "number";
+    /// <summary>Free text value.</summary>
     public const string String = "string";
+    /// <summary>True or false value.</summary>
     public const string Boolean = "boolean";
+    /// <summary>Composite shadow: colour, offsets, blur and spread.</summary>
     public const string Shadow = "shadow";
+    /// <summary>Composite text style: family, size, weight, line height and the like.</summary>
     public const string Typography = "typography";
+    /// <summary>Composite gradient of colour stops.</summary>
     public const string Gradient = "gradient";
+    /// <summary>Composite border: colour, width and style.</summary>
     public const string Border = "border";
+    /// <summary>Composite transition: duration, delay and easing.</summary>
     public const string Transition = "transition";
 
     /// <summary>Composite types expand into several CSS properties.</summary>
@@ -28,19 +42,25 @@ public static class TokenTypes
 /// <summary>Token value: either a literal or a reference to another token by dotted path, never both.</summary>
 public sealed class TokenValue
 {
+    /// <summary>Literal value as read from the source, <c>null</c> for a reference.</summary>
     public JsonNode? Literal { get; init; }
 
     /// <summary>Dotted path of the target token, e.g. <c>color.primitive.blue.500</c>.</summary>
     public string? Reference { get; init; }
 
+    /// <summary>Whether the value points at another token instead of holding a literal.</summary>
     public bool IsReference => !string.IsNullOrWhiteSpace(Reference);
 
+    /// <summary>Value holding a literal JSON node.</summary>
     public static TokenValue FromLiteral(JsonNode? literal) => new() { Literal = literal };
 
+    /// <summary>Value holding a literal string.</summary>
     public static TokenValue FromLiteral(string literal) => new() { Literal = JsonValue.Create(literal) };
 
+    /// <summary>Value holding a literal number.</summary>
     public static TokenValue FromLiteral(double literal) => new() { Literal = JsonValue.Create(literal) };
 
+    /// <summary>Value pointing at another token by its dotted path.</summary>
     public static TokenValue FromReference(string reference) => new() { Reference = reference };
 
     /// <summary>Literal as a string; references render as DTCG braces.</summary>
@@ -63,6 +83,7 @@ public sealed class FigmaTokenExtensions
     /// <summary>Figma variable id; survives renames and drives matching.</summary>
     public string? VariableId { get; set; }
 
+    /// <summary>Id of the Figma variable collection the variable belongs to.</summary>
     public string? CollectionId { get; set; }
 
     /// <summary>Native variable type: COLOR, FLOAT, STRING, BOOLEAN.</summary>
@@ -80,6 +101,7 @@ public sealed class FigmaTokenExtensions
     /// <summary>Mode whose value went into the main <c>$value</c>.</summary>
     public string? PrimaryMode { get; set; }
 
+    /// <summary>Metadata as the JSON object written under the <see cref="Namespace"/> key, omitting unset fields.</summary>
     public JsonObject ToJson()
     {
         var json = new JsonObject();
@@ -110,6 +132,7 @@ public sealed class FigmaTokenExtensions
         return json;
     }
 
+    /// <summary>Metadata read back from its JSON object; <c>null</c> when the node is not an object.</summary>
     public static FigmaTokenExtensions? FromJson(JsonNode? node)
     {
         if (node is not JsonObject obj)
@@ -141,13 +164,16 @@ public sealed class Token
     /// <summary>Hierarchical path: <c>["color","primary"]</c>.</summary>
     public required IReadOnlyList<string> Path { get; init; }
 
+    /// <summary>DTCG type of the token, one of <see cref="TokenTypes"/> or an unknown type passed through.</summary>
     public required string Type { get; set; }
 
+    /// <summary>Free-text note on what the token is for, the Figma variable description and the format's description field.</summary>
     public string? Description { get; set; }
 
     /// <summary>Values per mode; a single-mode token has one entry.</summary>
     public Dictionary<string, TokenValue> Values { get; init; } = new(StringComparer.Ordinal);
 
+    /// <summary>Link to the Figma variable behind the token; <c>null</c> when the token has none.</summary>
     public FigmaTokenExtensions? Figma { get; set; }
 
     /// <summary>Other vendors' extensions, carried as-is to keep round trips intact.</summary>
@@ -174,13 +200,16 @@ public sealed class Token
 /// <summary>Token set, matching one Figma variable collection.</summary>
 public sealed class TokenSet
 {
+    /// <summary>Set name as shown to people, the Figma collection name.</summary>
     public required string Name { get; init; }
 
+    /// <summary>Free-text note on what the set holds.</summary>
     public string? Description { get; set; }
 
     /// <summary>Mode names of the set; a single-mode set usually has one "Value".</summary>
     public List<string> Modes { get; init; } = [];
 
+    /// <summary>Tokens of the set, in source order.</summary>
     public List<Token> Tokens { get; init; } = [];
 
     /// <summary>Set slug for qualified references and file names.</summary>
@@ -190,10 +219,13 @@ public sealed class TokenSet
 /// <summary>Full token set of a project — what parsers read and formatters write.</summary>
 public sealed class TokenDocument
 {
+    /// <summary>Token sets of the document, one per Figma variable collection.</summary>
     public List<TokenSet> Sets { get; init; } = [];
 
+    /// <summary>Every token of every set, set by set.</summary>
     public IEnumerable<Token> AllTokens => Sets.SelectMany(set => set.Tokens);
 
+    /// <summary>Number of tokens across all sets.</summary>
     public int TokenCount => Sets.Sum(set => set.Tokens.Count);
 
     /// <summary>All modes in the document, in order of appearance.</summary>

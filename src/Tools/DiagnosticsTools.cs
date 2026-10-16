@@ -18,6 +18,7 @@ public sealed class DiagnosticsTools(
     IEditorExtensionInstaller installer,
     IApiIdentity identity)
 {
+    /// <summary>Reports the configuration, plugin installation, bridge and cache state of the server, optionally probing the cache file and the Figma token.</summary>
     [McpServerTool(Name = "csharp_diagnose", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Diagnostics.Diagnose)]
     public async Task<string> DiagnoseAsync(

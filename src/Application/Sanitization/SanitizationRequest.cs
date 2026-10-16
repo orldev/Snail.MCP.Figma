@@ -5,6 +5,7 @@ namespace Snail.MCP.Figma.Application.Sanitization;
 /// <summary>Parameters of one sanitization; everything but the profile is progressive disclosure.</summary>
 public sealed record SanitizationRequest
 {
+    /// <summary>How aggressively the node tree is stripped; <see cref="SanitizationProfile.Aggressive"/> by default.</summary>
     public SanitizationProfile Profile { get; init; } = SanitizationProfile.Aggressive;
 
     /// <summary>Traversal depth; <c>null</c> means unlimited.</summary>

@@ -4,14 +4,19 @@ using System.Text.RegularExpressions;
 
 namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 
+/// <summary>What setting up the Storybook glue wrote, patched and still leaves to the caller.</summary>
 public sealed class StorybookPresetResult
 {
+    /// <summary>Paths of the files written, relative to the output directory.</summary>
     public List<string> FilesWritten { get; } = [];
 
+    /// <summary>Paths of existing Storybook files that were patched in place, relative to the output directory.</summary>
     public List<string> Patched { get; } = [];
 
+    /// <summary>Changes the setup could not make on its own and the caller has to make by hand.</summary>
     public List<string> ManualSteps { get; } = [];
 
+    /// <summary>Problems met during setup that did not stop it.</summary>
     public List<string> Warnings { get; } = [];
 }
 

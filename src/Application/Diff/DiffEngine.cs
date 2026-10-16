@@ -3,12 +3,17 @@ namespace Snail.MCP.Figma.Application.Diff;
 /// <summary>Verbosity of diff output.</summary>
 public static class DiffModes
 {
+    /// <summary>Header, one summary line and the notes, without page or component sections.</summary>
     public const string Summary = "summary";
+    /// <summary>Page structure and per-component change counts; the default.</summary>
     public const string Standard = "standard";
+    /// <summary>Standard output plus each changed component property and variable binding.</summary>
     public const string Detailed = "detailed";
 
+    /// <summary>Every accepted mode name.</summary>
     public static readonly IReadOnlyList<string> All = [Summary, Standard, Detailed];
 
+    /// <summary>The mode in lower case when it is a known one, otherwise <see cref="Standard"/>.</summary>
     public static string Normalize(string? mode) =>
         mode is not null && All.Contains(mode, StringComparer.OrdinalIgnoreCase)
             ? mode.ToLowerInvariant()

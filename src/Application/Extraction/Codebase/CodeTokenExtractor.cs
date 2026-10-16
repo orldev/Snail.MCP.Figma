@@ -92,6 +92,7 @@ public static partial class CodeTokenExtractor
         return !string.Equals(stripped, name, StringComparison.Ordinal) && SemanticNamePattern().IsMatch(stripped);
     }
 
+    /// <summary>The tokens mined from the walked style and code files, with the raw values and warnings that remain in doubt.</summary>
     public static ExtractTokensResult Extract(IReadOnlyList<WalkedFile> files, ExtractTokensOptions? options = null)
     {
         var opts = options ?? new ExtractTokensOptions();

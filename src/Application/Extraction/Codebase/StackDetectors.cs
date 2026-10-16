@@ -6,10 +6,13 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 /// <summary>Package name and all its dependencies in one flat map.</summary>
 public sealed class PackageInfo
 {
+    /// <summary>The <c>name</c> field of <c>package.json</c>; <c>null</c> when the file is missing or names nothing.</summary>
     public string? Name { get; init; }
 
+    /// <summary>Versions from the dependencies, devDependencies and peerDependencies sections, keyed by package name.</summary>
     public Dictionary<string, string> Dependencies { get; init; } = new(StringComparer.Ordinal);
 
+    /// <summary>Whether any dependency section lists the package.</summary>
     public bool Has(string dependency) => Dependencies.ContainsKey(dependency);
 }
 
@@ -45,6 +48,7 @@ public static partial class StackDetectors
         ("daisyui", "daisyUI"),
     ];
 
+    /// <summary>The package name and dependencies from <c>package.json</c> under <c>root</c>; empty when the file is missing or unreadable.</summary>
     public static PackageInfo ReadPackageInfo(string root)
     {
         var raw = CodeWalker.ReadText(Path.Combine(root, "package.json"));
@@ -88,6 +92,7 @@ public static partial class StackDetectors
         }
     }
 
+    /// <summary>The frameworks the dependencies point to, falling back to file extensions when none do, or only <see cref="DsFrameworks.Unknown"/> when neither does.</summary>
     public static List<string> DetectFrameworks(PackageInfo package, IReadOnlyList<WalkedFile> files)
     {
         var found = new List<string>();
@@ -120,6 +125,7 @@ public static partial class StackDetectors
         return found.Count > 0 ? found : [DsFrameworks.Unknown];
     }
 
+    /// <summary>The styling methods the dependencies and style files point to, values of <see cref="DsStylingMethods"/>.</summary>
     public static List<string> DetectStylingMethods(PackageInfo package, IReadOnlyList<WalkedFile> files)
     {
         var found = new List<string>();
@@ -164,6 +170,7 @@ public static partial class StackDetectors
         return found;
     }
 
+    /// <summary>The vendor component libraries found through their configuration files, directories or dependencies.</summary>
     public static List<DsComponentLibrary> DetectComponentLibraries(string root, PackageInfo package)
     {
         var libraries = new List<DsComponentLibrary>();

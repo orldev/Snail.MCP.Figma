@@ -31,6 +31,7 @@ public sealed record FormatOptions
     /// <summary>Size unit: px, rem, pt, dp.</summary>
     public string? SizeUnit { get; init; }
 
+    /// <summary>Pixels in one rem, used when sizes convert between <c>px</c> and <c>rem</c>.</summary>
     public double RemBase { get; init; } = Transforms.SizeTransform.DefaultRemBase;
 
     /// <summary>Output file base name without extension.</summary>

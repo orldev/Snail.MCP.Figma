@@ -8,6 +8,7 @@ public sealed class VersionSnapshotCache(int maxEntries = 50)
     private readonly Dictionary<string, JsonNode> _store = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
+    /// <summary>Number of snapshots currently held.</summary>
     public int Count
     {
         get { lock (_gate) { return _store.Count; } }
@@ -28,6 +29,7 @@ public sealed class VersionSnapshotCache(int maxEntries = 50)
         return $"{fileKey}:{versionId}:{(depth is null ? "full" : depth.ToString())}:{ids}";
     }
 
+    /// <summary>Cached snapshot for the key, marked as most recently used; <c>null</c> on a miss or a <c>null</c> key.</summary>
     public JsonNode? Get(string? key)
     {
         if (key is null)
@@ -49,6 +51,7 @@ public sealed class VersionSnapshotCache(int maxEntries = 50)
         }
     }
 
+    /// <summary>Stores the snapshot under the key, evicting the least recently used entries beyond the capacity; a <c>null</c> key or value is ignored.</summary>
     public void Set(string? key, JsonNode? value)
     {
         if (key is null || value is null)
@@ -74,6 +77,7 @@ public sealed class VersionSnapshotCache(int maxEntries = 50)
         }
     }
 
+    /// <summary>Drops every cached snapshot.</summary>
     public void Clear()
     {
         lock (_gate)

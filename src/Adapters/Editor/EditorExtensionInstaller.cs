@@ -44,6 +44,7 @@ public sealed partial class EditorExtensionInstaller(
         return match.Success ? match.Groups[1].Value : null;
     }
 
+    /// <summary>Copies the plugin into place at startup; a failed copy is logged and never stops the server.</summary>
     public Task StartAsync(CancellationToken cancellationToken)
     {
         try

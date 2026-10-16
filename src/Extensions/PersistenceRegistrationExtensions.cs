@@ -8,6 +8,7 @@ public static class PersistenceRegistrationExtension
 {
     extension(IServiceCollection services)
     {
+        /// <summary>Registers the SQLite snapshot stores, the version ledger and the background warm-up of the cache file.</summary>
         public IServiceCollection AddSnapshotPersistence()
         {
             services.AddSingleton<ISnapshotDatabase, SqliteSnapshotDatabase>();

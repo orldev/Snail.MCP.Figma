@@ -10,6 +10,7 @@ public sealed class MinedVariable
     /// <summary>Name without the leading <c>--</c> or <c>$</c>.</summary>
     public required string Name { get; init; }
 
+    /// <summary>The declared value exactly as written in source, before any normalisation.</summary>
     public required string Value { get; init; }
 
     /// <summary>Theme mode of the declaration: <c>light</c> for the base, otherwise the mode named by the selector.</summary>
@@ -18,11 +19,13 @@ public sealed class MinedVariable
     /// <summary><c>path:line</c> form.</summary>
     public required string Source { get; init; }
 
+    /// <summary>Where the variable came from, such as a Tailwind theme, an SCSS variable or a shadcn HSL triple; <c>null</c> for a plain custom property.</summary>
     public string? Origin { get; init; }
 
     /// <summary>Mined from actual usage rather than declared explicitly.</summary>
     public bool IsInferred { get; init; }
 
+    /// <summary>How many times the usage behind an inferred variable occurred; <c>null</c> for a declared one.</summary>
     public int? Frequency { get; init; }
 }
 
@@ -32,12 +35,16 @@ public sealed record MinedTypographyRule(string Selector, Dictionary<string, str
 /// <summary>Raw value and how often it occurs.</summary>
 public sealed class RawFrequencyEntry
 {
+    /// <summary>The raw literal, with similar colors collapsed to one normalised value.</summary>
     public required string Value { get; init; }
 
+    /// <summary>The token type the literal was recognised as, such as color or dimension.</summary>
     public required string Type { get; init; }
 
+    /// <summary>How many times the value occurred across the scanned files.</summary>
     public int Frequency { get; set; }
 
+    /// <summary>A sample of <c>path:line</c> locations where the value occurs, capped at a few entries.</summary>
     public List<string> Sources { get; init; } = [];
 }
 
@@ -180,6 +187,7 @@ public static partial class CodeStyleMiner
         "text-transform", "font-style", "text-decoration",
     };
 
+    /// <summary>The <c>#rrggbb</c> color for a hue in degrees and saturation and lightness in percent.</summary>
     public static string HslToHex(double h, double s, double l)
     {
         var saturation = s / 100.0;
@@ -259,6 +267,7 @@ public static partial class CodeStyleMiner
         return ModernColorFunctionPattern().IsMatch(value) ? value : null;
     }
 
+    /// <summary>Whether the value is a shadcn-style bare HSL triple such as <c>222.2 47.4% 11.2%</c>.</summary>
     public static bool IsShadcnHslTriple(string value) => HslTriplePattern().IsMatch(value.Trim());
 
     /// <summary>Token type and literal from name and value; string is the default type.</summary>
@@ -300,6 +309,7 @@ public static partial class CodeStyleMiner
         return (TokenTypes.String, v);
     }
 
+    /// <summary>Whether the name contains a word that suggests a color, such as background, border, primary or brand.</summary>
     public static bool HasColorishName(string name) => ColorishNamePattern().IsMatch(name);
 
     /// <summary>Theme-block selector into a mode name, covering <c>:root</c>, <c>[data-theme]</c>, <c>.dark</c>, <c>.theme-X</c> and media queries.</summary>

@@ -48,17 +48,21 @@ public sealed class AgentSlot : IOpenDocuments
     /// <summary>The file this agent last named in any tool, so <c>fileUrl</c> can be left out afterwards.</summary>
     public ActiveDocumentTracker Tracker { get; } = new();
 
+    /// <summary>Every file whose plugin is connected to this server, the same list for all of its agents.</summary>
     public IReadOnlyCollection<EditorSession> Sessions => _registry.Sessions;
 
     IReadOnlyCollection<IOpenDocument> IOpenDocuments.Sessions => Sessions;
 
+    /// <summary>Whether any connected plugin's socket is still open, whichever agent it works for.</summary>
     public bool HasConnection => _registry.HasConnection;
 
+    /// <inheritdoc/>
     public string? ActiveFileKey => _targetFileKey;
 
     /// <summary>The name of the target file, as its plugin last reported it.</summary>
     internal string? ActiveFileName => _targetFileName;
 
+    /// <inheritdoc/>
     public EditorSession? LastTouched => _registry.LastTouched;
 
     IOpenDocument? IOpenDocuments.LastTouched => LastTouched;
@@ -237,6 +241,7 @@ public sealed class AgentSlot : IOpenDocuments
     }
 
     /// <summary>Forgets the target and the file last named, as for an agent that has just arrived: its session ended, or a test needs one that has not chosen yet.</summary>
+    /// <remarks>The departed source is cancelled and left to the collector, not disposed: a command may have read the field a moment before the swap and still be asking it for its token, which a disposed source answers with ObjectDisposedException. A source without a timer or linked registrations holds nothing the collector cannot take.</remarks>
     internal void Release()
     {
         _targetFileKey = null;

@@ -8,8 +8,10 @@ namespace Snail.MCP.Figma.Tools;
 /// <summary>Shared base of plugin-backed tools: sends commands and turns bridge errors into readable responses.</summary>
 public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
 {
+    /// <summary>The live-editor connection every plugin command of the tool goes through.</summary>
     protected ILiveEditor Plugin { get; } = plugin;
 
+    /// <summary>The logger of the concrete tool, which the shared failure handling writes to as well.</summary>
     protected ILogger Logger { get; } = logger;
 
     /// <summary>Mutation with cache invalidation of the affected nodes.</summary>
@@ -65,6 +67,7 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         }
     }
 
+    /// <summary>Error response for a tool that needs the plugin when none is connected, with the hint on how to start it.</summary>
     protected static string NotConnected() =>
         ToolResponse.Error(Messages.PluginNotConnected, Messages.HowToConnectPlugin);
 

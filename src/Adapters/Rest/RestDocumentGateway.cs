@@ -8,6 +8,7 @@ namespace Snail.MCP.Figma.Adapters.Rest;
 /// <summary>HTTP client for the Figma REST API: token-dependent auth header, retries on 429 and uniform error wrapping.</summary>
 public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSource, IDocumentHistory, IDocumentCommentary, ILibraryCatalog, IApiIdentity
 {
+    /// <summary>Name of the HTTP client that calls the Figma REST API, registered with a 60-second timeout.</summary>
     public const string HttpClientName = "figma";
     private const string ApiBase = "https://api.figma.com/v1";
     private const int MaxAttempts = 3;
@@ -50,8 +51,10 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         _delay = delay ?? Task.Delay;
     }
 
+    /// <inheritdoc/>
     public bool IsAvailable => _config.HasAccessToken;
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetDocumentAsync(string fileKey, DocumentReadOptions? options = null, CancellationToken cancellationToken = default)
     {
         var query = new QueryBuilder();
@@ -68,6 +71,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return GetAsync($"/files/{Uri.EscapeDataString(fileKey)}{query}", cancellationToken);
     }
 
+    /// <inheritdoc/>
     public async Task<JsonNode> GetNodesAsync(
         string fileKey,
         IReadOnlyList<string> nodeIds,
@@ -90,6 +94,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return response;
     }
 
+    /// <summary>Local variables and collections of the file, answered by <c>GET /files/{key}/variables/local</c>.</summary>
     public async Task<JsonNode> GetLocalVariablesAsync(string fileKey, CancellationToken cancellationToken = default)
     {
         var response = await GetAsync($"/files/{Uri.EscapeDataString(fileKey)}/variables/local", cancellationToken)
@@ -98,6 +103,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return Unwrap(response);
     }
 
+    /// <summary>Variables the file publishes to its library, answered by <c>GET /files/{key}/variables/published</c>.</summary>
     public async Task<JsonNode> GetPublishedVariablesAsync(string fileKey, CancellationToken cancellationToken = default)
     {
         var response = await GetAsync($"/files/{Uri.EscapeDataString(fileKey)}/variables/published", cancellationToken)
@@ -106,15 +112,19 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return Unwrap(response);
     }
 
+    /// <summary>Styles the file publishes, answered by <c>GET /files/{key}/styles</c>.</summary>
     public Task<JsonNode> GetStylesAsync(string fileKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/files/{Uri.EscapeDataString(fileKey)}/styles", cancellationToken);
 
+    /// <summary>Components the file publishes, answered by <c>GET /files/{key}/components</c>.</summary>
     public Task<JsonNode> GetComponentsAsync(string fileKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/files/{Uri.EscapeDataString(fileKey)}/components", cancellationToken);
 
+    /// <summary>Component sets the file publishes, answered by <c>GET /files/{key}/component_sets</c>.</summary>
     public Task<JsonNode> GetComponentSetsAsync(string fileKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/files/{Uri.EscapeDataString(fileKey)}/component_sets", cancellationToken);
 
+    /// <summary>Render links of the nodes, answered by <c>GET /images/{key}</c>; dash-form ids get an alias in the response.</summary>
     public async Task<JsonNode> RenderAsync(
         string fileKey,
         IReadOnlyList<string> nodeIds,
@@ -140,6 +150,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return response;
     }
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetVersionsPageAsync(string documentKey, int pageSize, string? after, CancellationToken cancellationToken = default)
     {
         var endpoint = $"/files/{Uri.EscapeDataString(documentKey)}/versions?page_size={pageSize}";
@@ -152,36 +163,46 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
         return GetAsync(endpoint, cancellationToken);
     }
 
+    /// <summary>Comments of the file, answered by <c>GET /files/{key}/comments</c>, with message bodies in Markdown when asked.</summary>
     public Task<JsonNode> GetCommentsAsync(string documentKey, bool asMarkdown, CancellationToken cancellationToken = default) =>
         GetAsync($"/files/{Uri.EscapeDataString(documentKey)}/comments{(asMarkdown ? "?as_md=true" : string.Empty)}", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> PostCommentAsync(string documentKey, JsonNode body, CancellationToken cancellationToken = default) =>
         PostAsync($"/files/{Uri.EscapeDataString(documentKey)}/comments", body, cancellationToken);
 
+    /// <summary>Deletes one comment of the file through <c>DELETE /files/{key}/comments/{id}</c>.</summary>
     public Task DeleteCommentAsync(string documentKey, string commentId, CancellationToken cancellationToken = default) =>
         DeleteAsync($"/files/{Uri.EscapeDataString(documentKey)}/comments/{Uri.EscapeDataString(commentId)}", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetFileMetaAsync(string documentKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/files/{Uri.EscapeDataString(documentKey)}/meta", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetMeAsync(CancellationToken cancellationToken = default) =>
         GetAsync("/me", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetPublishedStyleAsync(string styleKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/styles/{Uri.EscapeDataString(styleKey)}", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetTeamComponentsPageAsync(string teamId, int pageSize, string? after, CancellationToken cancellationToken = default) =>
         GetAsync($"/teams/{Uri.EscapeDataString(teamId)}/components?page_size={pageSize}{AfterCursor(after)}", cancellationToken);
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetTeamComponentSetsPageAsync(string teamId, int pageSize, string? after, CancellationToken cancellationToken = default) =>
         GetAsync($"/teams/{Uri.EscapeDataString(teamId)}/component_sets?page_size={pageSize}{AfterCursor(after)}", cancellationToken);
 
     private static string AfterCursor(string? after) =>
         string.IsNullOrWhiteSpace(after) ? string.Empty : $"&after={Uri.EscapeDataString(after)}";
 
+    /// <inheritdoc/>
     public Task<JsonNode> GetPublishedComponentAsync(string componentKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/components/{Uri.EscapeDataString(componentKey)}", cancellationToken);
 
+    /// <summary>Published component set by key, answered by <c>GET /component_sets/{key}</c>.</summary>
     public Task<JsonNode> GetPublishedComponentSetAsync(string componentSetKey, CancellationToken cancellationToken = default) =>
         GetAsync($"/component_sets/{Uri.EscapeDataString(componentSetKey)}", cancellationToken);
 

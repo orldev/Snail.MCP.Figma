@@ -12,11 +12,13 @@ public sealed class LiveEditorGateway(
     ILogger<LiveEditorGateway> logger)
     : ILiveEditor
 {
+    /// <summary>Whether the agent whose call is in hand sees any connected plugin.</summary>
     public bool IsConnected => Agent.HasConnection;
 
     /// <summary>The agent whose call is in hand.</summary>
     public AgentSlot Agent => agents.Current;
 
+    /// <summary>The documents as the agent whose call is in hand sees them.</summary>
     public IOpenDocuments Documents => Agent;
 
     /// <summary>Side-effect-free command — a read through the plugin.</summary>
@@ -97,12 +99,14 @@ public sealed class LiveEditorGateway(
         return result;
     }
 
+    /// <inheritdoc/>
     public async Task<JsonNode?> ReadTreeAsync(string fileKey, string? nodeId, int depth, int maxNodes, CancellationToken cancellationToken = default) =>
         await ExecuteScriptAsync(
             fileKey,
             nodeId is null ? EditorScripts.FileTree(depth, maxNodes) : EditorScripts.Subtree(nodeId, depth, maxNodes),
             cancellationToken).ConfigureAwait(false);
 
+    /// <inheritdoc/>
     public Task<JsonNode?> ReadStylesAsync(string fileKey, CancellationToken cancellationToken = default) =>
         ExecuteScriptAsync(fileKey, EditorScripts.Styles, cancellationToken);
 

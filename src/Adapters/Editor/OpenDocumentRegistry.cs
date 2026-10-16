@@ -8,8 +8,10 @@ public sealed class OpenDocumentRegistry(ILogger<OpenDocumentRegistry> logger)
 {
     private readonly ConcurrentDictionary<string, EditorSession> _byFileKey = new(StringComparer.Ordinal);
 
+    /// <summary>Every session bound to a file, open or not.</summary>
     public IReadOnlyCollection<EditorSession> Sessions => [.. _byFileKey.Values];
 
+    /// <summary>Whether at least one bound session's socket is still open.</summary>
     public bool HasConnection => _byFileKey.Values.Any(session => session.IsOpen);
 
     /// <summary>The open session the human interacted with most recently.</summary>

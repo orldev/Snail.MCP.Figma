@@ -8,10 +8,13 @@ public sealed class SqliteStoreHealth(
     ILogger<SqliteStoreHealth> logger)
     : ISnapshotStoreHealth
 {
+    /// <summary>Whether the cache file is open and its tables exist.</summary>
     public bool IsStarted => database.IsStarted;
 
+    /// <summary>Why the last open of the cache failed, if it did.</summary>
     public string? LastError => database.LastError;
 
+    /// <inheritdoc/>
     public SnapshotStoreProbe Probe()
     {
         try

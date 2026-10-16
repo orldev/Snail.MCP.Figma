@@ -20,8 +20,10 @@ public sealed partial class CssVarsParser : ITokenParser
     [GeneratedRegex(@"data-theme\s*=\s*[""']?(?<name>[^""'\]]+)")]
     private static partial Regex DataThemePattern();
 
+    /// <summary>Configuration name of this format, <c>css-vars</c>.</summary>
     public string Format => "css-vars";
 
+    /// <summary>Reads CSS custom properties into the context set, one mode per selector block.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();

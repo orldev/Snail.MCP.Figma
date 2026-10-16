@@ -18,6 +18,7 @@ public sealed class TokenTools(
     ILogger<TokenTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Exports the variables of the file as token files in a chosen code format.</summary>
     [McpServerTool(Name = "figma_export_tokens", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Token.ExportTokens)]
     public Task<string> ExportTokensAsync(
@@ -96,6 +97,7 @@ public sealed class TokenTools(
             });
         }, cancellationToken);
 
+    /// <summary>Parses tokens from code and either plans or applies them as Figma variables.</summary>
     [McpServerTool(Name = "figma_import_tokens", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Token.ImportTokens)]
     public Task<string> ImportTokensAsync(
@@ -152,6 +154,7 @@ public sealed class TokenTools(
             });
         }, cancellationToken);
 
+    /// <summary>Converts token content from one code format to another without touching Figma.</summary>
     [McpServerTool(Name = "figma_convert_tokens", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Token.ConvertTokens)]
     public Task<string> ConvertTokensAsync(

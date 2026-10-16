@@ -16,6 +16,7 @@ public sealed partial class LibraryTools(
     ILogger<LibraryTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Fetches the properties, variants and visual spec of one published library component or component set by its key.</summary>
     [McpServerTool(Name = "figma_get_library_component_by_key", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Library.GetLibraryComponentByKey)]
     public Task<string> GetLibraryComponentByKeyAsync(
@@ -173,6 +174,7 @@ public sealed partial class LibraryTools(
             return ToolResponse.Ok(payload);
         }, cancellationToken);
 
+    /// <summary>Lists the variables of the libraries the current file subscribes to, read through the plugin.</summary>
     [McpServerTool(Name = "figma_get_library_variables", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Library.GetLibraryVariables)]
     public Task<string> GetLibraryVariablesAsync(
@@ -275,6 +277,7 @@ public sealed partial class LibraryTools(
             });
         }, cancellationToken);
 
+    /// <summary>Imports one variable of a subscribed library into the current file by its key through the plugin.</summary>
     [McpServerTool(Name = "figma_import_library_variable", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Library.ImportLibraryVariable)]
     public Task<string> ImportLibraryVariableAsync(
@@ -372,6 +375,7 @@ public sealed partial class LibraryTools(
             });
         }, cancellationToken);
 
+    /// <summary>Searches the published components of a whole team by name or description, page by page.</summary>
     [McpServerTool(Name = "figma_search_team_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Library.SearchTeamComponents)]
     public Task<string> SearchTeamComponentsAsync(

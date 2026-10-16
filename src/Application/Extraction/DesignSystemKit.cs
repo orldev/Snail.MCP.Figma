@@ -468,5 +468,6 @@ public static class DesignSystemKit
     public static double SizeKb(JsonNode node) =>
         node.ToJsonString().Length / 1024.0;
 
+    /// <summary>A size in kilobytes rounded to a whole number for messages, independent of the culture.</summary>
     public static string FormatKb(double value) => value.ToString("0", CultureInfo.InvariantCulture);
 }

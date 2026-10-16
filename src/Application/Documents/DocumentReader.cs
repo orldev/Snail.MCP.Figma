@@ -185,5 +185,6 @@ public sealed record ReadResult(
     string? FileVersion,
     bool IsStale = false)
 {
+    /// <summary>Fraction removed by sanitization, 0..1; <c>0</c> when nothing came in.</summary>
     public double Ratio => BytesIn <= 0 ? 0 : 1d - ((double)BytesOut / BytesIn);
 }

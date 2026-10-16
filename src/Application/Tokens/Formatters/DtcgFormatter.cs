@@ -15,8 +15,10 @@ public sealed class DtcgFormatter : ITokenFormatter
     /// <summary>A leaf named like a group moves under this key: a JSON object cannot hold both a value and children.</summary>
     private const string LeafRemapKey = "@";
 
+    /// <summary>Configuration name of this format, <c>dtcg</c>.</summary>
     public string Format => "dtcg";
 
+    /// <summary>Renders the document as DTCG <c>.tokens.json</c> files.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
