@@ -202,15 +202,21 @@ public sealed class AgentRoster
     /// <summary>Tells the panel who works in its file: every project by name to a panel of protocol 2, whether anyone does to an older one.</summary>
     /// <remarks>A project with two sessions is one entry: the human sees the projects at work, not how many conversations each has open.</remarks>
     public Task AnnounceAsync(IOpenDocument session, CancellationToken cancellationToken) =>
-        session is EditorSession { NamesAgents: true } named
-            ? named.SendAsync(EditorWireProtocol.Agents(new JsonArray([.. Projects(Slots).Select(slot => (JsonNode)slot.DescribeIn(named.FileKey))])), cancellationToken)
-            : session.PublishTargetBoundAsync(WorkingIn(session.FileKey).Count > 0, cancellationToken);
+        session switch
+        {
+            EditorSession { NamesAgents: true } named => named.SendAsync(() => EditorWireProtocol.Agents(new JsonArray([.. Projects(Slots).Select(slot => (JsonNode)slot.DescribeIn(named.FileKey))])), cancellationToken),
+            EditorSession plain => plain.SendAsync(() => EditorWireProtocol.TargetBound(WorkingIn(plain.FileKey).Count > 0), cancellationToken),
+            _ => session.PublishTargetBoundAsync(WorkingIn(session.FileKey).Count > 0, cancellationToken),
+        };
 
     /// <summary>Tells the panel how many remarks still wait there: per agent to a panel of protocol 2, all of them together to an older one.</summary>
     public Task PublishWaitingAsync(IOpenDocument session, CancellationToken cancellationToken) =>
-        session is EditorSession { NamesAgents: true }
-            ? AnnounceAsync(session, cancellationToken)
-            : session.PublishRemarksWaitingAsync(WaitingIn(session.FileKey), cancellationToken);
+        session switch
+        {
+            EditorSession { NamesAgents: true } => AnnounceAsync(session, cancellationToken),
+            EditorSession plain => plain.SendAsync(() => EditorWireProtocol.RemarksWaiting(WaitingIn(plain.FileKey)), cancellationToken),
+            _ => session.PublishRemarksWaitingAsync(WaitingIn(session.FileKey), cancellationToken),
+        };
 
     /// <summary>Queues the human's remark for the project it names, or for every project working in the file when it names none, and only if they work there.</summary>
     /// <remarks>Every server is connected to every panel. A remark for another server's agent, queued here, would light this panel's queue for a reader that never comes and stop a build the human was not looking at.</remarks>

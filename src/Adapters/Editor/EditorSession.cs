@@ -157,14 +157,19 @@ public sealed class EditorSession : IOpenDocument
     public void Refuse() => IsRefused = true;
 
     /// <summary>Sends one message to the plugin, waiting for any send already in progress to finish first.</summary>
-    public async Task SendAsync(JsonNode message, CancellationToken cancellationToken)
-    {
-        var bytes = Encoding.UTF8.GetBytes(message.ToJsonString());
+    public Task SendAsync(JsonNode message, CancellationToken cancellationToken) =>
+        SendAsync(() => message, cancellationToken);
 
+    /// <summary>Sends a message composed under the send gate, so the last message on the wire is the one that read the state last.</summary>
+    /// <remarks>Two notices to one panel used to be composed first and sent later: a panel adopted by an agent and claimed away a moment after could receive "bound" after "not bound", and believed the older picture. Composed where it is sent, a notice can never overtake a later one.</remarks>
+    public async Task SendAsync(Func<JsonNode> compose, CancellationToken cancellationToken)
+    {
         await _sendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
+            var bytes = Encoding.UTF8.GetBytes(compose().ToJsonString());
+
             await _socket
                 .SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, cancellationToken)
                 .ConfigureAwait(false);
