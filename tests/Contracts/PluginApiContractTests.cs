@@ -13,7 +13,7 @@ public partial class PluginApiContractTests
     };
 
     [Fact]
-    public void EveryCalledMethodExistsInTheTypings()
+    public void PluginApi_EveryCalledMethod_ExistsInTheTypings()
     {
         var declarations = Declarations();
         var missing = CalledMethods()
@@ -27,7 +27,7 @@ public partial class PluginApiContractTests
     }
 
     [Fact]
-    public void DeprecatedMethodsAreCalledOnlyWithAReasonOnRecord()
+    public void PluginApi_DeprecatedMethodCalled_HasAReasonOnRecord()
     {
         var declarations = Declarations();
         var offenders = CalledMethods()

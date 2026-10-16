@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 /// <summary>Where each agent of a shared server worked, kept across a restart and believed only while it can still be right.</summary>
 public sealed class AgentTargetsTests : IDisposable
 {
-    private readonly string _directory = Directory.CreateTempSubdirectory("snail-agents-").FullName;
+    private readonly string _directory = TemporaryFolder.Create();
 
     private string File => Path.Combine(_directory, AgentRoster.AgentsFileName);
 
@@ -17,7 +17,7 @@ public sealed class AgentTargetsTests : IDisposable
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
     [Fact]
-    public void AnotherProcessReadsWhatThisOneWrote()
+    public void AgentTargets_RecordWrittenByAnotherProcess_IsRecalled()
     {
         var now = DateTimeOffset.UtcNow;
         Targets().Remember("Keynex", "web", "Web", now);
@@ -29,7 +29,7 @@ public sealed class AgentTargetsTests : IDisposable
 
     /// <summary>A record from yesterday would send a new session into a file the human has long closed.</summary>
     [Fact]
-    public void AnOldRecordIsNotBelievedUnlessItsFileIsHereNow()
+    public void AgentTargets_OldRecord_IsBelievedOnlyWhileItsFileIsConnected()
     {
         var then = DateTimeOffset.UtcNow.AddHours(-5);
         Targets().Remember("Keynex", "web", "Web", then);
@@ -39,7 +39,7 @@ public sealed class AgentTargetsTests : IDisposable
     }
 
     [Fact]
-    public void AnAgentWithoutAFileHasNoRecord()
+    public void AgentTargets_AgentLeftWithoutAFile_HasNoRecord()
     {
         var now = DateTimeOffset.UtcNow;
         var targets = Targets();
@@ -51,7 +51,7 @@ public sealed class AgentTargetsTests : IDisposable
     }
 
     [Fact]
-    public void AFileThatCannotBeReadMeansNoRecordsRatherThanAFailure()
+    public void AgentTargets_UnreadableFile_MeansNoRecordsRatherThanAFailure()
     {
         System.IO.File.WriteAllText(File, "{ not json");
 
@@ -60,7 +60,7 @@ public sealed class AgentTargetsTests : IDisposable
 
     /// <summary>The roster gives a returning agent its file as soon as the client names its folder.</summary>
     [Fact]
-    public async Task AnAgentNamedAfterItsFolderGetsItsFileBack()
+    public async Task AgentRoster_AgentNamedAfterItsFolder_GetsItsFileBack()
     {
         Targets().Remember("Keynex", "web", "Web", DateTimeOffset.UtcNow);
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
@@ -74,7 +74,7 @@ public sealed class AgentTargetsTests : IDisposable
 
     /// <summary>A window that reconnects opens a new session while its old one has not timed out yet: it is named Keynex 2 for that while, and is still Keynex with Keynex's file.</summary>
     [Fact]
-    public async Task AReconnectedWindowNamedWithANumberGetsItsFolderFileBack()
+    public async Task AgentRoster_ReconnectedWindowNamedWithANumber_GetsItsFolderFileBack()
     {
         Targets().Remember("Keynex", "web", "Web", DateTimeOffset.UtcNow);
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
@@ -91,7 +91,7 @@ public sealed class AgentTargetsTests : IDisposable
 
     /// <summary>A client opens with several calls at once: one asks for the folder, the others wait for that answer instead of going on unnamed.</summary>
     [Fact]
-    public async Task TheFirstCallsOfAnAgentShareOneNaming()
+    public async Task AgentSlot_FirstCallsAtOnce_ShareOneNaming()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
         var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
@@ -119,7 +119,7 @@ public sealed class AgentTargetsTests : IDisposable
 
     /// <summary>A file chosen before the client named its folder is written down once the name arrives.</summary>
     [Fact]
-    public async Task AFileChosenBeforeTheNameIsWrittenDownWithIt()
+    public async Task AgentRoster_FileChosenBeforeTheName_IsWrittenDownWithIt()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
         var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);

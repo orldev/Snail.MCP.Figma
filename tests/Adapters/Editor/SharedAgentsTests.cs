@@ -32,7 +32,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
     }
 
     [Fact]
-    public async Task ACommandGoesToTheFileOfTheAgentWhoseCallItIs()
+    public async Task LiveEditorGateway_TwoAgentsInTwoFiles_CommandGoesToTheCallersFile()
     {
         var first = NewKey("s");
         var second = NewKey("s");
@@ -53,7 +53,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>A shared server is nobody's agent: if it took the only file by itself, the panel would show an agent that is not there.</summary>
     [Fact]
-    public async Task TheServerItselfTakesNoFile()
+    public async Task AgentRoster_SharedServerSeesOneFile_DefaultAgentTakesNoFile()
     {
         await NoFilesAsync();
         var fileKey = NewKey("f");
@@ -66,7 +66,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
     }
 
     [Fact]
-    public async Task ARemarkReachesOnlyTheAgentsWorkingInItsFile()
+    public async Task EditorSocketHub_RemarkTypedInAFile_ReachesOnlyTheAgentsWorkingThere()
     {
         var mine = NewKey("s");
         var theirs = NewKey("s");
@@ -89,7 +89,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>The panel of an older plugin cannot name the addressee, so both agents in its file hear it, as two servers did before.</summary>
     [Fact]
-    public async Task TwoAgentsInOneFileBothHearARemarkThatNamesNobody()
+    public async Task EditorSocketHub_RemarkNamesNobody_BothAgentsInTheFileHearIt()
     {
         var first = NewKey("s");
         var second = NewKey("s");
@@ -107,7 +107,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
     }
 
     [Fact]
-    public async Task WhenASessionEndsItsAgentLeavesAndThePanelLearnsNobodyIsThere()
+    public async Task AgentRoster_SessionEnds_AgentLeavesAndThePanelLearnsIt()
     {
         var leaving = NewKey("s");
         var fileKey = NewKey("f");
@@ -124,7 +124,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
     }
 
     [Fact]
-    public async Task TwoSessionsOfOneProjectAreToldApartAndANamelessOneIsNumbered()
+    public async Task AgentRoster_SessionsOpenedUnderOneProject_AreToldApartAndANamelessOneIsNumbered()
     {
         var project = NewKey("p");
 
@@ -140,7 +140,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>Clearing is one agent's: the other agent in the file still reads every line.</summary>
     [Fact]
-    public async Task OneAgentClearingTheConsoleLeavesItForTheOther()
+    public async Task AgentSlot_OneAgentClearsTheConsole_OtherStillReadsIt()
     {
         var clearing = NewKey("s");
         var reading = NewKey("s");
@@ -158,7 +158,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>The folder arrives after the agent opened under its client's name; two windows on one project are still told apart.</summary>
     [Fact]
-    public async Task AgentsNamedAfterOneFolderAreToldApart()
+    public async Task AgentRoster_AgentsNamedAfterOneFolder_AreToldApart()
     {
         var project = NewKey("p");
         var first = bridge.Roster.Open(NewKey("s"), "claude-code");
@@ -174,7 +174,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>One file's connection carries every agent working there: an event the hub cannot read is skipped, and the file stays connected for all of them.</summary>
     [Fact]
-    public async Task AMessageTheHubCannotReadDoesNotCutTheFileOff()
+    public async Task EditorSocketHub_UnreadableEvent_IsSkippedAndTheFileStaysConnected()
     {
         var fileKey = NewKey("f");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey);
@@ -190,7 +190,7 @@ public class SharedAgentsTests(SharedBridgeHostFixture bridge) : IClassFixture<S
 
     /// <summary>The panel names only the agents of its other connections; two agents sharing this server's connection learn of each other from the server.</summary>
     [Fact]
-    public async Task TwoAgentsOfThisServerInOneFileAreToldOfEachOther()
+    public async Task AgentSlot_TwoAgentsOfThisServerInOneFile_AreToldOfEachOther()
     {
         var fileKey = NewKey("f");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey);

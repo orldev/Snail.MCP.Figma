@@ -9,7 +9,7 @@ public partial class RestSpecContractTests
     private const int ExpectedOperationCount = 19;
 
     [Fact]
-    public void EveryGatewayRouteExistsInTheSpec()
+    public void RestSpec_EveryGatewayRoute_ExistsInTheSpec()
     {
         var spec = SpecOperations();
         var used = GatewayOperations();
@@ -22,7 +22,7 @@ public partial class RestSpecContractTests
     }
 
     [Fact]
-    public void TheExtractorSeesEveryGatewayOperation()
+    public void RestSpec_GatewayOperationsExtracted_MatchTheExpectedCount()
     {
         var used = GatewayOperations();
 

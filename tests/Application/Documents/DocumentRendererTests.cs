@@ -39,7 +39,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task SecondRenderOfTheSameNodeCostsNoApiCall()
+    public async Task DocumentRenderer_SameNodeRenderedAgain_CostsNoApiCall()
     {
         var (renderer, api, _, _) = Build();
         var fileKey = NewFileKey();
@@ -54,7 +54,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task OtherScaleOrFormatIsADifferentPictureAndGoesToFigma()
+    public async Task DocumentRenderer_OtherScaleOrFormat_GoesToFigma()
     {
         var (renderer, api, _, _) = Build();
         var fileKey = NewFileKey();
@@ -67,7 +67,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task OnlyMissesTravelToFigmaInABatch()
+    public async Task DocumentRenderer_BatchPartlyCached_FetchesOnlyTheMisses()
     {
         var (renderer, api, _, _) = Build();
         var fileKey = NewFileKey();
@@ -82,7 +82,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task DashedNodeIdFromAUrlHitsTheSameCacheEntry()
+    public async Task DocumentRenderer_DashedNodeIdFromUrl_HitsTheSameCacheEntry()
     {
         var (renderer, api, _, _) = Build();
         var fileKey = NewFileKey();
@@ -95,7 +95,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task ChangedNodeDropsItsPictureToo()
+    public async Task DocumentRenderer_NodeChanged_DropsItsPicture()
     {
         var (renderer, api, cache, _) = Build();
         var fileKey = NewFileKey();
@@ -111,7 +111,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task NewFileVersionInvalidatesRenders()
+    public async Task DocumentRenderer_NewFileVersion_InvalidatesRenders()
     {
         var (renderer, api, _, versions) = Build();
         var fileKey = NewFileKey();
@@ -127,7 +127,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task DocumentChangeDropsAllPicturesOfTheFileNotJustTheChangedNode()
+    public async Task DocumentRenderer_DocumentChanged_DropsAllPicturesOfTheFile()
     {
         var (renderer, api, _, _, listener) = BuildWithListener();
         var fileKey = NewFileKey();
@@ -144,7 +144,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task DocumentChangeInAnotherFileLeavesThisFilesPicturesAlone()
+    public async Task DocumentRenderer_AnotherFileChanged_KeepsThisFilesPictures()
     {
         var (renderer, api, _, _, listener) = BuildWithListener();
         var fileKey = NewFileKey();
@@ -160,7 +160,7 @@ public class DocumentRendererTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task CacheLookupNeverGoesToFigmaOnAMiss()
+    public async Task DocumentRenderer_CacheLookupMisses_NeverGoesToFigma()
     {
         var (renderer, api, _, _) = Build();
 

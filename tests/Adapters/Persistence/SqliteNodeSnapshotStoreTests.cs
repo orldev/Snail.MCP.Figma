@@ -52,7 +52,7 @@ public class SqliteNodeSnapshotStoreTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task ExpiredSlicesAreSweptOnTheNextWrite()
+    public async Task SqliteNodeSnapshotStore_ExpiredSlices_AreSweptOnTheNextWrite()
     {
         InsertExpired("1:1");
         Assert.Equal(1, Count());
@@ -65,7 +65,7 @@ public class SqliteNodeSnapshotStoreTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task LiveSlicesSurviveTheSweep()
+    public async Task SqliteNodeSnapshotStore_LiveSlices_SurviveTheSweep()
     {
         await BuildCache(ttlHours: 1).SetAsync(Slice("3:3"));
         await BuildCache(ttlHours: 1).SetAsync(Slice("4:4"));
@@ -74,7 +74,7 @@ public class SqliteNodeSnapshotStoreTests(SnapshotDatabaseFixture cacheFixture)
     }
 
     [Fact]
-    public async Task ASliceComesBackAsItWasStored()
+    public async Task SqliteNodeSnapshotStore_SliceStored_ComesBackAsItWas()
     {
         var stored = Slice("5:5");
         stored.BytesIn = 1200;

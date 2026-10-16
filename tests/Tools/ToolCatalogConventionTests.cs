@@ -43,7 +43,7 @@ public partial class ToolCatalogConventionTests
             .ToDictionary(field => $"{field.DeclaringType!.Name}.{field.Name}", field => (string)field.GetRawConstantValue()!);
 
     [Fact]
-    public void EveryToolTakesItsDescriptionFromTheCatalog()
+    public void ToolCatalog_EveryTool_TakesDescriptionFromCatalog()
     {
         var catalog = CatalogEntries().Values.ToHashSet(StringComparer.Ordinal);
 
@@ -57,7 +57,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void CatalogHasNoOrphanedEntries()
+    public void ToolCatalog_CatalogEntries_AreAllUsedByATool()
     {
         var used = ToolMethods().Select(DescriptionOf).ToHashSet(StringComparer.Ordinal);
 
@@ -70,7 +70,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void EveryParameterIsDescribed()
+    public void ToolCatalog_EveryParameter_IsDescribed()
     {
         var offenders = ToolMethods()
             .SelectMany(method => method.GetParameters()
@@ -83,7 +83,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void ToolNamesFollowThePrefixConventionAndAreUnique()
+    public void ToolCatalog_ToolNames_FollowPrefixAndAreUnique()
     {
         var names = ToolMethods().Select(ToolName).ToList();
 
@@ -92,7 +92,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void DescriptionsReferenceOnlyExistingTools()
+    public void ToolCatalog_ToolDescriptions_ReferenceOnlyExistingTools()
     {
         var known = ToolMethods().Select(ToolName).ToHashSet(StringComparer.Ordinal);
 
@@ -108,7 +108,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void SourceParameterMentionsEveryReadSource()
+    public void ToolCatalog_SourceParameter_MentionsEveryReadSource()
     {
         var expected = Enum.GetNames<ReadSource>().Select(name => name.ToLowerInvariant()).ToList();
 
@@ -125,7 +125,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void ProfileParameterMentionsEverySanitizationProfile()
+    public void ToolCatalog_ProfileParameter_MentionsEverySanitizationProfile()
     {
         var expected = Enum.GetNames<SanitizationProfile>().Select(name => name.ToLowerInvariant()).ToList();
 
@@ -142,7 +142,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void DeliverParameterNamesBothModesAndTheInlineCeiling()
+    public void ToolCatalog_DeliverParameter_NamesBothModesAndInlineCeiling()
     {
         var parameters = ToolMethods()
             .SelectMany(method => method.GetParameters().Where(parameter => parameter.Name == "deliver"))
@@ -160,7 +160,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void PictureFileCapIsStatedInTheDescription()
+    public void ToolCatalog_PictureFileParameter_StatesFileCap()
     {
         var parameters = ToolMethods()
             .SelectMany(method => method.GetParameters().Where(parameter => parameter.Name == "filePath"))
@@ -181,7 +181,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void StepCapAndPauseCeilingAreStatedInTheDescriptions()
+    public void ToolCatalog_ExecuteSteps_StatesStepCapAndPauseCeiling()
     {
         var method = Assert.Single(ToolMethods(), m => ToolName(m) == "figma_execute_steps");
         var pause = Assert.Single(method.GetParameters(), parameter => parameter.Name == "delayMs");
@@ -198,7 +198,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void RemarkWaitCeilingIsStatedInTheDescription()
+    public void ToolCatalog_GetRemarks_StatesWaitCeiling()
     {
         var method = Assert.Single(ToolMethods(), m => ToolName(m) == "figma_get_remarks");
         var wait = Assert.Single(method.GetParameters(), parameter => parameter.Name == "waitMs");
@@ -215,7 +215,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void PluginViewDepthLimitIsStatedInTheDescription()
+    public void ToolCatalog_GetFileForPlugin_StatesDepthLimit()
     {
         var method = Assert.Single(ToolMethods(), m => ToolName(m) == "figma_get_file_for_plugin");
         var depth = Assert.Single(method.GetParameters(), parameter => parameter.Name == "depth");
@@ -228,7 +228,7 @@ public partial class ToolCatalogConventionTests
 
     /// <summary>A host that loads tools on demand or brokers them from a sandbox decides by these hints whether a call needs a human; a silent hint is read as "unknown" and costs a prompt.</summary>
     [Fact]
-    public void EveryToolStatesAllFourBehaviourHints()
+    public void ToolCatalog_EveryTool_StatesAllFourBehaviourHints()
     {
         var silent = ToolMethods()
             .Where(method => Protocol(method).Annotations is not
@@ -245,7 +245,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void AReadOnlyToolIsNeverDestructive()
+    public void ToolCatalog_ReadOnlyTool_IsNeverDestructive()
     {
         var contradictions = ToolMethods()
             .Where(method => Protocol(method).Annotations is { ReadOnlyHint: true, DestructiveHint: true })
@@ -256,7 +256,7 @@ public partial class ToolCatalogConventionTests
     }
 
     [Fact]
-    public void AToolNamedAsAReadIsReadOnlyAndAToolNamedAsADeleteIsDestructive()
+    public void ToolCatalog_ReadOrDeleteByName_HintsMatchTheName()
     {
         var reads = ToolMethods()
             .Where(method => ReadingNamePattern.IsMatch(ToolName(method)))
@@ -276,7 +276,7 @@ public partial class ToolCatalogConventionTests
 
     /// <summary>An output schema is a promise a code-mode host generates a typed stub from; a tool that states one must answer structured content, which only a CallToolResult can carry.</summary>
     [Fact]
-    public void AToolThatAdvertisesAnOutputSchemaAnswersWithACallToolResult()
+    public void ToolCatalog_ToolWithOutputSchema_AnswersWithCallToolResult()
     {
         var advertised = ToolMethods().Where(method => Protocol(method).OutputSchema is not null).ToList();
 

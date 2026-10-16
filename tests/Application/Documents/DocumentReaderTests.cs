@@ -58,7 +58,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task SecondReadComesFromCacheAndSkipsTheApi()
+    public async Task DocumentReader_SecondRead_ComesFromCacheWithoutTheApi()
     {
         var (reader, api, _) = Build();
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive, MaxDepth = 3 };
@@ -74,7 +74,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task DifferentProfileIsADifferentSliceAndNotServedFromTheSameEntry()
+    public async Task DocumentReader_DifferentProfile_ReadsANewSliceInsteadOfTheCachedOne()
     {
         var (reader, api, _) = Build();
 
@@ -87,7 +87,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task ChangedFileVersionInvalidatesTheCache()
+    public async Task DocumentReader_FileVersionChanged_InvalidatesTheCache()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -103,7 +103,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task InvalidateFileRemovesEveryStoredSlice()
+    public async Task DocumentReader_FileInvalidated_DropsEveryStoredSlice()
     {
         var (reader, api, cache) = Build();
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -118,7 +118,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task ExpiredSliceIsNotServedFromCache()
+    public async Task DocumentReader_SliceExpired_IsNotServedFromCache()
     {
         var (reader, api, _) = Build(ttlHours: -1);
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -131,7 +131,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task InvalidateNodesAlsoDropsTheWholeFileSlice()
+    public async Task DocumentReader_NodesInvalidated_DropsTheWholeFileSlice()
     {
         var (reader, api, cache) = Build();
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -147,7 +147,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task OneReadCostsOneApiCall()
+    public async Task DocumentReader_SingleRead_CostsOneApiCall()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -159,7 +159,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task FreshSliceIsServedWithoutTouchingFigmaAtAll()
+    public async Task DocumentReader_SliceFresh_IsServedWithoutTouchingFigma()
     {
         var (reader, api, _) = Build(freshnessSeconds: 300);
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -177,7 +177,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task UnavailableFigmaServesTheStaleSliceInsteadOfFailing()
+    public async Task DocumentReader_FigmaUnavailable_ServesStaleSliceInsteadOfFailing()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
         var request = new SanitizationRequest { Profile = SanitizationProfile.Aggressive };
@@ -195,7 +195,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task UnavailableFigmaWithNothingCachedStillReportsTheError()
+    public async Task DocumentReader_FigmaUnavailableWithNothingCached_ReportsTheError()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
         api.ShouldFailFileRequests = true;
@@ -205,7 +205,7 @@ public class DocumentReaderTests(SnapshotDatabaseFixture cacheFixture) : IAsyncL
     }
 
     [Fact]
-    public async Task VersionIsTakenFromThePayloadNotFromASeparateRequest()
+    public async Task DocumentReader_FileRead_TakesVersionFromThePayload()
     {
         var (reader, api, _) = Build(freshnessSeconds: 0);
 

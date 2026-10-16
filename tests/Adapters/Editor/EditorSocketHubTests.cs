@@ -13,7 +13,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
     [Fact]
-    public async Task PluginIdentifiesItselfAndBecomesTheActiveFile()
+    public async Task EditorSocketHub_PluginIdentifiesItself_BecomesTheActiveFile()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey, "Design System");
@@ -30,7 +30,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task MoveNodeTravelsToThePluginAndTheResultComesBack()
+    public async Task EditorSocketHub_MoveNodeSent_ResultComesBackFromThePlugin()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -59,7 +59,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ConcurrentCommandsAreMatchedByRequestId()
+    public async Task EditorSocketHub_ConcurrentCommands_AreMatchedByRequestId()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -83,7 +83,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PluginErrorSurfacesAsACommandFailure()
+    public async Task EditorSocketHub_PluginAnswersWithAnError_CommandFails()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -99,7 +99,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CommandsFailFastWhenNoPluginIsConnected()
+    public async Task EditorSocketHub_NoPluginConnected_CommandsFailFast()
     {
         await Assert.ThrowsAsync<EditorUnavailableException>(() => _bridge.Gateway.ReadAsync(
             EditorCommands.MoveNode,
@@ -108,7 +108,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SilentPluginProducesATimeoutRatherThanAHang()
+    public async Task EditorSocketHub_SilentPlugin_TimesOutRatherThanHangs()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -123,7 +123,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SelectionEventUpdatesTheSessionAndStampsTheInteraction()
+    public async Task EditorSocketHub_SelectionEvent_UpdatesTheSessionAndStampsTheInteraction()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -153,7 +153,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
     /// <summary>The panel is the human's only way into a build that is already running, and the remark is what makes the interruption worth more than a bare stop.</summary>
     [Fact]
-    public async Task StepInFromThePanelCarriesTheRemarkAndTheSelection()
+    public async Task EditorSocketHub_StepInFromThePanel_CarriesTheRemarkAndTheSelection()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -178,7 +178,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
     /// <summary>The queue lives on the server, so the panel has to be told the count — otherwise the wave it lights on Enter would never go out.</summary>
     [Fact]
-    public async Task ThePanelIsToldHowManyRemarksAreWaiting()
+    public async Task EditorSocketHub_RemarksQueued_PanelIsToldHowManyWait()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -192,7 +192,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task TakingTheRemarksBackEmptiesTheQueueAndSaysSo()
+    public async Task EditorSocketHub_RemarksTakenBack_EmptiesTheQueueAndSaysSo()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -211,7 +211,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
         .LastOrDefault(message => message["type"]?.GetValue<string>() == "REMARKS_WAITING")?["data"]?["waiting"]?.GetValue<int>();
 
     [Fact]
-    public async Task StopWithoutWordsIsStillAnInterruption()
+    public async Task EditorSocketHub_StopWithoutWords_IsStillAnInterruption()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -230,7 +230,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task DocumentChangeIsBufferedOnTheSession()
+    public async Task EditorSocketHub_DocumentChange_IsBufferedOnTheSession()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -253,7 +253,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
     /// <summary>The human reviewing another agent's file must not redirect this one's build: a click is not an instruction to the server.</summary>
     [Fact]
-    public async Task AClickInAnotherFileDoesNotMoveTheTarget()
+    public async Task EditorSocketHub_ClickInAnotherFile_LeavesTheTargetInPlace()
     {
         var agentFile = NewFileKey();
         var userFile = NewFileKey();
@@ -273,7 +273,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task VariablesSnapshotIsStoredAndServedWithoutASocketRoundTrip()
+    public async Task EditorSocketHub_VariablesSnapshot_IsServedWithoutASocketRoundTrip()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -297,7 +297,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
     /// <summary>A collection created after the plugin started never reached the snapshot, so a read after a write answered with the file as it was at start-up.</summary>
     [Fact]
-    public async Task AfterAWriteTheNextVariablesReadAsksThePluginToReadTheFileAgain()
+    public async Task EditorSocketHub_WriteApplied_NextVariablesReadAsksThePluginAgain()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -319,7 +319,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AHumanEditInTheFileDoubtsTheVariablesSnapshot()
+    public async Task EditorSocketHub_HumanEditsTheFile_VariablesSnapshotIsDoubted()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -341,7 +341,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
 
     /// <summary>Figma reports no event for a variable edited in its own panel, so the snapshot also stops being believed by age alone.</summary>
     [Fact]
-    public async Task AnUntouchedSnapshotStopsBeingBelievedAfterHalfAMinute()
+    public async Task EditorSession_UntouchedVariablesSnapshot_StopsBeingBelievedAfterHalfAMinute()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -357,7 +357,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AStaleSessionGetsTheUpdateBanner()
+    public async Task EditorSocketHub_StalePluginVersion_SendsTheUpdateBanner()
     {
         _bridge.Hub.ExpectedPluginVersion = "9.9.9-test";
 
@@ -377,7 +377,7 @@ public class EditorSocketHubTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AMatchingSessionGetsNoBanner()
+    public async Task EditorSocketHub_MatchingPluginVersion_SendsNoBanner()
     {
         _bridge.Hub.ExpectedPluginVersion = "1.40.0";
 

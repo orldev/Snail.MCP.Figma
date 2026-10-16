@@ -6,7 +6,7 @@ public class CodeStyleConventionTests
     private sealed record Lexed(List<int> Comments, List<(int Start, int End)> Literals);
 
     [Fact]
-    public void SourcesCarryNoInlineComments()
+    public void SourceFiles_Scanned_CarryNoInlineComments()
     {
         var offenders = Scan((file, text) => Lex(text).Comments
             .Select(position => Describe(file, text, position, "comment")));
@@ -15,7 +15,7 @@ public class CodeStyleConventionTests
     }
 
     [Fact]
-    public void StringsAreComposedByInterpolationNotConcatenation()
+    public void SourceFiles_StringsComposed_UseInterpolationNotConcatenation()
     {
         var offenders = Scan((file, text) => Lex(text).Literals
             .Where(span => HasAdjacentPlus(text, span))

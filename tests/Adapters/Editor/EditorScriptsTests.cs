@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 public partial class EditorScriptsTests
 {
     [Fact]
-    public void EveryScriptIsEmbeddedInTheAssembly()
+    public void EditorScripts_EveryResourceName_IsEmbeddedInTheAssembly()
     {
         foreach (var name in EditorScripts.ResourceNames)
         {
@@ -16,7 +16,7 @@ public partial class EditorScriptsTests
     }
 
     [Fact]
-    public void RenderedScriptsLeaveNoPlaceholdersBehind()
+    public void EditorScripts_ScriptsRendered_LeaveNoPlaceholdersBehind()
     {
         foreach (var script in new[] { EditorScripts.Subtree("1:2", 3, 500), EditorScripts.FileTree(2, 100), EditorScripts.Styles })
         {
@@ -25,7 +25,7 @@ public partial class EditorScriptsTests
     }
 
     [Fact]
-    public void NodeIdIsEmbeddedAsAJsonLiteralNotByConcatenation()
+    public void EditorScripts_HostileNodeId_IsEmbeddedAsAJsonLiteral()
     {
         var script = EditorScripts.Subtree("I1:2;3:4\"; figma.root.remove(); var x = \"", 1, 10);
 
@@ -33,7 +33,7 @@ public partial class EditorScriptsTests
     }
 
     [Fact]
-    public void SubtreeAndFileTreeShareTheSerializer()
+    public void EditorScripts_SubtreeAndFileTree_ShareTheSerializer()
     {
         Assert.Contains("function __ser(", EditorScripts.Subtree("1:2", 1, 10));
         Assert.Contains("function __ser(", EditorScripts.FileTree(1, 10));

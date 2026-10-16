@@ -39,7 +39,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The channel for "the build is finished, I looked at it and found a defect": a remark left in the quiet reaches the agent through nothing else.</summary>
     [Fact]
-    public async Task ARemarkLeftInThePanelComesBackOnceAndOnlyOnce()
+    public async Task SessionTools_RemarkLeftInPanel_ComesBackExactlyOnce()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -63,7 +63,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The agent cannot be woken, so it can end its turn waiting here and hear the human a second later instead of at the next call.</summary>
     [Fact]
-    public async Task AWaitingReadReturnsAsSoonAsTheHumanWrites()
+    public async Task SessionTools_WaitingRead_ReturnsWhenHumanWrites()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -84,7 +84,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AWaitThatHeardNothingSaysTheWaitIsOverNotBroken()
+    public async Task SessionTools_WaitHeardNothing_SaysWaitIsOver()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -99,7 +99,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>Reading takes the remarks, and the panel must learn it: the wave it lights on Enter goes out only on this message.</summary>
     [Fact]
-    public async Task ReadingTheRemarksTellsThePanelTheQueueIsEmpty()
+    public async Task SessionTools_RemarksRead_TellsPanelQueueIsEmpty()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -117,7 +117,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>An empty answer explains itself: "nobody wrote anything" and "the panel is not there" are different facts.</summary>
     [Fact]
-    public async Task AnEmptyPanelSaysNobodyWroteAnything()
+    public async Task SessionTools_PanelEmpty_SaysNobodyWrote()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -131,7 +131,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task NamedFilesEachRunTheCodeInTheirOwnContext()
+    public async Task SessionTools_NamedFiles_EachRunCodeInOwnContext()
     {
         var first = NewFileKey();
         var second = NewFileKey();
@@ -162,7 +162,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The agent learns who shares the file at the moment it takes it, so it can keep to its own page or section.</summary>
     [Fact]
-    public async Task NavigateNamesTheOtherAgentsInTheFile()
+    public async Task SessionTools_NavigateToSharedFile_NamesOtherAgents()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -179,7 +179,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ListingTheFilesMarksTheTargetAndItsCompany()
+    public async Task SessionTools_ListingFiles_MarksTargetAndItsCompany()
     {
         var target = NewFileKey();
         var other = NewFileKey();
@@ -200,7 +200,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task TheTargetSurvivesTheFanOut()
+    public async Task SessionTools_FanOutToOtherFile_KeepsTheTarget()
     {
         var target = NewFileKey();
         var other = NewFileKey();
@@ -217,7 +217,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task TargetsMustBeStatedExplicitly()
+    public async Task SessionTools_FanOutWithoutTargets_IsRefused()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -232,7 +232,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AllFilesReachesEveryConnectedFile()
+    public async Task SessionTools_AllFiles_ReachesEveryConnectedFile()
     {
         var first = NewFileKey();
         var second = NewFileKey();
@@ -249,7 +249,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task OneFailingFileDoesNotSinkTheRest()
+    public async Task SessionTools_OneFileFails_RestStillSucceed()
     {
         var healthy = NewFileKey();
         var broken = NewFileKey();
@@ -271,7 +271,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task TotalFailureStillCarriesThePerFileBreakdown()
+    public async Task SessionTools_EveryFileFails_StillCarriesPerFileBreakdown()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -287,7 +287,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task DisconnectedFileKeysAreReportedInsteadOfSilentlyDropped()
+    public async Task SessionTools_DisconnectedFileKeys_AreReportedNotDropped()
     {
         var connected = NewFileKey();
         var closed = NewFileKey();
@@ -300,7 +300,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task NoneOfTheNamedFilesConnectedIsAnErrorNotAnEmptySuccess()
+    public async Task SessionTools_NoNamedFileConnected_IsAnErrorNotEmptySuccess()
     {
         var connected = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(connected);
@@ -313,7 +313,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task FileUrlsAreAcceptedWhereFileKeysAre()
+    public async Task SessionTools_FileUrlsAsTargets_AreAccepted()
     {
         var fileKey = "ABC123XYZ";
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -327,7 +327,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task WithoutAnyPluginTheAnswerIsTheUsualBridgeHint()
+    public async Task SessionTools_NoPluginConnected_AnswersWithBridgeHint()
     {
         await OnlyOurSessionsAsync(0);
 
@@ -339,7 +339,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The structured answer is what a code-mode host validates against the advertised schema, so its keys, down to one file, must be exactly the schema's.</summary>
     [Fact]
-    public async Task ListingTheFilesAnswersStructuredContentShapedLikeItsOutputSchema()
+    public async Task SessionTools_ListingFiles_StructuredContentMatchesOutputSchema()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -381,7 +381,7 @@ public class SessionToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The console belongs to the file and other agents may be reading it: clearing starts this agent's reading from now and empties nothing.</summary>
     [Fact]
-    public async Task ClearingTheConsoleStartsThisAgentsReadingFromNowAndKeepsTheLines()
+    public async Task SessionTools_ConsoleCleared_ReadsFromNowAndKeepsLines()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);

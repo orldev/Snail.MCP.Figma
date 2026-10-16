@@ -70,7 +70,7 @@ public class BridgeHostFixture : IAsyncLifetime
 
         var config = new ServerConfig
         {
-            DataDirectory = Path.Combine(Path.GetTempPath(), "snail-bridge-tests", Guid.NewGuid().ToString("N")),
+            DataDirectory = TemporaryFolder.Create(),
             Cache = { Enabled = false },
             Bridge = { RequestTimeoutSeconds = 5, PortRangeStart = SafePortRangeStart, PortRangeEnd = SafePortRangeEnd, AgentName = "test-agent" },
             Transport = Transport,

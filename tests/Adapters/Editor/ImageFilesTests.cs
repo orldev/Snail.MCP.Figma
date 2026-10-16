@@ -8,7 +8,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 /// <summary>The reader is the only place that touches the disk for a picture, so its refusals are the whole error message the model gets.</summary>
 public class ImageFilesTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"snail-images-{Guid.NewGuid():N}");
+    private readonly string _directory = Path.Combine(TemporaryFolder.Create(), "images");
 
     public ImageFilesTests() => Directory.CreateDirectory(_directory);
 
@@ -21,7 +21,7 @@ public class ImageFilesTests : IDisposable
     private static ImageFiles Reader() => new(NullLogger<ImageFiles>.Instance);
 
     [Fact]
-    public void PictureComesBackAsBase64OfItsBytes()
+    public void ImageFiles_PictureOnDisk_ComesBackAsBase64OfItsBytes()
     {
         var path = Path.Combine(_directory, "pic.png");
         byte[] bytes = [1, 2, 3, 4];
@@ -31,7 +31,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void MissingFileIsRefusedByItsResolvedPath()
+    public void ImageFiles_MissingFile_IsRefusedByItsResolvedPath()
     {
         var path = Path.Combine(_directory, "gone.png");
 
@@ -41,7 +41,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void FormatFigmaCannotUseAsAFillIsRefused()
+    public void ImageFiles_FormatFigmaCannotFill_IsRefused()
     {
         var path = Path.Combine(_directory, "icon.svg");
         File.WriteAllText(path, "<svg/>");
@@ -52,7 +52,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void FileOverTheCapIsRefusedAndTheCapIsNamed()
+    public void ImageFiles_FileOverTheCap_IsRefusedAndTheCapIsNamed()
     {
         var path = Path.Combine(_directory, "huge.png");
 
@@ -67,7 +67,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void PngWiderThanFigmaAllowsIsRefusedWithItsRealSize()
+    public void ImageFiles_PngWiderThanFigmaAllows_IsRefusedWithItsRealSize()
     {
         var path = Path.Combine(_directory, "wall.png");
         File.WriteAllBytes(path, Png(5000, 3000));
@@ -79,7 +79,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void JpegSizeIsReadFromItsFrameMarker()
+    public void ImageFiles_OversizedJpeg_SizeIsReadFromItsFrameMarker()
     {
         var path = Path.Combine(_directory, "photo.jpg");
         File.WriteAllBytes(path, Jpeg(9000, 120));
@@ -90,7 +90,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void PictureWithinTheCeilingPassesTheSizeCheck()
+    public void ImageFiles_PictureWithinTheCeiling_PassesTheSizeCheck()
     {
         var path = Path.Combine(_directory, "fits.png");
         var bytes = Png(ImageLimits.MaxPixelSide, 100);
@@ -126,7 +126,7 @@ public class ImageFilesTests : IDisposable
     }
 
     [Fact]
-    public void TildeResolvesAgainstTheHomeDirectoryBeforeAnythingElse()
+    public void ImageFiles_PathStartsWithTilde_ResolvesAgainstTheHomeDirectory()
     {
         var error = Assert.Throws<InvalidOperationException>(
             () => Reader().ReadAsBase64("~/snail-picture-that-is-not-there.png"));

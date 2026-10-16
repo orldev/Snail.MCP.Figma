@@ -8,7 +8,7 @@ public class RemarksTests
     private static BuildInterruption Left(DateTimeOffset moment, string? words = null) => new(words, [], moment);
 
     [Fact]
-    public void ReadingTakesEverythingAndLeavesNothingBehind()
+    public void Remarks_ReadInFull_LeaveNothingBehind()
     {
         var remarks = new Remarks(10);
         var now = DateTimeOffset.UtcNow;
@@ -24,7 +24,7 @@ public class RemarksTests
 
     /// <summary>The whole point of the timestamp: a remark about the previous result must not stop the build that just started.</summary>
     [Fact]
-    public void ABuildTakesOnlyTheRemarksLeftAfterItStarted()
+    public void Remarks_TakenSinceABuildStarted_YieldOnlyTheLaterOnes()
     {
         var remarks = new Remarks(10);
         var started = DateTimeOffset.UtcNow;
@@ -41,7 +41,7 @@ public class RemarksTests
 
     /// <summary>Nothing in MCP wakes an agent, so this wait is what makes a remark arrive in a second instead of at the agent's next turn.</summary>
     [Fact]
-    public async Task TheWaitEndsTheMomentSomebodyWrites()
+    public async Task Remarks_SomebodyWritesDuringAWait_WaitEndsAtOnce()
     {
         var remarks = new Remarks(10);
         var started = Stopwatch.StartNew();
@@ -58,7 +58,7 @@ public class RemarksTests
     }
 
     [Fact]
-    public async Task TheWaitGivesUpWhenNobodyWrites()
+    public async Task Remarks_NobodyWritesDuringAWait_WaitGivesUp()
     {
         var remarks = new Remarks(10);
 
@@ -66,7 +66,7 @@ public class RemarksTests
     }
 
     [Fact]
-    public async Task WaitingIsOverBeforeItStartsWhenARemarkIsAlreadyThere()
+    public async Task Remarks_RemarkAlreadyThere_WaitIsOverAtOnce()
     {
         var remarks = new Remarks(10);
         remarks.Add(Left(DateTimeOffset.UtcNow, "уже лежит"));
@@ -75,7 +75,7 @@ public class RemarksTests
     }
 
     [Fact]
-    public void TheOldestRemarkIsDroppedOnceTheCapIsReached()
+    public void Remarks_CapReached_OldestIsDropped()
     {
         var remarks = new Remarks(2);
         var now = DateTimeOffset.UtcNow;

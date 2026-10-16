@@ -69,7 +69,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void ThePluginShapeConvertsToTheSameTokensAsTheRestShape()
+    public void FigmaVariableConverter_PluginShape_ConvertsToTheSameTokensAsRestShape()
     {
         var fromRest = FigmaVariableConverter.Convert(VariablesPayload());
         var fromPlugin = FigmaVariableConverter.Convert(AsThePluginSendsIt(VariablesPayload()));
@@ -80,7 +80,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void CollectionBecomesASetAndModesKeepTheirNames()
+    public void FigmaVariableConverter_Collection_BecomesASetWithModesKeepingTheirNames()
     {
         var document = FigmaVariableConverter.Convert(VariablesPayload());
 
@@ -91,7 +91,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void SlashedVariableNamesBecomeTokenPaths()
+    public void FigmaVariableConverter_SlashedVariableNames_BecomeTokenPaths()
     {
         var document = FigmaVariableConverter.Convert(VariablesPayload());
 
@@ -102,7 +102,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void FigmaFloatChannelsBecomeHexPerMode()
+    public void FigmaVariableConverter_FloatColorChannels_BecomeHexPerMode()
     {
         var blue = FigmaVariableConverter.Convert(VariablesPayload())
             .AllTokens.Single(t => t.DottedPath == "color.blue.500");
@@ -112,7 +112,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void VariableAliasesBecomeTokenReferencesNotOpaqueIds()
+    public void FigmaVariableConverter_VariableAliases_BecomeTokenReferencesNotOpaqueIds()
     {
         var brand = FigmaVariableConverter.Convert(VariablesPayload())
             .AllTokens.Single(t => t.DottedPath == "color.brand");
@@ -122,7 +122,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void FloatVariablesGetPixelsBecauseFigmaStoresNoUnit()
+    public void FigmaVariableConverter_FloatVariables_GetPixelUnits()
     {
         var spacing = FigmaVariableConverter.Convert(VariablesPayload())
             .AllTokens.Single(t => t.DottedPath == "spacing.md");
@@ -132,7 +132,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void IdentityMetadataSurvivesForRoundTrip()
+    public void FigmaVariableConverter_IdentityMetadata_SurvivesForRoundTrip()
     {
         var blue = FigmaVariableConverter.Convert(VariablesPayload())
             .AllTokens.Single(t => t.DottedPath == "color.blue.500");
@@ -145,7 +145,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void DefaultScopingIsOmittedSoOutputStaysClean()
+    public void FigmaVariableConverter_DefaultScoping_IsOmitted()
     {
         var brand = FigmaVariableConverter.Convert(VariablesPayload())
             .AllTokens.Single(t => t.DottedPath == "color.brand");
@@ -154,7 +154,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void ModeNamesCanBeRemappedToCodeConventions()
+    public void FigmaVariableConverter_ModeMapGiven_RenamesModesToCodeConventions()
     {
         var document = FigmaVariableConverter.Convert(
             VariablesPayload(),
@@ -165,7 +165,7 @@ public class FigmaVariableConverterTests
     }
 
     [Fact]
-    public void UnresolvableAliasKeepsTheIdRatherThanVanishing()
+    public void FigmaVariableConverter_AliasUnresolvable_KeepsTheIdRatherThanVanishing()
     {
         var payload = JsonNode.Parse("""
             {
@@ -191,11 +191,11 @@ public class FigmaVariableConverterTests
     [InlineData(TokenTypes.Number, "FLOAT")]
     [InlineData(TokenTypes.Boolean, "BOOLEAN")]
     [InlineData(TokenTypes.String, "STRING")]
-    public void TokenTypeMapsBackOntoFigmaNativeType(string dtcg, string expected) =>
+    public void TokenTools_TokenType_MapsBackOntoFigmaNativeType(string dtcg, string expected) =>
         Assert.Equal(expected, TokenTools.ToFigmaType(dtcg));
 
     [Fact]
-    public void FigmaVariablesFlowStraightIntoAnyOutputFormat()
+    public void FigmaVariableConverter_ConvertedVariables_FlowStraightIntoAnyOutputFormat()
     {
         var document = FigmaVariableConverter.Convert(VariablesPayload());
         var css = Snail.MCP.Figma.Application.Tokens.Formatters.TokenFormatters.Find("css-vars")!

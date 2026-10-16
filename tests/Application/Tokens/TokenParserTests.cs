@@ -11,7 +11,7 @@ public class TokenParserTests
         parser.Parse(content, new ParseContext(setName, new TokenDocument())).Document;
 
     [Fact]
-    public void EveryDeclaredFormatHasAParserAndAFormatter()
+    public void TokenParsers_DeclaredFormats_EachHaveAParserAndAFormatter()
     {
         Assert.Equal(9, TokenParsers.Formats.Count);
         Assert.Equal(11, TokenFormatters.Formats.Count);
@@ -28,7 +28,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void DtcgParserReadsTypesGroupsAliasesAndExtensions()
+    public void DtcgParser_FullDocument_ReadsTypesGroupsAliasesAndExtensions()
     {
         var document = Parse(new DtcgParser(), """
             {
@@ -63,7 +63,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void TokensStudioTypesAreMappedOntoDtcgTypes()
+    public void TokensStudioParser_StudioTypes_AreMappedOntoDtcgTypes()
     {
         var document = Parse(new TokensStudioParser(), """
             {
@@ -80,7 +80,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void TokenSetsAreSplitOnlyWhenMetadataDeclaresThem()
+    public void TokensStudioParser_MetadataDeclaresTokenSets_SplitsIntoThoseSets()
     {
         var document = Parse(new TokensStudioParser(), """
             {
@@ -95,7 +95,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void CssParserTurnsSelectorsIntoModes()
+    public void CssVarsParser_ThemeSelectors_BecomeModes()
     {
         var document = Parse(new CssVarsParser(), """
             :root {
@@ -122,7 +122,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void ScssParserReadsVariablesAndSkipsSassMaps()
+    public void ScssParser_VariablesAndSassMaps_ReadsVariablesAndSkipsMaps()
     {
         var result = new ScssParser().Parse("""
             // comment
@@ -138,7 +138,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void TailwindV4ParserReadsTheThemeBlock()
+    public void TailwindV4Parser_ThemeBlock_BecomesTokens()
     {
         var document = Parse(new TailwindV4Parser(), """
             @import "tailwindcss";
@@ -154,7 +154,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void TailwindV3ParserReadsTheConfigObject()
+    public void TailwindV3Parser_ConfigObject_BecomesTokens()
     {
         var document = Parse(new TailwindV3Parser(), """
             module.exports = {
@@ -177,7 +177,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void StyleDictionaryReferencesLoseTheirValueSuffix()
+    public void StyleDictionaryV3Parser_References_LoseTheirValueSuffix()
     {
         var document = Parse(new StyleDictionaryV3Parser(), """
             {
@@ -192,7 +192,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void FlatAndNestedJsonProduceTheSamePaths()
+    public void TokenParsers_FlatAndNestedJson_ProduceTheSamePaths()
     {
         var flat = Parse(new JsonFlatParser(), """{"color.brand":"#FF0000","spacing.md":"16px"}""");
         var nested = Parse(new JsonNestedParser(), """{"color":{"brand":"#FF0000"},"spacing":{"md":"16px"}}""");
@@ -203,7 +203,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void FormatIsGuessedFromTheFileName()
+    public void TokenParsers_FileName_GuessesTheFormat()
     {
         Assert.Equal("dtcg", TokenParsers.GuessFormat("design.tokens.json"));
         Assert.Equal("css-vars", TokenParsers.GuessFormat("src/styles/tokens.css"));
@@ -212,7 +212,7 @@ public class TokenParserTests
     }
 
     [Fact]
-    public void BrokenInputBecomesAWarningNotAnException()
+    public void DtcgParser_BrokenInput_ReturnsWarningInsteadOfThrowing()
     {
         var result = new DtcgParser().Parse("{not json", new ParseContext("Tokens", new TokenDocument()));
 
@@ -244,7 +244,7 @@ public class AliasResolverTests
     }
 
     [Fact]
-    public void ChainsResolveDownToTheLiteral()
+    public void AliasResolver_AliasChain_ResolvesDownToTheLiteral()
     {
         var document = Chain();
         var resolver = new AliasResolver(document);
@@ -254,7 +254,7 @@ public class AliasResolverTests
     }
 
     [Fact]
-    public void MissingTargetIsReportedRatherThanSilentlyDropped()
+    public void AliasResolver_TargetMissing_IsReportedRatherThanSilentlyDropped()
     {
         var document = new TokenDocument();
         var set = document.GetOrAddSet("Tokens");
@@ -271,7 +271,7 @@ public class AliasResolverTests
     }
 
     [Fact]
-    public void CyclesAreBrokenWithAWarningInsteadOfHanging()
+    public void AliasResolver_ReferenceCycle_IsBrokenWithAWarningInsteadOfHanging()
     {
         var document = new TokenDocument();
         var set = document.GetOrAddSet("Tokens");
@@ -292,7 +292,7 @@ public class AliasResolverTests
     [Theory]
     [InlineData("{color.primary}", "color.primary")]
     [InlineData("{color/primary}", "color.primary")]
-    public void BothDottedAndSlashedReferencesAreAccepted(string input, string expected)
+    public void AliasResolver_DottedOrSlashedReference_IsAccepted(string input, string expected)
     {
         Assert.True(AliasResolver.TryParseReference(input, out var path));
         Assert.Equal(expected, path);
@@ -302,7 +302,7 @@ public class AliasResolverTests
     [InlineData("#FF0000")]
     [InlineData("var(--color-primary)")]
     [InlineData("text {with braces} inside")]
-    public void PartialBracesAreNotReferences(string input) =>
+    public void AliasResolver_PartialBraces_AreNotReferences(string input) =>
         Assert.False(AliasResolver.TryParseReference(input, out _));
 }
 
@@ -335,7 +335,7 @@ public class DtcgMultiSetAliasTests
     }
 
     [Fact]
-    public void CrossSetReferenceGetsQualifiedWithItsSetKey()
+    public void DtcgFormatter_CrossSetReference_IsQualifiedWithItsSetKey()
     {
         var written = new DtcgFormatter().Write(TwoSetsWithACrossReference(), new FormatOptions()).Files.Single();
 
@@ -343,7 +343,7 @@ public class DtcgMultiSetAliasTests
     }
 
     [Fact]
-    public void EveryAliasStillResolvesAfterTheRoundTrip()
+    public void DtcgFormatter_MultiSetOutputParsedBack_EveryAliasStillResolves()
     {
         var written = new DtcgFormatter().Write(TwoSetsWithACrossReference(), new FormatOptions()).Files.Single();
         var reparsed = new DtcgParser()
@@ -362,7 +362,7 @@ public class DtcgMultiSetAliasTests
     }
 
     [Fact]
-    public void SingleSetDocumentKeepsItsReferencesUnqualified()
+    public void DtcgFormatter_SingleSetDocument_KeepsItsReferencesUnqualified()
     {
         var document = new TokenDocument();
         var set = document.GetOrAddSet("Tokens");

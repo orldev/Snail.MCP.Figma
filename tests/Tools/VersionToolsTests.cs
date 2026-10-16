@@ -48,7 +48,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AutosavesAreSkippedByDefaultAndCounted()
+    public async Task VersionTools_HistoryWithAutosavesByDefault_SkipsAndCountsThem()
     {
         var api = WithHistory(30);
 
@@ -62,7 +62,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CursorResumesExactlyAfterTheLastVersionHandedOut()
+    public async Task VersionTools_PagingWithCursor_ResumesRightAfterLastVersion()
     {
         var api = WithHistory(30, everySecondIsAutosave: false);
         var tools = Tools(api);
@@ -85,7 +85,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ListingWalksPagesUntilTheCapIsReached()
+    public async Task VersionTools_ListingOverManyPages_WalksUntilCap()
     {
         var api = WithHistory(120, everySecondIsAutosave: false);
 
@@ -97,7 +97,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task EmptyHistoryComesBackAsAnEmptyListNotAsAnError()
+    public async Task VersionTools_EmptyHistory_ReturnsEmptyListNotError()
     {
         var data = Data(await Tools(new ScriptedPublishedSource()).GetFileVersionsAsync(FileUrl));
 
@@ -106,7 +106,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PastVersionIsFetchedOnceAndThenServedFromCacheWhileHeadNeverIs()
+    public async Task VersionTools_PastVersionReadTwice_FetchesOnceButHeadEveryTime()
     {
         var api = WithHistory(4, everySecondIsAutosave: false);
         api.PutFile("v1", new JsonObject { ["id"] = "0:0", ["children"] = new JsonArray() });
@@ -124,7 +124,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task DiffOfPageStructureCostsExactlyTwoRequests()
+    public async Task VersionTools_DiffOfPageStructure_CostsExactlyTwoRequests()
     {
         var api = WithHistory(2, everySecondIsAutosave: false);
         api.PutFile("v1", new JsonObject
@@ -148,7 +148,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ScopedComponentsAddTwoNodeRequestsAndTheirOwnDelta()
+    public async Task VersionTools_DiffWithScopedComponent_AddsTwoNodeRequestsAndItsDelta()
     {
         var api = WithHistory(2, everySecondIsAutosave: false);
         api.PutNode("v1", "10:1", ScriptedPublishedSource.ComponentSet("10:1", "Button", ["Disabled#1:2"]));
@@ -166,7 +166,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ChangelogRendersMarkdownOnTopOfTheSameDiff()
+    public async Task VersionTools_Changelog_RendersMarkdownOverSameDiff()
     {
         var api = WithHistory(2, everySecondIsAutosave: false);
         api.PutNode("v1", "10:1", ScriptedPublishedSource.ComponentSet("10:1", "Button"));
@@ -206,7 +206,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BlameFindsTheOldestVersionThatStillHasThePropertyWithoutWalkingThemAll()
+    public async Task VersionTools_BlameOfProperty_FindsOldestVersionWithoutWalkingAll()
     {
         var api = BlameHistory();
 
@@ -221,7 +221,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BlameWorksTheSameWayForAChildNode()
+    public async Task VersionTools_BlameOfChildNode_WorksTheSameWay()
     {
         var api = BlameHistory();
 
@@ -232,7 +232,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BlameSaysWhenItOnlyReachedTheLookbackHorizon()
+    public async Task VersionTools_BlameStoppedAtLookbackHorizon_SaysSo()
     {
         var api = BlameHistory();
 
@@ -246,7 +246,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SystemAutosaveIsFlaggedInsteadOfBeingPassedOffAsAnAuthor()
+    public async Task VersionTools_SystemAutosaveIntroducedTarget_IsFlaggedNotAuthor()
     {
         var api = BlameHistory(autosaveHandleOnV3: "Figma");
 
@@ -260,7 +260,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task TargetAbsentFromEveryOlderVersionIsAttributedToTheStartVersionItself()
+    public async Task VersionTools_TargetAbsentFromOlderVersions_AttributedToStartVersion()
     {
         var api = BlameHistory();
 
@@ -272,7 +272,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BlameRefusesWhenTheTargetIsNotThereToBeginWith()
+    public async Task VersionTools_BlameTargetNeverPresent_IsRefused()
     {
         var api = BlameHistory();
 
@@ -283,7 +283,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BlameAlwaysCarriesTheMonotonicityCaveat()
+    public async Task VersionTools_AnyBlame_CarriesMonotonicityCaveat()
     {
         var api = BlameHistory();
 
@@ -297,7 +297,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     [Theory]
     [InlineData("Disabled#1:2", "10:2")]
     [InlineData(null, null)]
-    public async Task BlameNeedsExactlyOneTarget(string? property, string? childId)
+    public async Task VersionTools_BlameWithoutExactlyOneTarget_IsRefused(string? property, string? childId)
     {
         var response = Parse(await Tools(BlameHistory()).BlameNodeAsync("10:1", property, childId, FileUrl));
 
@@ -306,7 +306,7 @@ public class VersionToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task UnknownFileUrlFailsWithAReadableMessageNotAStackTrace()
+    public async Task VersionTools_UnknownFileUrl_FailsWithReadableMessage()
     {
         var response = Parse(await Tools(BlameHistory()).GetFileVersionsAsync("not a link at all"));
 

@@ -11,7 +11,7 @@ public class ColorTransformTests
     [InlineData("#FF000080", 255, 0, 0, 0.502)]
     [InlineData("rgb(255, 0, 0)", 255, 0, 0, 1)]
     [InlineData("rgba(255, 0, 0, 0.5)", 255, 0, 0, 0.5)]
-    public void ParsesEveryCommonNotation(string input, int r, int g, int b, double a)
+    public void ColorTransform_CommonNotation_IsParsed(string input, int r, int g, int b, double a)
     {
         var color = ColorTransform.Parse(input);
 
@@ -26,10 +26,10 @@ public class ColorTransformTests
     [InlineData("not a color")]
     [InlineData("#12345")]
     [InlineData("")]
-    public void RejectsGarbageInsteadOfGuessing(string input) => Assert.Null(ColorTransform.Parse(input));
+    public void ColorTransform_GarbageInput_IsRejectedInsteadOfGuessed(string input) => Assert.Null(ColorTransform.Parse(input));
 
     [Fact]
-    public void HexOutputFallsBackToRgbaWhenThereIsTransparency()
+    public void ColorTransform_HexWithTransparency_FallsBackToRgba()
     {
         Assert.Equal("rgba(255, 0, 0, 0.5)", ColorTransform.Convert("rgba(255,0,0,0.5)", "hex"));
         Assert.Equal("#FF0000", ColorTransform.Convert("rgb(255,0,0)", "hex"));
@@ -38,11 +38,11 @@ public class ColorTransformTests
     [Theory]
     [InlineData("hex8", "#FF000080")]
     [InlineData("rgba", "rgba(255, 0, 0, 0.502)")]
-    public void EmitsTheRequestedNotation(string format, string expected) =>
+    public void ColorTransform_NotationRequested_EmitsThatNotation(string format, string expected) =>
         Assert.Equal(expected, ColorTransform.Convert("#FF000080", format));
 
     [Fact]
-    public void ConvertsToHslAndOklch()
+    public void ColorTransform_HslOrOklchRequested_ConvertsToIt()
     {
         Assert.Equal("hsl(0 100% 50%)", ColorTransform.Convert("#FF0000", "hsl"));
 
@@ -51,7 +51,7 @@ public class ColorTransformTests
     }
 
     [Fact]
-    public void UnparseableValuePassesThroughUnchanged() =>
+    public void ColorTransform_UnparseableValue_PassesThroughUnchanged() =>
         Assert.Equal("currentColor", ColorTransform.Convert("currentColor", "rgba"));
 }
 
@@ -62,33 +62,33 @@ public class SizeTransformTests
     [InlineData("1rem", "px", "16px")]
     [InlineData("12pt", "px", "16px")]
     [InlineData("24", "rem", "1.5rem")]
-    public void ConvertsBetweenUnits(string input, string target, string expected) =>
+    public void SizeTransform_TargetUnit_ConvertsBetweenUnits(string input, string target, string expected) =>
         Assert.Equal(expected, SizeTransform.Convert(input, target));
 
     [Fact]
-    public void RespectsACustomRemBase() =>
+    public void SizeTransform_CustomRemBase_IsRespected() =>
         Assert.Equal("2rem", SizeTransform.Convert("20px", "rem", remBase: 10));
 
     [Fact]
-    public void ZeroLosesItsUnitAsCssConventionRequires() =>
+    public void SizeTransform_ZeroValue_LosesItsUnit() =>
         Assert.Equal("0", SizeTransform.Convert("0px", "rem"));
 
     [Theory]
     [InlineData("50%")]
     [InlineData("auto")]
-    public void LeavesValuesItCannotConvertAlone(string input) =>
+    public void SizeTransform_UnconvertibleValue_IsLeftAlone(string input) =>
         Assert.Equal(input, SizeTransform.Convert(input, "px"));
 }
 
 public class TokenNamingTests
 {
     [Fact]
-    public void CssNameSlugifiesEverySegment() =>
+    public void TokenNaming_CssName_SlugifiesEverySegment() =>
         Assert.Equal("tailwind-colors-purple-50",
             TokenNaming.ToCssName(["Tailwind Colors", "purple", "50"]));
 
     [Fact]
-    public void CamelNameIsAValidJavaScriptIdentifier()
+    public void TokenNaming_CamelName_IsAValidJavaScriptIdentifier()
     {
         Assert.Equal("colorBrandPrimary", TokenNaming.ToCamel(["color", "brand", "primary"]));
 
@@ -96,6 +96,6 @@ public class TokenNamingTests
     }
 
     [Fact]
-    public void KebabSplitsCamelCaseSubfields() =>
+    public void TokenNaming_KebabFromCamelCase_SplitsSubfields() =>
         Assert.Equal("font-size", TokenNaming.ToKebab("fontSize"));
 }

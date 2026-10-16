@@ -10,7 +10,7 @@ public sealed class SampleAppFixture : IDisposable
 {
     public SampleAppFixture()
     {
-        Root = Path.Combine(Path.GetTempPath(), $"snail-ds-{Guid.NewGuid().ToString("N")[..12]}");
+        Root = Path.Combine(TemporaryFolder.Create(), "app");
         OutDir = Path.Combine(Root, "design-system");
 
         Write("package.json", """
@@ -148,7 +148,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     private readonly SampleAppFixture _app = app;
 
     [Fact]
-    public void IgnoredDirectoriesNeverReachTheScan()
+    public void CodeWalker_IgnoredDirectories_NeverReachTheScan()
     {
         var walk = CodeWalker.Walk(_app.Root);
 
@@ -158,7 +158,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     }
 
     [Fact]
-    public void FileCapStopsTheWalkAndSaysSo()
+    public void CodeWalker_FileCapReached_StopsTheWalkAndSaysSo()
     {
         var walk = CodeWalker.Walk(_app.Root, new WalkOptions { MaxFiles = 2 });
 
@@ -167,7 +167,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     }
 
     [Fact]
-    public void ExtensionFilterKeepsOnlyWhatWasAsked()
+    public void CodeWalker_ExtensionFilter_KeepsOnlyRequestedExtensions()
     {
         var walk = CodeWalker.Walk(_app.Root, new WalkOptions { Extensions = [".css"] });
 
@@ -180,7 +180,7 @@ public class StackDetectorTests(SampleAppFixture app) : IClassFixture<SampleAppF
     private readonly SampleAppFixture _app = app;
 
     [Fact]
-    public void FrameworkStylingAndVendorLayersAreRecognized()
+    public void StackDetectors_SampleApp_RecognizesFrameworkStylingAndVendorLayers()
     {
         var walk = CodeWalker.Walk(_app.Root);
         var package = StackDetectors.ReadPackageInfo(_app.Root);
@@ -204,7 +204,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     private InventoryResult Build() => ComponentInventory.Build(CodeWalker.Walk(_app.Root).Files, targetIndex: 0);
 
     [Fact]
-    public void UsageRanksTheInventoryAndCountsRealCallSites()
+    public void ComponentInventory_ComponentUsed_CountsRealCallSites()
     {
         var inventory = Build();
         var button = inventory.Components.First(c =>
@@ -216,7 +216,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void ObservedPropValuesComeFromRealCallSites()
+    public void ComponentInventory_PropsPassedAtCallSites_RecordsObservedValues()
     {
         var button = Build().Components.First(c =>
             c.Name == "Button" && c.File == "src/components/Button.tsx");
@@ -227,7 +227,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void PropContractSurvivesRegexParsingIncludingDefaults()
+    public void ComponentInventory_PropsInterfaceWithDefaults_KeepsRequiredFlagsAndDefaults()
     {
         var button = Build().Components.First(c =>
             c.Name == "Button" && c.File == "src/components/Button.tsx");
@@ -239,7 +239,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void ShadcnPathMarksTheComponentVendored()
+    public void ComponentInventory_ShadcnPath_MarksTheComponentVendored()
     {
         var dialog = Build().Components.First(c => c.Name == "DialogContent");
 
@@ -248,7 +248,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void SameNameInTwoPlacesBecomesADuplicateGroup()
+    public void ComponentInventory_SameNameInTwoPlaces_BecomesADuplicateGroup()
     {
         var inventory = Build();
 
@@ -257,7 +257,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void RouteEntryFilesAreNotPortableComponents()
+    public void ComponentInventory_RouteEntryFiles_AreNotPortableComponents()
     {
         var components = Build().Components;
 
@@ -279,7 +279,7 @@ public class ArchitectureClassifierTests
         };
 
     [Fact]
-    public void DomainNamedComponentIsReportedAsAUsageOfAGeneric()
+    public void ArchitectureClassifier_DomainNamedComponent_IsReportedAsAUsageOfAGeneric()
     {
         var architecture = ArchitectureClassifier.Classify([Component("FollowButton"), Component("NodeCard")]);
 
@@ -292,7 +292,7 @@ public class ArchitectureClassifierTests
     }
 
     [Fact]
-    public void ExistingGenericIsNotReportedAsMissing()
+    public void ArchitectureClassifier_GenericExists_IsNotReportedAsMissing()
     {
         var architecture = ArchitectureClassifier.Classify([Component("Button"), Component("FollowButton")]);
 
@@ -301,7 +301,7 @@ public class ArchitectureClassifierTests
     }
 
     [Fact]
-    public void LongestCanonicalSuffixWins()
+    public void ArchitectureClassifier_SeveralSuffixesMatch_LongestCanonicalSuffixWins()
     {
         var architecture = ArchitectureClassifier.Classify([Component("ActionBar")]);
 
@@ -310,7 +310,7 @@ public class ArchitectureClassifierTests
     }
 
     [Fact]
-    public void PageShapedNameReadsAsTemplate()
+    public void ArchitectureClassifier_PageShapedName_ReadsAsTemplate()
     {
         var architecture = ArchitectureClassifier.Classify([Component("CheckoutScreen")]);
 
@@ -325,13 +325,13 @@ public class CodeStyleMinerTests
     [InlineData("rgb(37, 99, 235)", "#2563eb")]
     [InlineData("hsl(217, 91%, 60%)", "#3c83f6")]
     [InlineData("222.2 47.4% 11.2%", "#0f172a")]
-    public void ColorLiteralsCollapseToCanonicalHex(string input, string expected)
+    public void CodeStyleMiner_ColorLiterals_CollapseToCanonicalHex(string input, string expected)
     {
         Assert.Equal(expected, CodeStyleMiner.NormalizeColor(input));
     }
 
     [Fact]
-    public void ModernColorFunctionsPassThroughUnquantized()
+    public void CodeStyleMiner_ModernColorFunctions_PassThroughUnquantized()
     {
         const string value = "oklch(0.7 0.15 250)";
         Assert.Equal(value, CodeStyleMiner.NormalizeColor(value));
@@ -343,13 +343,13 @@ public class CodeStyleMinerTests
     [InlineData("[data-theme='high-contrast']", "high-contrast")]
     [InlineData("@media (prefers-color-scheme: dark)", "dark")]
     [InlineData(".theme-acme", "acme")]
-    public void ThemeSelectorsMapToModeNames(string header, string expected)
+    public void CodeStyleMiner_ThemeSelectors_MapToModeNames(string header, string expected)
     {
         Assert.Equal(expected, CodeStyleMiner.ClassifyThemeHeader(header));
     }
 
     [Fact]
-    public void RootNestedInsideADarkMediaQueryIsNotMinedAsLight()
+    public void CodeStyleMiner_RootInsideDarkMediaQuery_IsNotMinedAsLight()
     {
         const string css = """
             @media (prefers-color-scheme: dark) {
@@ -363,7 +363,7 @@ public class CodeStyleMinerTests
     }
 
     [Fact]
-    public void ScssValueStopsAtSemicolonNotAtTheFirstParen()
+    public void CodeStyleMiner_ScssValueWithParens_StopsAtSemicolon()
     {
         var mined = CodeStyleMiner.MineScssVariables("$shadow: rgba(0, 0, 0, 0.2);", "_vars.scss");
 
@@ -371,7 +371,7 @@ public class CodeStyleMinerTests
     }
 
     [Fact]
-    public void TailwindConfigIsMinedLiterallyWithoutExecutingIt()
+    public void CodeStyleMiner_TailwindConfig_IsMinedWithoutExecutingIt()
     {
         const string config = """
             module.exports = {
@@ -396,7 +396,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
             new ExtractTokensOptions { MinFrequency = minFrequency, TargetRoots = [_app.Root] });
 
     [Fact]
-    public void LightAndDarkDeclarationsBecomeOneMultiModeToken()
+    public void CodeTokenExtractor_LightAndDarkDeclarations_BecomeOneMultiModeToken()
     {
         var result = Extract();
         var surface = result.Document.AllTokens.First(t => t.SlashPath == "surface");
@@ -407,7 +407,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void VarReferenceToAMinedVariableBecomesAnAlias()
+    public void CodeTokenExtractor_VarReferenceToMinedVariable_BecomesAnAlias()
     {
         var surface = Extract().Document.AllTokens.First(t => t.SlashPath == "surface");
 
@@ -416,7 +416,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void AliasTakesTheTypeOfItsTargetNotTheColorDefault()
+    public void CodeTokenExtractor_Alias_TakesTheTypeOfItsTarget()
     {
         var document = Extract().Document;
 
@@ -427,7 +427,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void RoleNamedTokensLandInTheSemanticSetAndScaleNamesInPrimitives()
+    public void CodeTokenExtractor_RoleAndScaleNames_LandInSemanticAndPrimitiveSets()
     {
         var document = Extract().Document;
 
@@ -436,7 +436,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void EveryTokenCarriesItsProvenance()
+    public void CodeTokenExtractor_AnyToken_CarriesItsProvenance()
     {
         var brand = Extract().Document.AllTokens.First(t => t.SlashPath == "color/brand/500");
         var provenance = CodeTokenExtractor.ReadProvenance(brand);
@@ -447,7 +447,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void RawValueBelowTheThresholdIsReportedInsteadOfPromoted()
+    public void CodeTokenExtractor_RawValueBelowThreshold_IsReportedInsteadOfPromoted()
     {
         var result = Extract(minFrequency: 3);
 
@@ -457,7 +457,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void DeclaredColorsAreNotPromotedAgainAsInferredOnes()
+    public void CodeTokenExtractor_DeclaredColors_AreNotPromotedAgainAsInferred()
     {
         var result = Extract(minFrequency: 2);
 
@@ -465,7 +465,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void EmptyProjectSaysSoInsteadOfReturningNothingSilently()
+    public void CodeTokenExtractor_EmptyProject_WarnsInsteadOfReturningNothing()
     {
         var result = CodeTokenExtractor.Extract([]);
 
@@ -479,9 +479,9 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     private readonly SampleAppFixture _app = app;
 
     [Fact]
-    public void AnalysisPersistsAsAReadableManifest()
+    public void ProjectAnalyzer_AnalysisWritten_ReadsBackAsAManifest()
     {
-        var outDir = Path.Combine(Path.GetTempPath(), $"snail-ds-out-{Guid.NewGuid().ToString("N")[..8]}");
+        var outDir = Path.Combine(TemporaryFolder.Create(), "out");
 
         try
         {
@@ -504,7 +504,7 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     }
 
     [Fact]
-    public void PureVendorComponentsGetNoPortingStatusBecauseThereIsNothingToPort()
+    public void ProjectAnalyzer_PureVendorComponents_GetNoPortingStatus()
     {
         var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = _app.OutDir });
         var status = ProjectAnalyzer.InitStatus(analysis);
@@ -518,7 +518,7 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     }
 
     [Fact]
-    public void ManifestReadOfAMissingOrBrokenFileReturnsNullInsteadOfThrowing()
+    public void ExtractionManifests_FileMissingOrBroken_ReadReturnsNullInsteadOfThrowing()
     {
         Assert.Null(ExtractionManifests.Read<DsAnalysis>(Path.Combine(_app.Root, "nope.json")));
     }
@@ -530,7 +530,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
 
     private (DsAnalysis Analysis, TokenDocument Document, string OutDir) Prepare()
     {
-        var outDir = Path.Combine(Path.GetTempPath(), $"snail-ds-pkg-{Guid.NewGuid().ToString("N")[..8]}");
+        var outDir = Path.Combine(TemporaryFolder.Create(), "pkg");
         var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
         var tokens = CodeTokenExtractor.Extract(
             CodeWalker.Walk(_app.Root).Files,
@@ -540,7 +540,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void ScaffoldWritesTheCanonicalTokenFilesAndShowcases()
+    public void DesignSystemScaffolder_FirstRun_WritesCanonicalTokenFilesAndShowcases()
     {
         var (analysis, document, outDir) = Prepare();
 
@@ -572,7 +572,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void SecondRunKeepsHandWrittenFilesButRefreshesTokens()
+    public void DesignSystemScaffolder_SecondRun_KeepsHandWrittenFilesButRefreshesTokens()
     {
         var (analysis, document, outDir) = Prepare();
 
@@ -601,7 +601,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void StoryNamesStayValidAndUniqueEvenForAwkwardVariantValues()
+    public void DesignSystemScaffolder_AwkwardVariantValues_StoryNamesStayValidAndUnique()
     {
         var component = new DsComponentEntry
         {
@@ -631,9 +631,9 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     private readonly SampleAppFixture _app = app;
 
     [Fact]
-    public void FreshlyScaffoldedPackagePassesTheGate()
+    public void ExtractionVerifier_FreshlyScaffoldedPackage_PassesTheGate()
     {
-        var outDir = Path.Combine(Path.GetTempPath(), $"snail-ds-verify-{Guid.NewGuid().ToString("N")[..8]}");
+        var outDir = Path.Combine(TemporaryFolder.Create(), "verify");
 
         try
         {
@@ -665,9 +665,9 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void MissingTokensFileIsAFailureWithAnActionableHint()
+    public void ExtractionVerifier_TokensFileMissing_FailsWithAnActionableHint()
     {
-        var outDir = Path.Combine(Path.GetTempPath(), $"snail-ds-empty-{Guid.NewGuid().ToString("N")[..8]}");
+        var outDir = Path.Combine(TemporaryFolder.Create(), "empty");
         Directory.CreateDirectory(outDir);
 
         try
@@ -685,9 +685,9 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     }
 
     [Fact]
-    public void DanglingAliasFailsTheImportReadinessCheck()
+    public void ExtractionVerifier_DanglingAlias_FailsTheImportReadinessCheck()
     {
-        var outDir = Path.Combine(Path.GetTempPath(), $"snail-ds-dangling-{Guid.NewGuid().ToString("N")[..8]}");
+        var outDir = Path.Combine(TemporaryFolder.Create(), "dangling");
         Directory.CreateDirectory(Path.Combine(outDir, "tokens"));
 
         try

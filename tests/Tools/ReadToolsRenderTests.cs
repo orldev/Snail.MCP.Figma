@@ -17,7 +17,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
 {
     private readonly BridgeHostFixture _bridge = bridge;
     private readonly string _screenshotDirectory =
-        Path.Combine(Path.GetTempPath(), "snail-image-tests", Guid.NewGuid().ToString("N"));
+        Path.Combine(TemporaryFolder.Create(), "images");
 
     private static string NewFileKey() => $"img{Guid.NewGuid().ToString("N")[..10]}";
 
@@ -76,7 +76,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
         Parse(Assert.IsType<TextContentBlock>(result.Content[0]).Text);
 
     [Fact]
-    public async Task PluginCaptureComesBackAsContentWhenAskedForBoth()
+    public async Task ReadTools_PluginCaptureDeliveredAsBoth_ReturnsPictureContent()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -95,7 +95,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task ConnectedPluginRendersTheNodeWithoutSpendingQuota()
+    public async Task ReadTools_PluginConnected_RendersWithoutSpendingQuota()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -111,7 +111,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task WithoutAPluginSessionForThisFileTheRenderGoesToRest()
+    public async Task ReadTools_NoPluginSessionForFile_RendersThroughRest()
     {
         var connected = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(connected);
@@ -143,7 +143,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task LivePluginBeatsAWarmCache_FreshnessCostsNothing()
+    public async Task ReadTools_LivePluginAndWarmCache_PluginWins()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -160,7 +160,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task PreferPluginOffRestoresCacheFirstOrder()
+    public async Task ReadTools_PreferPluginOff_RestoresCacheFirstOrder()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -178,7 +178,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task ExhaustedQuotaFallsBackToThePluginInsteadOfFailing()
+    public async Task ReadTools_QuotaExhaustedWithPlugin_FallsBackToPlugin()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -195,7 +195,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task ExhaustedQuotaWithoutAPluginExplainsHowToGetThePictureAnyway()
+    public async Task ReadTools_QuotaExhaustedWithoutPlugin_ExplainsHowToGetPicture()
     {
         var (tools, api) = Build();
         api.ShouldFailImageRequests = true;
@@ -208,7 +208,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task PluginOnlyModeDoesNotSilentlyFallBackToRest()
+    public async Task ReadTools_SourcePluginWithoutSession_DoesNotFallBackToRest()
     {
         var (tools, api) = Build();
 
@@ -220,7 +220,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task VectorFormatsStayOnRestEvenWithAPluginConnected()
+    public async Task ReadTools_VectorFormatWithPlugin_StaysOnRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -234,7 +234,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
     }
 
     [Fact]
-    public async Task UnknownSourceIsRejectedBeforeAnyRequest()
+    public async Task ReadTools_UnknownSource_IsRejectedBeforeAnyRequest()
     {
         var (tools, api) = Build();
 

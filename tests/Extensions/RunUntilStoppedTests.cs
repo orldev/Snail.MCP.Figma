@@ -20,7 +20,7 @@ public class RunUntilStoppedTests
     }
 
     [Fact]
-    public async Task AStopAskedForWhileStartingEndsTheRunWithoutAFailure()
+    public async Task RunUntilStopped_StopAskedWhileStarting_EndsWithoutAFailure()
     {
         await using var app = StoppedWhileStarting();
 
@@ -29,7 +29,7 @@ public class RunUntilStoppedTests
 
     /// <summary>What the guard is for: the host itself treats such a stop as a failed start.</summary>
     [Fact]
-    public async Task WithoutTheGuardTheSameStopIsAFailedStart()
+    public async Task RunAsync_SameStopWithoutTheGuard_FailsTheStart()
     {
         await using var app = StoppedWhileStarting();
 

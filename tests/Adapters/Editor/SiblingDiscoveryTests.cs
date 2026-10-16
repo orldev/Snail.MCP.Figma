@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 public class SiblingDiscoveryTests
 {
     [Fact]
-    public void SiblingPortsCoverTheRangeWithoutTheOwnPort()
+    public void SiblingDiscovery_PortRange_CoversItWithoutTheOwnPort()
     {
         var options = new EditorLinkOptions { PortRangeStart = 9223, PortRangeEnd = 9226 };
 
@@ -17,7 +17,7 @@ public class SiblingDiscoveryTests
     }
 
     [Fact]
-    public void TheBridgeHealthPayloadIsRecognized()
+    public void SiblingDiscovery_BridgeHealthPayload_IsRecognized()
     {
         var payload = JsonNode.Parse("""{"status":"ok","version":"1.2.3","port":9223,"connectedFiles":0,"activeFile":null}""");
 
@@ -25,7 +25,7 @@ public class SiblingDiscoveryTests
     }
 
     [Fact]
-    public void AForeignServersHealthIsNotMistakenForTheBridge()
+    public void SiblingDiscovery_ForeignServersHealth_IsNotMistakenForTheBridge()
     {
         var payload = JsonNode.Parse("""{"status":"ok"}""");
 
@@ -33,7 +33,7 @@ public class SiblingDiscoveryTests
     }
 
     [Fact]
-    public void PortsAliveCarriesTheTypeAndThePortList()
+    public void EditorWireProtocol_PortsAlive_CarriesTheTypeAndThePortList()
     {
         var message = EditorWireProtocol.PortsAlive([9223, 9225]);
 

@@ -28,7 +28,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
     [Fact]
-    public async Task AppendToSlotNeedsAnAddressedSlot()
+    public async Task SlotTools_AppendWithoutSlotAddress_IsRefused()
     {
         await using var plugin = await ConnectAsync();
 
@@ -40,7 +40,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AppendToSlotNeedsToKnowWhatToPutInside()
+    public async Task SlotTools_AppendWithoutContent_IsRefused()
     {
         await using var plugin = await ConnectAsync();
 
@@ -51,7 +51,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AppendToSlotReportsMalformedPropertiesInsteadOfSendingThem()
+    public async Task SlotTools_AppendWithMalformedProperties_ReportsInsteadOfSending()
     {
         await using var plugin = await ConnectAsync();
 
@@ -64,7 +64,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AppendToSlotByInstanceAndNameNormalisesEveryIdentifier()
+    public async Task SlotTools_AppendByInstanceAndName_NormalisesEveryIdentifier()
     {
         await using var plugin = await ConnectAsync();
 
@@ -84,7 +84,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ResetSlotNeedsAnAddressedSlotToo()
+    public async Task SlotTools_ResetWithoutSlotAddress_IsRefused()
     {
         await using var plugin = await ConnectAsync();
 
@@ -95,7 +95,7 @@ public class SlotToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SlotPropertyRejectsMalformedPreferredValues()
+    public async Task SlotTools_MalformedPreferredValues_AreRejected()
     {
         await using var plugin = await ConnectAsync();
 

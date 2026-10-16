@@ -71,7 +71,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
         };
 
     [Fact]
-    public async Task CommitUndoSendsTheCommitAndUnwrapsTheReply()
+    public async Task WriteTools_CommitUndoRequested_SendsCommitAndUnwrapsReply()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -87,7 +87,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreateStyleRejectsAnUnknownTypeWithoutTouchingThePlugin()
+    public async Task WriteTools_CreateStyleOfUnknownType_IsRejectedBeforePlugin()
     {
         var response = Parse(await Write().CreateStyleAsync("SHADOW", "Elevation/1"));
 
@@ -96,7 +96,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreateStyleEmbedsNameAndPropertiesAsData()
+    public async Task WriteTools_CreateStyleWithNameAndProperties_EmbedsThemAsData()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -117,7 +117,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreateStyleSurfacesTheSandboxError()
+    public async Task WriteTools_CreateStyleFailsInSandbox_SurfacesTheError()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -131,7 +131,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreatePageCarriesTheNameAndTheCurrentPageSwitch()
+    public async Task NodeTools_CreatePageMadeCurrent_CarriesNameAndPageSwitch()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -149,7 +149,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreateNodeFromSvgRejectsEmptyMarkup()
+    public async Task NodeTools_CreateFromEmptySvg_IsRejected()
     {
         var response = Parse(await Nodes().CreateNodeFromSvgAsync("  "));
 
@@ -157,7 +157,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CreateNodeFromSvgNormalizesTheParentAndEmbedsTheMarkup()
+    public async Task NodeTools_CreateFromSvgUnderDashedParent_NormalizesParentAndEmbedsMarkup()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -178,7 +178,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AddAnnotationCategoryValidatesTheColorLocally()
+    public async Task QualityTools_AnnotationCategoryWithUnknownColor_IsRejectedLocally()
     {
         var response = Parse(await Quality().AddAnnotationCategoryAsync("Handoff", "purple"));
 
@@ -187,7 +187,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AddAnnotationCategorySendsLabelAndColorAsData()
+    public async Task QualityTools_AnnotationCategoryWithValidColor_SendsLabelAndColorAsData()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -224,7 +224,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The point of the tool: one script per step, so the canvas fills in element by element instead of at once.</summary>
     [Fact]
-    public async Task StepsRunOneAfterAnotherInTheOrderGiven()
+    public async Task WriteTools_SeveralSteps_RunOneAfterAnotherInOrder()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -240,7 +240,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AFailingStepIsNamedAndTheRestIsNotRun()
+    public async Task WriteTools_StepFails_IsNamedAndRestNotRun()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -259,7 +259,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     /// <summary>A step is arbitrary code, so its result is whatever it returned: a number or a string, not only an object.</summary>
     /// <remarks>The loop read every reply as an object to look for the failure marker, so a step ending in <c>return 42</c> failed the whole call with "The node must be of type 'JsonObject'".</remarks>
     [Fact]
-    public async Task AStepThatReturnsAPlainValueIsCarriedThrough()
+    public async Task WriteTools_StepReturnsPlainValue_IsCarriedThrough()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -278,7 +278,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task WithoutStopOnErrorTheRemainingStepsStillRun()
+    public async Task WriteTools_StepFailsWithoutStopOnError_RemainingStepsStillRun()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -294,7 +294,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The pause is what makes the build watchable, so it has to reach the loop rather than only the description.</summary>
     [Fact]
-    public async Task DelayPacesTheBuildBetweenSteps()
+    public async Task WriteTools_DelayBetweenSteps_PacesTheBuild()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -310,7 +310,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>Stopping is a human decision, not a failure: the build ends whole, says where it stopped, and keeps the globals for the rest.</summary>
     [Fact]
-    public async Task StepInFromThePanelEndsTheBuildBetweenStepsAndBringsTheRemark()
+    public async Task WriteTools_RemarkDuringBuild_EndsBuildBetweenStepsWithRemark()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -350,7 +350,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     /// <summary>Only the server can count steps: the plugin receives each one as its own command and cannot tell the second of three from the last.</summary>
     /// <remarks>Without this the panel could only guess a build was running and show a wave; with it the field shows the share and stops guessing.</remarks>
     [Fact]
-    public async Task EveryStepTellsThePanelHowFarTheBuildHasGot()
+    public async Task WriteTools_EveryStep_TellsPanelBuildProgress()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -370,7 +370,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>A build that dies on step two still has to clear the panel, or the field keeps a half-filled bar for a build that is long gone.</summary>
     [Fact]
-    public async Task AFailedBuildStillTellsThePanelItIsOver()
+    public async Task WriteTools_BuildFails_StillTellsPanelItIsOver()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -390,7 +390,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>A remark written after the previous build is a note about its result, not a stop signal for the next one — so it lets the build run and waits for figma_get_remarks.</summary>
     [Fact]
-    public async Task ARemarkLeftBeforeTheBuildLetsItRunAndStaysToBeRead()
+    public async Task WriteTools_RemarkLeftBeforeBuild_LetsItRunAndStaysUnread()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -412,7 +412,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     [InlineData("""{"step":"a();"}""")]
     [InlineData("""["a();", 42]""")]
     [InlineData("[]")]
-    public async Task StepsThatAreNotAListOfCodeAreRefused(string steps)
+    public async Task WriteTools_StepsNotAListOfCode_AreRefused(string steps)
     {
         var response = Parse(await Write().ExecuteStepsAsync(steps));
 
@@ -420,7 +420,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task MoreStepsThanOneCallRunsAreRefusedWithTheCap()
+    public async Task WriteTools_MoreStepsThanCap_AreRefusedNamingCap()
     {
         var steps = new JsonArray([.. Enumerable.Repeat("a();", ToolLimits.MaxSteps + 1).Select(step => (JsonNode)step)]).ToJsonString();
 
@@ -431,7 +431,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task APauseLongerThanTheCapIsRefused()
+    public async Task WriteTools_PauseOverCap_IsRefused()
     {
         var response = Parse(await Write().ExecuteStepsAsync("""["a();"]""", delayMs: ToolLimits.MaxStepDelayMs + 1));
 
@@ -439,7 +439,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ExportNodeReturnsSvgMarkupDirectly()
+    public async Task SessionTools_ExportAsSvg_ReturnsMarkupDirectly()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -456,7 +456,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ExportNodeSavesBinaryFormatsToDisk()
+    public async Task SessionTools_ExportAsBinaryFormat_SavesToDisk()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -474,7 +474,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The platform's worker runs elsewhere: a path opens nothing there, so the picture itself has to be in the answer.</summary>
     [Fact]
-    public async Task ExportNodeCarriesThePictureAsContentWhenAskedForBoth()
+    public async Task SessionTools_ExportDeliveredAsBoth_CarriesPictureAsContent()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -498,7 +498,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ExportNodeCarriesNoPictureByDefault()
+    public async Task SessionTools_ExportByDefault_CarriesNoPicture()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -516,7 +516,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ExportNodeRejectsAnUnknownDeliveryMode()
+    public async Task SessionTools_ExportWithUnknownDelivery_IsRejected()
     {
         var response = Parse(await Session().ExportNodeAsync("1:2", "PNG", deliver: "inline"));
 
@@ -525,7 +525,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ExportNodeRejectsAnUnknownFormat()
+    public async Task SessionTools_ExportInUnknownFormat_IsRejected()
     {
         var response = Parse(await Session().ExportNodeAsync("1:2", "BMP"));
 
@@ -533,7 +533,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ActiveUsersComeBackSplitIntoMeAndOthers()
+    public async Task SessionTools_ActiveUsersRead_SplitIntoMeAndOthers()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -553,7 +553,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PlaceImageDemandsExactlyOneSource()
+    public async Task NodeTools_PlaceImageWithoutExactlyOneSource_IsRefused()
     {
         var both = Parse(await Nodes().PlaceImageAsync(url: "https://x/y.png", base64: "AA=="));
         var neither = Parse(await Nodes().PlaceImageAsync());
@@ -565,7 +565,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PlaceImageBuildsTheRectangleWithAnImageFill()
+    public async Task NodeTools_PlaceImageFromUrl_BuildsRectangleWithImageFill()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -585,7 +585,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>A photograph must reach the plugin as a command parameter: inlined into the script it would be handed to the sandbox parser as source.</summary>
     [Fact]
-    public async Task PlaceImageFromFileSendsBytesBesideTheScriptAndSizesTheRectangle()
+    public async Task NodeTools_PlaceImageFromFile_SendsBytesBesideScriptAndSizesRectangle()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -633,7 +633,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PlaceImageFromFileTakesTheEmptyRectangleWithItWhenTheFillFails()
+    public async Task NodeTools_PlaceImageFromFileFillFails_DeletesEmptyRectangle()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -652,7 +652,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SetImageFillReadsTheFileInsteadOfTakingBytesFromTheCall()
+    public async Task NodeTools_SetImageFillFromFile_ReadsFileNotCallBytes()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -678,7 +678,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
 
     /// <summary>The plugin window answers a picture Figma rejected inside the reply, not as a failed command, and that text is the only clue to the cause.</summary>
     [Fact]
-    public async Task PictureFigmaRejectsIsReportedWithThePluginsOwnWords()
+    public async Task NodeTools_FigmaRejectsPicture_ReportsPluginsOwnWords()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -693,7 +693,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PlaceImageFromFileReportsTheRejectionAndLeavesNoRectangle()
+    public async Task NodeTools_PlaceImageFromFileRejected_ReportsAndLeavesNoRectangle()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -714,7 +714,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SetImageFillDemandsExactlyOneSource()
+    public async Task NodeTools_SetImageFillWithoutExactlyOneSource_IsRefused()
     {
         var both = Parse(await Nodes().SetImageFillAsync("1:2", imageData: "AA==", filePath: "/tmp/tile.png"));
         var neither = Parse(await Nodes().SetImageFillAsync("1:2"));
@@ -724,7 +724,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task JsxSpecIsEmbeddedAndBuiltThroughTheWidgetFactory()
+    public async Task NodeTools_ValidJsxSpec_IsBuiltThroughWidgetFactory()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -745,7 +745,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task JsxRejectsMalformedSpecLocally()
+    public async Task NodeTools_MalformedJsxSpec_IsRejectedLocally()
     {
         var response = Parse(await Nodes().CreateNodeFromJsxAsync("{not json"));
 
@@ -753,7 +753,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SaveVersionEmbedsTitleAndDescription()
+    public async Task VersionTools_SaveVersionWithTitleAndDescription_EmbedsBoth()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -770,7 +770,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SaveVersionRejectsAnEmptyTitle()
+    public async Task VersionTools_SaveVersionWithEmptyTitle_IsRejected()
     {
         var response = Parse(await Versions().SaveVersionAsync("  "));
 
@@ -778,7 +778,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task NotifyPassesTimeoutAndErrorFlag()
+    public async Task SessionTools_NotifyWithTimeoutAndError_PassesBoth()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -795,7 +795,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ScrollToNodeSwitchesPageAndCanSelect()
+    public async Task SessionTools_ScrollToNodeWithSelect_SwitchesPageAndSelects()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -812,7 +812,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task FileThumbnailClearsWhenNoNodeGiven()
+    public async Task SessionTools_FileThumbnailWithoutNode_IsCleared()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -827,7 +827,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BooleanOperationValidatesOperationAndArity()
+    public async Task NodeTools_BooleanOperationUnknownOrTooFewNodes_IsRefused()
     {
         var unknown = Parse(await Nodes().BooleanOperationAsync("MERGE", "1:1,1:2"));
         var tooFew = Parse(await Nodes().BooleanOperationAsync("UNION", "1:1"));
@@ -837,7 +837,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BooleanOperationSendsNormalizedIdsInOrder()
+    public async Task NodeTools_BooleanOperationWithDashedIds_SendsNormalizedIdsInOrder()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -853,7 +853,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task GroupAndUngroupRoundTripThroughTheSandbox()
+    public async Task NodeTools_GroupThenUngroup_RoundTripThroughSandbox()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -876,7 +876,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SelectionColorsComeBackCompact()
+    public async Task WriteTools_SelectionColorsRead_ComeBackCompact()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -894,7 +894,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SortStylesDefaultsToAlphabeticalAndAcceptsExplicitOrder()
+    public async Task WriteTools_SortStylesWithOrWithoutOrder_SortsAlphabeticallyOrAsGiven()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);

@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Persistence;
 /// <summary>The cache file of earlier versions is a cache too: it is removed on first open, not converted.</summary>
 public sealed class SqliteSnapshotDatabaseTests : IDisposable
 {
-    private readonly string _directory = Directory.CreateTempSubdirectory("snail-snapshots-").FullName;
+    private readonly string _directory = TemporaryFolder.Create();
 
     public void Dispose()
     {
@@ -15,7 +15,7 @@ public sealed class SqliteSnapshotDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void TheLiteDbFileOfAnEarlierVersionIsRemovedOnFirstOpen()
+    public void SqliteSnapshotDatabase_LiteDbFileOfAnEarlierVersion_IsRemovedOnFirstOpen()
     {
         var legacy = Path.Combine(_directory, SqliteSnapshotDatabase.LegacyFileName);
         File.WriteAllText(legacy, "LiteDB");
@@ -30,7 +30,7 @@ public sealed class SqliteSnapshotDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void ADisabledCacheOpensNothing()
+    public void SqliteSnapshotDatabase_CacheDisabled_OpensNothing()
     {
         var config = new ServerConfig { DataDirectory = _directory, Cache = { Enabled = false } };
         var database = new SqliteSnapshotDatabase(config, NullLogger<SqliteSnapshotDatabase>.Instance);

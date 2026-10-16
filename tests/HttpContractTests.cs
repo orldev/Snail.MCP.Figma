@@ -19,7 +19,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
-    private readonly string _dataDirectory = Directory.CreateTempSubdirectory("snail-figma-http-").FullName;
+    private readonly string _dataDirectory = TemporaryFolder.Create();
 
     private readonly Uri _endpoint = new($"http://127.0.0.1:{FreePort()}/mcp");
 
@@ -92,7 +92,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     /// <summary>A restart drops every session; the agent that comes back from the same folder is in its file again without a navigate.</summary>
     [Fact]
-    public async Task AnAgentKeepsItsFileAcrossARestartOfTheServer()
+    public async Task SharedServer_RestartedAfterACrash_AgentKeepsItsFile()
     {
         using var cancellation = new CancellationTokenSource(Timeout);
         var before = await ConnectAsync("Keynex", cancellation.Token);
@@ -122,7 +122,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     /// <summary>Each client is an agent of its own, and the panel calls it by its project, not by the client's name.</summary>
     [Fact]
-    public async Task EveryClientIsAnAgentNamedAfterItsFolder()
+    public async Task SharedServer_TwoClientsConnect_PanelNamesEachAfterItsFolder()
     {
         using var cancellation = new CancellationTokenSource(Timeout);
         await using var panel = await ConnectPanelAsync("names");
@@ -139,7 +139,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     /// <summary>Two agents, two files: what each one runs reaches its own file and nobody else's.</summary>
     [Fact]
-    public async Task EachAgentsCommandsReachItsOwnFile()
+    public async Task SharedServer_TwoAgentsInTwoFiles_CommandsReachOnlyTheirOwnFile()
     {
         using var cancellation = new CancellationTokenSource(Timeout);
         await using var web = await ConnectPanelAsync("web");
@@ -159,7 +159,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     /// <summary>A client that closes its session takes its agent out of every panel.</summary>
     [Fact]
-    public async Task AnAgentLeavesThePanelWhenItsSessionEnds()
+    public async Task SharedServer_ClientClosesItsSession_AgentLeavesThePanel()
     {
         using var cancellation = new CancellationTokenSource(Timeout);
         await using var panel = await ConnectPanelAsync("leaving");
@@ -174,7 +174,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     /// <summary>The sessionless revision carries nothing that tells one window of a client from another, so it is refused in the way that makes Claude Code fall back to initialize and a session of its own.</summary>
     [Fact]
-    public async Task ARequestWithoutASessionIsSentBackToInitialize()
+    public async Task SharedServer_SessionlessRequest_IsSentBackToInitialize()
     {
         using var http = new HttpClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint)
@@ -197,7 +197,7 @@ public sealed class HttpContractTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ARequestFromABrowserIsRefused()
+    public async Task SharedServer_RequestWithBrowserOrigin_IsRefused()
     {
         using var http = new HttpClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint)

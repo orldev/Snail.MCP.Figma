@@ -21,7 +21,7 @@ public partial class ServerInstructionsTests
             .OfType<string>()];
 
     [Fact]
-    public void EveryToolFamilyIsIntroducedByAtLeastOneOfItsTools()
+    public void ServerInstructions_EveryToolFamily_IsIntroducedByOneOfItsTools()
     {
         var silent = ToolTypes()
             .Where(type => !ToolNames(type).Any(name => ServerInstructions.Text.Contains(name, StringComparison.Ordinal)))
@@ -32,7 +32,7 @@ public partial class ServerInstructionsTests
     }
 
     [Fact]
-    public void InstructionsReferenceOnlyExistingTools()
+    public void ServerInstructions_ToolReferences_NameOnlyExistingTools()
     {
         var known = ToolTypes().SelectMany(ToolNames).ToHashSet(StringComparer.Ordinal);
 
@@ -46,7 +46,7 @@ public partial class ServerInstructionsTests
     }
 
     [Fact]
-    public void InstructionsStateTheToolCountTheServerActuallyHas()
+    public void ServerInstructions_ToolCount_MatchesTheServer()
     {
         var count = ToolTypes().Sum(type => ToolNames(type).Count);
 
@@ -54,7 +54,7 @@ public partial class ServerInstructionsTests
     }
 
     [Fact]
-    public void InstructionsStayUnderTheContextCeiling()
+    public void ServerInstructions_TextLength_StaysUnderContextCeiling()
     {
         Assert.InRange(ServerInstructions.Text.Length, 1, MaxCharacters);
     }

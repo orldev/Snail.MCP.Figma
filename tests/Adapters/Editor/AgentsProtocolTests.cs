@@ -35,7 +35,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task ThePanelIsToldEveryAgentByNameAndWhereEachWorks()
+    public async Task AgentRoster_PanelSpeaksProtocolTwo_IsToldEveryAgentAndWhereEachWorks()
     {
         var fileKey = NewKey("f");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
@@ -51,7 +51,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task ARemarkAddressedToOneOfTwoAgentsInTheFileReachesOnlyIt()
+    public async Task EditorSocketHub_RemarkAddressedToOneOfTwoAgents_ReachesOnlyIt()
     {
         var fileKey = NewKey("f");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
@@ -67,7 +67,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task TakingBackOneAgentsRemarksLeavesTheOthersWaiting()
+    public async Task EditorSocketHub_OneAgentsRemarksTakenBack_OthersStayWaiting()
     {
         var fileKey = NewKey("f");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
@@ -84,7 +84,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task ACommandNamesTheAgentWhoseItIs()
+    public async Task LiveEditorGateway_CommandSent_NamesTheAgentWhoseItIs()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");
@@ -99,7 +99,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
 
     /// <summary>A write runs alone among the agent's commands: the next one waits for it, while another agent in the same file is not held up.</summary>
     [Fact]
-    public async Task AnAgentsNextCommandWaitsForItsLastWhileAnotherAgentGoesAhead()
+    public async Task LiveEditorGateway_AgentsCommandStillRunning_NextWaitsWhileAnotherAgentGoesAhead()
     {
         var fileKey = NewKey("f");
         var busy = NewKey("s");
@@ -126,7 +126,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
 
     /// <summary>A dropped plugin fails its waits at once; before, they sat out the full timeout.</summary>
     [Fact]
-    public async Task APluginThatDropsFailsItsWaitsAtOnce()
+    public async Task LiveEditorGateway_PluginDrops_FailsItsWaitsAtOnce()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");
@@ -144,7 +144,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task AnAgentThatLeavesGivesUpTheCommandsStillWaitingForTheirTurn()
+    public async Task LiveEditorGateway_AgentLeaves_GivesUpItsQueuedCommands()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");
@@ -171,7 +171,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
 
     /// <summary>Reads take turns too: a read's timeout runs from the moment it is sent, and must not be spent waiting in the plugin behind the agent's own earlier reads.</summary>
     [Fact]
-    public async Task AnAgentsReadsGoToThePluginOneAtATime()
+    public async Task LiveEditorGateway_AgentSendsSeveralReads_TheyGoToThePluginOneAtATime()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");
@@ -198,7 +198,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
 
     /// <summary>A second conversation of one project, or its reconnect before the old session timed out, is still the one project in the panel: one entry, one queue of remarks, and not somebody else to itself.</summary>
     [Fact]
-    public async Task TwoSessionsOfOneProjectAreOneAgentInThePanel()
+    public async Task AgentRoster_TwoSessionsOfOneProject_AreOneAgentInThePanel()
     {
         var fileKey = NewKey("f");
         var project = NewKey("p");
@@ -222,7 +222,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
 
     /// <summary>When one of the project's sessions ends, the other still reads what was left for the project.</summary>
     [Fact]
-    public async Task ARemarkForTheProjectOutlivesOneOfItsSessions()
+    public async Task AgentRoster_OneProjectSessionEnds_RemarkForTheProjectSurvives()
     {
         var fileKey = NewKey("f");
         var project = NewKey("p");
@@ -242,7 +242,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     }
 
     [Fact]
-    public async Task ACommandNamesTheProjectOfTheAgentWhoseItIs()
+    public async Task LiveEditorGateway_AgentNamedAfterAProject_CommandNamesTheProject()
     {
         var fileKey = NewKey("f");
         var sessionId = NewKey("s");

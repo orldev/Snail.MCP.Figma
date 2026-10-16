@@ -10,7 +10,7 @@ public partial class VariablesPayloadContractTests
     [Theory]
     [InlineData("serializeVariable")]
     [InlineData("serializeCollection")]
-    public void TheSampleCarriesExactlyTheFieldsTheBundleSerializes(string serializer)
+    public void VariablesPayload_SampleOfEachSerializer_CarriesExactlyTheBundleFields(string serializer)
     {
         var body = Regex.Match(Bundle, $@"function {serializer}\(\w+\) \{{\s*return \{{(?<fields>.*?)\}};", RegexOptions.Singleline);
 
@@ -28,7 +28,7 @@ public partial class VariablesPayloadContractTests
 
     /// <summary>Both places that build the payload, the startup push and REFRESH_VARIABLES, send arrays; the readers key them by id.</summary>
     [Fact]
-    public void BothSectionsLeaveTheBundleAsArrays()
+    public void VariablesPayload_BothSections_LeaveTheBundleAsArrays()
     {
         Assert.Equal(2, VariablesMapPattern.Matches(Bundle).Count);
         Assert.Equal(2, CollectionsMapPattern.Matches(Bundle).Count);

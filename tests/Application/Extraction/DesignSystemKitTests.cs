@@ -7,7 +7,7 @@ public class VisualSpecTests
     private static JsonNode Node(string json) => JsonNode.Parse(json)!;
 
     [Fact]
-    public void FillsStrokesEffectsAndLayoutBecomeCssReadyValues()
+    public void DesignSystemKit_FillsStrokesEffectsAndLayout_BecomeCssReadyValues()
     {
         var spec = DesignSystemKit.ExtractVisualSpec(Node("""
             {
@@ -44,13 +44,13 @@ public class VisualSpecTests
     }
 
     [Fact]
-    public void NodeWithNothingWorthReproducingYieldsNoSpec()
+    public void DesignSystemKit_NothingWorthReproducing_YieldsNoSpec()
     {
         Assert.Null(DesignSystemKit.ExtractVisualSpec(Node("""{"type": "FRAME", "opacity": 1}""")));
     }
 
     [Fact]
-    public void TypographyIsReadOnlyFromTextNodes()
+    public void DesignSystemKit_TextNode_YieldsTypography()
     {
         var spec = DesignSystemKit.ExtractVisualSpec(Node("""
             {"type": "TEXT", "style": {"fontFamily": "Inter", "fontSize": 14, "lineHeightPx": 20}}
@@ -72,7 +72,7 @@ public class VariantDeltaTests
         """)!;
 
     [Fact]
-    public void BaseKeepsTheFullSpecAndSiblingsCarryOnlyDifferences()
+    public void DesignSystemKit_VariantsDeltaEncoded_BaseKeepsFullSpecAndSiblingsOnlyDifferences()
     {
         var variants = Variants();
         DesignSystemKit.DeltaEncodeVariants(variants);
@@ -90,7 +90,7 @@ public class VariantDeltaTests
     }
 
     [Fact]
-    public void NothingHappensWhenNoVariantHasASpec()
+    public void DesignSystemKit_NoVariantHasASpec_DeltaEncodingChangesNothing()
     {
         var variants = (JsonArray)JsonNode.Parse("""[{"name": "Size=S", "id": "1:1"}]""")!;
 
@@ -129,7 +129,7 @@ public class KitCompressionTests
         """)!;
 
     [Fact]
-    public void SummaryDropsVariantSpecsButKeepsTheSetSpec()
+    public void DesignSystemKit_SummaryLevel_DropsVariantSpecsButKeepsTheSetSpec()
     {
         var compressed = DesignSystemKit.Compress(Kit(), DesignSystemKit.Summary);
         var item = compressed["components"]!["items"]![0]!;
@@ -141,7 +141,7 @@ public class KitCompressionTests
     }
 
     [Fact]
-    public void InventoryKeepsNamesAndTypesAndDropsValues()
+    public void DesignSystemKit_InventoryLevel_KeepsNamesAndTypesButDropsValues()
     {
         var compressed = DesignSystemKit.Compress(Kit(), DesignSystemKit.Inventory);
 
@@ -154,7 +154,7 @@ public class KitCompressionTests
     }
 
     [Fact]
-    public void CompactThrowsAwayEverythingExceptTheShapeOfTheSystem()
+    public void DesignSystemKit_CompactLevel_KeepsOnlyTheShapeOfTheSystem()
     {
         var compressed = DesignSystemKit.Compress(Kit(), DesignSystemKit.Compact);
 
@@ -171,13 +171,13 @@ public class KitCompressionTests
     [InlineData("full", 900, DesignSystemKit.Compact)]
     [InlineData("summary", 10, DesignSystemKit.Summary)]
     [InlineData("compact", 10, DesignSystemKit.Compact)]
-    public void SizeUpgradesTheCompressionLevelRegardlessOfWhatWasAsked(string format, double sizeKb, string? expected)
+    public void DesignSystemKit_LargePayload_UpgradesCompressionLevelRegardlessOfRequest(string format, double sizeKb, string? expected)
     {
         Assert.Equal(expected, DesignSystemKit.CompressionLevel(format, sizeKb));
     }
 
     [Fact]
-    public void CompactRequestIsNeverDowngradedByASmallPayload()
+    public void DesignSystemKit_CompactRequestedForSmallPayload_IsNeverDowngraded()
     {
         Assert.Equal(DesignSystemKit.Compact, DesignSystemKit.CompressionLevel("compact", 250));
     }

@@ -42,7 +42,7 @@ public class VersionDiffTests
     private static int Count(JsonNode? node) => (node as JsonArray)?.Count ?? 0;
 
     [Fact]
-    public void PageStructureSeparatesRenamesFromAddsAndRemoves()
+    public void DiffEngine_PageStructureChanged_SeparatesRenamesFromAddsAndRemoves()
     {
         var diff = DiffEngine.DiffPageStructure(
             Document(Page("0:1", "Cover"), Page("0:2", "Components"), Page("0:3", "Draft")),
@@ -60,7 +60,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void EmptyDocumentsCompareToNoChangesInsteadOfThrowing()
+    public void DiffEngine_EmptyDocuments_ReportNoChangesInsteadOfThrowing()
     {
         var diff = DiffEngine.DiffPageStructure(null, new JsonObject());
 
@@ -69,7 +69,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void RenamedComponentPropertyReadsAsRemovalPlusAddition()
+    public void DiffEngine_ComponentPropertyRenamed_ReadsAsRemovalPlusAddition()
     {
         var diff = DiffEngine.DiffComponentPropertyDefinitions(
             new JsonObject { ["Disabled#1:2"] = Property("BOOLEAN", false) },
@@ -81,7 +81,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void TypeAndDefaultChangesAreReportedSeparately()
+    public void DiffEngine_TypeAndDefaultChanged_ReportsThemSeparately()
     {
         var diff = DiffEngine.DiffComponentPropertyDefinitions(
             new JsonObject
@@ -102,7 +102,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void BindingChangesDistinguishAddedRemovedAndRebound()
+    public void DiffEngine_BindingsChanged_DistinguishesAddedRemovedAndRebound()
     {
         var before = Node("1:1", "Button", children: new JsonArray(
             Node("1:2", "Label", "TEXT", boundVariables: new JsonObject
@@ -130,7 +130,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void FillBindingArraysAreComparedByTheirFirstAlias()
+    public void DiffEngine_FillBindingArrays_AreComparedByTheirFirstAlias()
     {
         var before = Node("1:1", "Card", boundVariables: new JsonObject
         {
@@ -150,7 +150,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void UnchangedBindingsProduceNoNoise()
+    public void DiffEngine_UnchangedBindings_ProduceNoChanges()
     {
         var node = Node("1:1", "Card", boundVariables: new JsonObject { ["fills"] = new JsonArray(Alias("VariableID:1:1")) });
 
@@ -158,7 +158,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void MissingSideIsReportedAsAppearedOrDisappearedNotAsAPileOfChanges()
+    public void DiffEngine_OneSideMissing_ReportsAppearedOrDisappeared()
     {
         var node = Node("1:1", "Button");
 
@@ -175,7 +175,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void ChangeCountSumsEveryKindOfChange()
+    public void DiffEngine_SeveralKindsOfChange_ChangeCountSumsThemAll()
     {
         var before = Node(
             "1:1",
@@ -206,7 +206,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void SummaryModeDropsDetailsButKeepsTheCounts()
+    public void DiffEngine_SummaryMode_DropsDetailsButKeepsCounts()
     {
         var before = Node("1:1", "Button", properties: new JsonObject { ["Disabled#1:2"] = Property("BOOLEAN", false) });
         var after = Node(
@@ -229,7 +229,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void StandardModeKeepsPropertyNamesAndDropsHeavyDefaults()
+    public void DiffEngine_StandardMode_KeepsPropertyNamesAndDropsHeavyDefaults()
     {
         var before = Node("1:1", "Button", properties: new JsonObject { ["Label#1:2"] = Property("TEXT", "Button") });
         var after = Node("1:1", "Button", properties: new JsonObject { ["Label#1:2"] = Property("TEXT", "Submit") });
@@ -250,7 +250,7 @@ public class VersionDiffTests
     [InlineData("SUMMARY", "summary")]
     [InlineData("verbose", "standard")]
     [InlineData(null, "standard")]
-    public void UnknownModeFallsBackToStandard(string? input, string expected) =>
+    public void DiffModes_UnknownMode_FallsBackToStandard(string? input, string expected) =>
         Assert.Equal(expected, DiffModes.Normalize(input));
 
     private static ChangelogInput Input(
@@ -273,7 +273,7 @@ public class VersionDiffTests
         };
 
     [Fact]
-    public void ChangelogHeaderCarriesBothVersionsAndTheirAuthors()
+    public void ChangelogFormatter_Header_CarriesBothVersionsAndTheirAuthors()
     {
         var markdown = ChangelogFormatter.Render(Input());
 
@@ -288,7 +288,7 @@ public class VersionDiffTests
     [InlineData("2026-01-01T18:00:00Z", 1)]
     [InlineData("2026-01-01T00:00:00Z", 0)]
     [InlineData("2025-12-25T00:00:00Z", 0)]
-    public void TheSpanIsRoundedToWholeDaysAndNeverGoesNegative(string toDate, int expected)
+    public void ChangelogFormatter_DaysApart_RoundsToWholeDaysAndNeverGoesNegative(string toDate, int expected)
     {
         var markdown = ChangelogFormatter.Render(Input(
             to: new VersionMeta("v2", "Release 1.1", toDate, "Bob")));
@@ -297,7 +297,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void HeadIsRenderedAsCurrentStateNotAsAVersionId()
+    public void ChangelogFormatter_TargetIsHead_RendersCurrentStateInsteadOfVersionId()
     {
         var markdown = ChangelogFormatter.Render(Input(
             to: new VersionMeta("v-head", null, "2026-01-06T00:00:00Z", null, IsHead: true)));
@@ -306,7 +306,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void ComponentsSectionSplitsChangedFromUnchanged()
+    public void ChangelogFormatter_ScopedComponents_SplitsChangedFromUnchanged()
     {
         var changed = DiffEngine.DiffNode(
             Node("1:1", "Button"),
@@ -321,7 +321,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void MarkdownSpecialCharactersInLayerNamesAreEscaped()
+    public void ChangelogFormatter_MarkdownCharactersInLayerNames_EscapesThem()
     {
         var diff = DiffEngine.DiffNode(
             Node("1:1", "Button [old]"),
@@ -334,7 +334,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void SummaryModeStopsAfterOneLineAndKeepsTheCaveats()
+    public void ChangelogFormatter_SummaryMode_StopsAfterOneLineAndKeepsCaveats()
     {
         var pages = DiffEngine.DiffPageStructure(
             Document(Page("0:1", "Cover")),
@@ -353,7 +353,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void EmptyScopeSaysHowToGetAComponentSection()
+    public void ChangelogFormatter_EmptyScope_SaysHowToGetAComponentSection()
     {
         var markdown = ChangelogFormatter.Render(Input());
 
@@ -362,7 +362,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void MetadataChangesFromThePluginBufferAreLabelledAsSuch()
+    public void ChangelogFormatter_MetadataChangesFromPluginBuffer_LabelsTheirSource()
     {
         var diff = DiffEngine.DiffNode(Node("1:1", "Button"), Node("1:1", "Button v2"));
         diff["metadata_changes"] = new JsonArray(new JsonObject
@@ -378,7 +378,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void HeadGetsNoCacheKeyBecauseItChangesWithEverySave()
+    public void VersionSnapshotCache_HeadVersion_GetsNoCacheKey()
     {
         Assert.Null(VersionSnapshotCache.MakeKey("abc", null, 1, null));
         Assert.Null(VersionSnapshotCache.MakeKey("abc", "  ", 1, null));
@@ -386,7 +386,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void NodeOrderDoesNotChangeTheKeyButTheNodeSetDoes()
+    public void VersionSnapshotCache_NodeIdsReordered_KeepsKeyButNodeSetChangesIt()
     {
         var straight = VersionSnapshotCache.MakeKey("abc", "v1", 2, ["1:1", "1:2"]);
         var reversed = VersionSnapshotCache.MakeKey("abc", "v1", 2, ["1:2", "1:1"]);
@@ -399,7 +399,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void WritingWithoutAKeyIsANoOpSoHeadNeverLandsInTheCache()
+    public void VersionSnapshotCache_SetWithoutKey_StoresNothing()
     {
         var cache = new VersionSnapshotCache();
 
@@ -410,7 +410,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void OldestUntouchedEntryIsEvictedFirst()
+    public void VersionSnapshotCache_CapacityExceeded_EvictsOldestUntouchedEntry()
     {
         var cache = new VersionSnapshotCache(maxEntries: 2);
 
@@ -428,7 +428,7 @@ public class VersionDiffTests
     }
 
     [Fact]
-    public void RewritingAKeyDoesNotGrowTheCache()
+    public void VersionSnapshotCache_KeyRewritten_DoesNotGrowTheCache()
     {
         var cache = new VersionSnapshotCache(maxEntries: 2);
 
