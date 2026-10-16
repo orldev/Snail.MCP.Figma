@@ -20,8 +20,8 @@ public sealed record AnalyzeOptions
     public int MaxFiles { get; init; } = 5000;
 }
 
-/// <summary>Manifest storage on disk under <c>&lt;outDir&gt;/.extraction/</c>; tools return a summary and the path.</summary>
-public static class ExtractionManifests
+/// <summary>Manifest storage under <c>&lt;outDir&gt;/.extraction/</c>; tools return a summary and the path.</summary>
+public sealed class ExtractionManifests(IWorkspace workspace)
 {
     /// <summary>File name of the analysis manifest, see <see cref="DsAnalysis"/>.</summary>
     public const string AnalysisFile = "analysis.json";
@@ -43,28 +43,17 @@ public static class ExtractionManifests
 
     /// <summary>Relative paths resolve against the process working directory, like CLI tools do.</summary>
     public static string ResolvePath(string path) =>
-        Path.IsPathRooted(path) ? Path.GetFullPath(path) : Path.GetFullPath(Path.Combine(System.IO.Directory.GetCurrentDirectory(), path));
+        Path.IsPathRooted(path) ? Path.GetFullPath(path) : Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, path));
 
     /// <summary>Writes beside the manifest and moves the file over it, so a reader meets the old manifest or the new one and never half of either.</summary>
     /// <remarks>A torn status.json reads as corrupt, a corrupt one as missing, and a missing one is started afresh: every component's progress went back to pending. The name beside it is unique because two server processes may write the same manifest.</remarks>
-    public static void Write<T>(string path, T data)
-    {
-        var directory = Path.GetDirectoryName(path);
-
-        if (!string.IsNullOrEmpty(directory))
-        {
-            System.IO.Directory.CreateDirectory(directory);
-        }
-
-        var written = $"{path}.{Guid.NewGuid():N}.tmp";
-        File.WriteAllText(written, JsonSerializer.Serialize(data, DsJson.Info<T>()) + Environment.NewLine);
-        File.Move(written, path, overwrite: true);
-    }
+    public void Write<T>(string path, T data) =>
+        workspace.ReplaceText(path, JsonSerializer.Serialize(data, DsJson.Info<T>()) + Environment.NewLine);
 
     /// <summary>Manifest from disk; <c>null</c> when missing or corrupt, so the call does not fail.</summary>
-    public static T? Read<T>(string path) where T : class
+    public T? Read<T>(string path) where T : class
     {
-        var raw = CodeWalker.ReadText(path);
+        var raw = workspace.ReadText(path);
 
         if (raw is null)
         {
@@ -83,7 +72,7 @@ public static class ExtractionManifests
 }
 
 /// <summary>Full analysis run: walk each target, detect the stack, build the component inventory and classify the architecture.</summary>
-public static partial class ProjectAnalyzer
+public sealed partial class ProjectAnalyzer(CodeWalker sources, StackDetectors stacks, ComponentInventory inventory)
 {
     [GeneratedRegex(@"tailwind\.config\.(js|cjs|mjs|ts)$")]
     private static partial Regex TailwindConfigPattern();
@@ -100,7 +89,7 @@ public static partial class ProjectAnalyzer
     private const long MaxIconBytes = 32 * 1024;
 
     /// <summary>The analysis of every target root: its stack, style sources, icons, typography, component inventory and architecture.</summary>
-    public static DsAnalysis Analyze(IReadOnlyList<string> targetRoots, AnalyzeOptions options)
+    public DsAnalysis Analyze(IReadOnlyList<string> targetRoots, AnalyzeOptions options)
     {
         var analysis = new DsAnalysis { OutDir = options.OutDir };
 
@@ -109,17 +98,17 @@ public static partial class ProjectAnalyzer
             var root = targetRoots[targetIndex];
             var started = Stopwatch.StartNew();
 
-            var walk = CodeWalker.Walk(root, new WalkOptions
+            var walk = sources.Walk(root, new WalkOptions
             {
                 Include = options.Include,
                 Exclude = options.Exclude,
                 MaxFiles = options.MaxFiles,
             });
 
-            var package = StackDetectors.ReadPackageInfo(root);
+            var package = stacks.ReadPackageInfo(root);
             var frameworks = StackDetectors.DetectFrameworks(package, walk.Files);
-            var stylingMethods = StackDetectors.DetectStylingMethods(package, walk.Files);
-            var componentLibraries = StackDetectors.DetectComponentLibraries(root, package);
+            var stylingMethods = stacks.DetectStylingMethods(package, walk.Files);
+            var componentLibraries = stacks.DetectComponentLibraries(root, package);
 
             var styleSources = new List<DsStyleSource>();
             var icons = new List<DsIconEntry>();
@@ -130,7 +119,7 @@ public static partial class ProjectAnalyzer
                 CollectStyleAssets(file, styleSources, icons, typography);
             }
 
-            var inventory = ComponentInventory.Build(walk.Files, targetIndex);
+            var inventoried = inventory.Build(walk.Files, targetIndex);
 
             analysis.Targets.Add(new DsTargetAnalysis
             {
@@ -150,8 +139,8 @@ public static partial class ProjectAnalyzer
                 },
             });
 
-            analysis.Components.AddRange(inventory.Components);
-            analysis.DuplicateGroups.AddRange(inventory.DuplicateGroups);
+            analysis.Components.AddRange(inventoried.Components);
+            analysis.DuplicateGroups.AddRange(inventoried.DuplicateGroups);
         }
 
         if (targetRoots.Count > 1)
@@ -211,7 +200,7 @@ public static partial class ProjectAnalyzer
         return status;
     }
 
-    private static void CollectStyleAssets(
+    private void CollectStyleAssets(
         WalkedFile file,
         List<DsStyleSource> styleSources,
         List<DsIconEntry> icons,
@@ -235,7 +224,7 @@ public static partial class ProjectAnalyzer
         {
             styleSources.Add(new DsStyleSource { File = file.RelativePath, Kind = "scss" });
 
-            if (CodeWalker.ReadText(file.Path) is { } scss)
+            if (sources.ReadText(file.Path) is { } scss)
             {
                 typography.AddRange(Convert(CodeStyleMiner.MineTypographyStyles(scss, file.RelativePath)));
             }
@@ -245,7 +234,7 @@ public static partial class ProjectAnalyzer
 
         if (file.Extension == ".css")
         {
-            var text = CodeWalker.ReadText(file.Path);
+            var text = sources.ReadText(file.Path);
             var variableCount = text is null ? 0 : CustomPropertyProbe().Matches(text).Count;
 
             styleSources.Add(new DsStyleSource
@@ -283,7 +272,7 @@ public static partial class ProjectAnalyzer
             return;
         }
 
-        var source = CodeWalker.ReadText(file.Path);
+        var source = sources.ReadText(file.Path);
 
         if (source is null)
         {

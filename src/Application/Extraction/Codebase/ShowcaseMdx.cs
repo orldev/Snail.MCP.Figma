@@ -8,7 +8,7 @@ using Snail.MCP.Figma.Application.Tokens;
 namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 
 /// <summary>Storybook showcases: static MDX pages with values baked into markup, rendering every token type visually.</summary>
-public static partial class ShowcaseMdx
+public sealed partial class ShowcaseMdx(CodeWalker sources)
 {
     private const int MaxInlineSvgBytes = 8 * 1024;
     private const int MaxIconsRendered = 80;
@@ -439,7 +439,7 @@ public static partial class ShowcaseMdx
     }
 
     /// <summary>The MDX page <c>Design Tokens/Iconography</c> that renders each icon found in source, read relative to its target root.</summary>
-    public static string IconShowcase(IReadOnlyList<(DsIconEntry Icon, string Root)> entries)
+    public string IconShowcase(IReadOnlyList<(DsIconEntry Icon, string Root)> entries)
     {
         var lines = new List<string>
         {
@@ -467,8 +467,8 @@ public static partial class ShowcaseMdx
                 break;
             }
 
-            var path = CodeWalker.ResolveUnder(root, icon.File);
-            var raw = path is null ? null : CodeWalker.ReadText(path, MaxIconChars);
+            var path = sources.ResolveUnder(root, icon.File);
+            var raw = path is null ? null : sources.ReadText(path, MaxIconChars);
             var svg = raw is null ? null : ExtractFirstSvg(raw);
 
             if (svg is null)

@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 public sealed record TokenWriteResult(List<string> FilesWritten, List<string> Warnings);
 
 /// <summary>Lays the token document out into package files with canonical names used by verification, Storybook and re-import.</summary>
-public static class TokenFileWriter
+public sealed class TokenFileWriter(IWorkspace workspace)
 {
     /// <summary>Formats the package can write, and where.</summary>
     public static readonly IReadOnlyDictionary<string, string> CanonicalFileNames =
@@ -43,7 +43,7 @@ public static class TokenFileWriter
     }
 
     /// <summary>Writes the document in every requested format; token files are always refreshed.</summary>
-    public static TokenWriteResult Write(TokenDocument document, string outDir, IEnumerable<string> formats)
+    public TokenWriteResult Write(TokenDocument document, string outDir, IEnumerable<string> formats)
     {
         var written = new List<string>();
         var warnings = new List<string>();
@@ -74,8 +74,7 @@ public static class TokenFileWriter
                         : $"tokens/{file.Path}";
 
                     var absolute = Path.Combine(outDir, relative.Replace('/', Path.DirectorySeparatorChar));
-                    Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
-                    File.WriteAllText(absolute, file.Content);
+                    workspace.WriteText(absolute, file.Content);
                     written.Add(absolute);
                 }
             }

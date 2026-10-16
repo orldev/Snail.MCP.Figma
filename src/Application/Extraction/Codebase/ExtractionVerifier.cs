@@ -34,7 +34,7 @@ public sealed class VerifyReport
 }
 
 /// <summary>Deterministic checks of an extracted design system, each encoding a failure class seen on real runs.</summary>
-public static partial class ExtractionVerifier
+public sealed partial class ExtractionVerifier(IWorkspace workspace)
 {
     [GeneratedRegex(@"/\*[\s\S]*?\*/")]
     private static partial Regex CssCommentPattern();
@@ -54,7 +54,7 @@ public static partial class ExtractionVerifier
     private const int MaxDetails = 20;
 
     /// <summary>The checks of the design-system package in <c>outDir</c>, cross-referenced with the analysis and porting status where they exist.</summary>
-    public static VerifyReport Verify(string outDir, DsAnalysis? analysis, DsStatusManifest? status)
+    public VerifyReport Verify(string outDir, DsAnalysis? analysis, DsStatusManifest? status)
     {
         var report = new VerifyReport();
 
@@ -67,14 +67,14 @@ public static partial class ExtractionVerifier
             });
 
         var tokensPath = Path.Combine(outDir, "tokens", "tokens.json");
-        var tokensExist = File.Exists(tokensPath);
+        var tokensExist = workspace.HasFile(tokensPath);
 
         if (tokensExist)
         {
             try
             {
                 var parsed = new DtcgParser().Parse(
-                    File.ReadAllText(tokensPath),
+                    workspace.ReadText(tokensPath) ?? string.Empty,
                     new ParseContext("Tokens", new TokenDocument()));
                 var document = parsed.Document;
 
@@ -100,14 +100,14 @@ public static partial class ExtractionVerifier
 
         var cssTargets = new[] { "tokens/tokens.css", "tokens/theme.css", "tokens/_tokens.scss" }
             .Select(relative => Path.Combine(outDir, relative.Replace('/', Path.DirectorySeparatorChar)))
-            .Where(File.Exists)
+            .Where(workspace.HasFile)
             .ToList();
 
         var quoted = new List<string>();
 
         foreach (var file in cssTargets)
         {
-            foreach (Match match in QuotedCssExpressionPattern().Matches(File.ReadAllText(file)))
+            foreach (Match match in QuotedCssExpressionPattern().Matches(workspace.ReadText(file) ?? string.Empty))
             {
                 quoted.Add($"{Path.GetFileName(file)}: {match.Value}…");
             }
@@ -123,7 +123,7 @@ public static partial class ExtractionVerifier
 
         var previewCss = Path.Combine(outDir, ".storybook", "preview.css");
 
-        if (File.Exists(previewCss))
+        if (workspace.HasFile(previewCss))
         {
             cssFiles.Add(previewCss);
         }
@@ -132,7 +132,7 @@ public static partial class ExtractionVerifier
 
         foreach (var file in cssTargets.Concat(cssFiles))
         {
-            foreach (Match match in DefinedVariablePattern().Matches(StripComments(File.ReadAllText(file))))
+            foreach (Match match in DefinedVariablePattern().Matches(StripComments(workspace.ReadText(file) ?? string.Empty)))
             {
                 defined.Add(match.Groups[1].Value);
             }
@@ -142,7 +142,7 @@ public static partial class ExtractionVerifier
 
         foreach (var file in cssFiles)
         {
-            foreach (Match match in ConsumedVariablePattern().Matches(StripComments(File.ReadAllText(file))))
+            foreach (Match match in ConsumedVariablePattern().Matches(StripComments(workspace.ReadText(file) ?? string.Empty)))
             {
                 if (!defined.Contains(match.Groups[1].Value))
                 {
@@ -158,13 +158,13 @@ public static partial class ExtractionVerifier
         var structureGaps = new List<string>();
         var componentDirectories = 0;
 
-        if (Directory.Exists(componentsDir))
+        if (workspace.HasDirectory(componentsDir))
         {
-            foreach (var directory in Directory.GetDirectories(componentsDir))
+            foreach (var directory in Directories(componentsDir))
             {
                 componentDirectories++;
                 var name = Path.GetFileName(directory);
-                var files = Directory.GetFiles(directory).Select(Path.GetFileName).OfType<string>().ToList();
+                var files = Files(directory).Select(Path.GetFileName).OfType<string>().ToList();
 
                 if (!files.Any(f => f.Contains(".stories.", StringComparison.Ordinal)))
                 {
@@ -234,20 +234,21 @@ public static partial class ExtractionVerifier
 
     private static string StripComments(string css) => CssCommentPattern().Replace(css, string.Empty);
 
-    private static void CollectCss(string directory, List<string> found)
+    private void CollectCss(string directory, List<string> found)
     {
-        if (!Directory.Exists(directory))
-        {
-            return;
-        }
-
-        foreach (var entry in Directory.GetDirectories(directory))
+        foreach (var entry in Directories(directory))
         {
             CollectCss(entry, found);
         }
 
-        found.AddRange(Directory.GetFiles(directory, "*.css"));
+        found.AddRange(Files(directory).Where(file => file.EndsWith(".css", StringComparison.OrdinalIgnoreCase)));
     }
+
+    private IEnumerable<string> Directories(string directory) =>
+        workspace.Entries(directory).Where(entry => entry.IsDirectory).Select(entry => entry.Path);
+
+    private IEnumerable<string> Files(string directory) =>
+        workspace.Entries(directory).Where(entry => !entry.IsDirectory).Select(entry => entry.Path);
 
     /// <summary>References without a target: such a document would not survive import into Figma.</summary>
     private static List<string> DanglingReferences(TokenDocument document)

@@ -150,7 +150,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     [Fact]
     public void CodeWalker_IgnoredDirectories_NeverReachTheScan()
     {
-        var walk = CodeWalker.Walk(_app.Root);
+        var walk = RealExtraction.Sources.Walk(_app.Root);
 
         Assert.DoesNotContain(walk.Files, file => file.RelativePath.Contains("node_modules", StringComparison.Ordinal));
         Assert.DoesNotContain(walk.Files, file => file.RelativePath.StartsWith("dist/", StringComparison.Ordinal));
@@ -160,7 +160,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     [Fact]
     public void CodeWalker_FileCapReached_StopsTheWalkAndSaysSo()
     {
-        var walk = CodeWalker.Walk(_app.Root, new WalkOptions { MaxFiles = 2 });
+        var walk = RealExtraction.Sources.Walk(_app.Root, new WalkOptions { MaxFiles = 2 });
 
         Assert.True(walk.Files.Count <= 2);
         Assert.True(walk.Skipped.IsOverMaxFiles);
@@ -169,7 +169,7 @@ public class CodeWalkerTests(SampleAppFixture app) : IClassFixture<SampleAppFixt
     [Fact]
     public void CodeWalker_ExtensionFilter_KeepsOnlyRequestedExtensions()
     {
-        var walk = CodeWalker.Walk(_app.Root, new WalkOptions { Extensions = [".css"] });
+        var walk = RealExtraction.Sources.Walk(_app.Root, new WalkOptions { Extensions = [".css"] });
 
         Assert.All(walk.Files, file => Assert.Equal(".css", file.Extension));
     }
@@ -182,16 +182,16 @@ public class StackDetectorTests(SampleAppFixture app) : IClassFixture<SampleAppF
     [Fact]
     public void StackDetectors_SampleApp_RecognizesFrameworkStylingAndVendorLayers()
     {
-        var walk = CodeWalker.Walk(_app.Root);
-        var package = StackDetectors.ReadPackageInfo(_app.Root);
+        var walk = RealExtraction.Sources.Walk(_app.Root);
+        var package = RealExtraction.Stacks.ReadPackageInfo(_app.Root);
 
         Assert.Equal("shop-front", package.Name);
         Assert.Contains(DsFrameworks.React, StackDetectors.DetectFrameworks(package, walk.Files));
 
-        var styling = StackDetectors.DetectStylingMethods(package, walk.Files);
+        var styling = RealExtraction.Stacks.DetectStylingMethods(package, walk.Files);
         Assert.Contains(DsStylingMethods.TailwindV4, styling);
 
-        var libraries = StackDetectors.DetectComponentLibraries(_app.Root, package);
+        var libraries = RealExtraction.Stacks.DetectComponentLibraries(_app.Root, package);
         Assert.Contains(libraries, library => library.Name == "shadcn/ui" && library.Kind == "vendored");
         Assert.Contains(libraries, library => library.Name == "Radix UI");
     }
@@ -201,7 +201,7 @@ public class ComponentInventoryTests(SampleAppFixture app) : IClassFixture<Sampl
 {
     private readonly SampleAppFixture _app = app;
 
-    private InventoryResult Build() => ComponentInventory.Build(CodeWalker.Walk(_app.Root).Files, targetIndex: 0);
+    private InventoryResult Build() => RealExtraction.Inventory.Build(RealExtraction.Sources.Walk(_app.Root).Files, targetIndex: 0);
 
     [Fact]
     public void ComponentInventory_ComponentUsed_CountsRealCallSites()
@@ -391,8 +391,8 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     private readonly SampleAppFixture _app = app;
 
     private ExtractTokensResult Extract(int minFrequency = 4) =>
-        CodeTokenExtractor.Extract(
-            CodeWalker.Walk(_app.Root).Files,
+        RealExtraction.Tokens.Extract(
+            RealExtraction.Sources.Walk(_app.Root).Files,
             new ExtractTokensOptions { MinFrequency = minFrequency, TargetRoots = [_app.Root] });
 
     [Fact]
@@ -467,7 +467,7 @@ public class CodeTokenExtractorTests(SampleAppFixture app) : IClassFixture<Sampl
     [Fact]
     public void CodeTokenExtractor_EmptyProject_WarnsInsteadOfReturningNothing()
     {
-        var result = CodeTokenExtractor.Extract([]);
+        var result = RealExtraction.Tokens.Extract([]);
 
         Assert.Empty(result.Document.Sets);
         Assert.Contains(result.Warnings, warning => warning.Contains("No tokens found", StringComparison.Ordinal));
@@ -485,11 +485,11 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
 
         try
         {
-            var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
+            var analysis = RealExtraction.Analyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
             var path = ExtractionManifests.AnalysisPath(outDir);
-            ExtractionManifests.Write(path, analysis);
+            RealExtraction.Manifests.Write(path, analysis);
 
-            var reloaded = ExtractionManifests.Read<DsAnalysis>(path);
+            var reloaded = RealExtraction.Manifests.Read<DsAnalysis>(path);
 
             Assert.NotNull(reloaded);
             Assert.Equal(analysis.Components.Count, reloaded!.Components.Count);
@@ -506,7 +506,7 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     [Fact]
     public void ProjectAnalyzer_PureVendorComponents_GetNoPortingStatus()
     {
-        var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = _app.OutDir });
+        var analysis = RealExtraction.Analyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = _app.OutDir });
         var status = ProjectAnalyzer.InitStatus(analysis);
 
         var pureVendor = analysis.Components
@@ -520,7 +520,7 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     [Fact]
     public void ExtractionManifests_FileMissingOrBroken_ReadReturnsNullInsteadOfThrowing()
     {
-        Assert.Null(ExtractionManifests.Read<DsAnalysis>(Path.Combine(_app.Root, "nope.json")));
+        Assert.Null(RealExtraction.Manifests.Read<DsAnalysis>(Path.Combine(_app.Root, "nope.json")));
     }
 }
 
@@ -531,9 +531,9 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
     private (DsAnalysis Analysis, TokenDocument Document, string OutDir) Prepare()
     {
         var outDir = Path.Combine(TemporaryFolder.Create(), "pkg");
-        var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
-        var tokens = CodeTokenExtractor.Extract(
-            CodeWalker.Walk(_app.Root).Files,
+        var analysis = RealExtraction.Analyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
+        var tokens = RealExtraction.Tokens.Extract(
+            RealExtraction.Sources.Walk(_app.Root).Files,
             new ExtractTokensOptions { TargetRoots = [_app.Root] });
 
         return (analysis, tokens.Document, outDir);
@@ -546,7 +546,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
 
         try
         {
-            var result = DesignSystemScaffolder.Scaffold(analysis, document, new ScaffoldOptions
+            var result = RealExtraction.Scaffolder.Scaffold(analysis, document, new ScaffoldOptions
             {
                 OutDir = outDir,
                 PackageName = "@acme/design-system",
@@ -585,10 +585,10 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
                 Framework = DsFrameworks.React,
             };
 
-            DesignSystemScaffolder.Scaffold(analysis, document, options);
+            RealExtraction.Scaffolder.Scaffold(analysis, document, options);
             File.WriteAllText(Path.Combine(outDir, "README.md"), "hand edits");
 
-            var second = DesignSystemScaffolder.Scaffold(analysis, document, options);
+            var second = RealExtraction.Scaffolder.Scaffold(analysis, document, options);
 
             Assert.Equal("hand edits", File.ReadAllText(Path.Combine(outDir, "README.md")));
             Assert.Contains("README.md", second.FilesSkipped);
@@ -637,12 +637,12 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
 
         try
         {
-            var analysis = ProjectAnalyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
-            var tokens = CodeTokenExtractor.Extract(
-                CodeWalker.Walk(_app.Root).Files,
+            var analysis = RealExtraction.Analyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
+            var tokens = RealExtraction.Tokens.Extract(
+                RealExtraction.Sources.Walk(_app.Root).Files,
                 new ExtractTokensOptions { TargetRoots = [_app.Root] });
 
-            DesignSystemScaffolder.Scaffold(analysis, tokens.Document, new ScaffoldOptions
+            RealExtraction.Scaffolder.Scaffold(analysis, tokens.Document, new ScaffoldOptions
             {
                 OutDir = outDir,
                 PackageName = "@acme/design-system",
@@ -651,7 +651,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
             });
 
             var status = ProjectAnalyzer.InitStatus(analysis);
-            var report = ExtractionVerifier.Verify(outDir, analysis, status);
+            var report = RealExtraction.Verifier.Verify(outDir, analysis, status);
 
             Assert.True(report.HasPassed, string.Join(" | ", report.Checks
                 .Where(check => check.Status == "fail")
@@ -672,7 +672,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
 
         try
         {
-            var report = ExtractionVerifier.Verify(outDir, analysis: null, status: null);
+            var report = RealExtraction.Verifier.Verify(outDir, analysis: null, status: null);
 
             Assert.False(report.HasPassed);
             Assert.Contains(report.Checks, check =>
@@ -700,7 +700,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
                 }
                 """);
 
-            var report = ExtractionVerifier.Verify(outDir, analysis: null, status: null);
+            var report = RealExtraction.Verifier.Verify(outDir, analysis: null, status: null);
 
             Assert.False(report.HasPassed);
             Assert.Contains(report.Checks, check =>

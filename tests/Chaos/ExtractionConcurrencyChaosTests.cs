@@ -1,5 +1,4 @@
 using Snail.MCP.Figma.Application.Extraction.Codebase;
-using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Chaos;
 
@@ -17,12 +16,12 @@ public class ExtractionConcurrencyChaosTests
             OutDir = outDir,
             Components = [.. names.Select(name => new DsComponentEntry { Name = name, Framework = "react", Classification = DsClassifications.Bespoke })],
         };
-        ExtractionManifests.Write(ExtractionManifests.AnalysisPath(outDir), analysis);
-        var tools = new DesignSystemExtractionTools(NullLogger<DesignSystemExtractionTools>.Instance);
+        RealExtraction.Manifests.Write(ExtractionManifests.AnalysisPath(outDir), analysis);
+        var tools = RealExtraction.Tools();
 
         await Task.WhenAll(names.Select(name => Task.Run(() => tools.StatusAsync(outDir, name, DsPortStatuses.Ported))));
 
-        var progress = ExtractionManifests.Read<DsStatusManifest>(ExtractionManifests.StatusPath(outDir))!;
+        var progress = RealExtraction.Manifests.Read<DsStatusManifest>(ExtractionManifests.StatusPath(outDir))!;
         Assert.All(names, name => Assert.Equal(DsPortStatuses.Ported, progress.Components[name].Status));
     }
 }

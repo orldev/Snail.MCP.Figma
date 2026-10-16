@@ -1,14 +1,14 @@
 namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 
 /// <summary>How far the port of the design system has come, component by component, in the progress manifest beside the analysis.</summary>
-public static class PortingProgress
+public sealed class PortingProgress(ExtractionManifests manifests)
 {
     /// <summary>Taken around every read and write of a progress manifest.</summary>
     /// <remarks>A shared server answers several agents at once, and two of them reporting progress read the same manifest and each wrote back its own copy: the first report was lost.</remarks>
     private static readonly Lock StatusGate = new();
 
     /// <summary>The progress of the port, after recording the component's new status when one is given.</summary>
-    public static ExtractionAnswer Update(string outDir, string? component, string? status, string? notes, string? storyFile)
+    public ExtractionAnswer Update(string outDir, string? component, string? status, string? notes, string? storyFile)
     {
         lock (StatusGate)
         {
@@ -16,15 +16,15 @@ public static class PortingProgress
         }
     }
 
-    private static ExtractionAnswer UpdateUnderGate(string outDir, string? component, string? status, string? notes, string? storyFile)
+    private ExtractionAnswer UpdateUnderGate(string outDir, string? component, string? status, string? notes, string? storyFile)
     {
         var resolvedOut = ExtractionManifests.ResolvePath(outDir);
         var statusPath = ExtractionManifests.StatusPath(resolvedOut);
-        var manifest = ExtractionManifests.Read<DsStatusManifest>(statusPath);
+        var manifest = manifests.Read<DsStatusManifest>(statusPath);
 
         if (manifest is null)
         {
-            var analysis = ExtractionManifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
+            var analysis = manifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
 
             if (analysis is null)
             {
@@ -54,7 +54,7 @@ public static class PortingProgress
                 UpdatedAt = now,
             };
             manifest.UpdatedAt = now;
-            ExtractionManifests.Write(statusPath, manifest);
+            manifests.Write(statusPath, manifest);
         }
 
         var counts = new JsonObject();

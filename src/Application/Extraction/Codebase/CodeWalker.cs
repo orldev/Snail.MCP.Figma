@@ -47,8 +47,8 @@ public sealed record WalkOptions
     public int MaxDepth { get; init; } = 12;
 }
 
-/// <summary>Bounded file-system walk: symlinks are never followed and unreadable directories are skipped silently.</summary>
-public static class CodeWalker
+/// <summary>Bounded walk over the user's source files: links are never followed and what cannot be read is skipped.</summary>
+public sealed class CodeWalker(IWorkspace workspace)
 {
     /// <summary>Directories that never contain design-system sources.</summary>
     private static readonly HashSet<string> IgnoredDirectories = new(StringComparer.OrdinalIgnoreCase)
@@ -59,7 +59,7 @@ public static class CodeWalker
     };
 
     /// <summary>The files under <c>root</c> that pass the options' filters and limits, plus a count of what was skipped.</summary>
-    public static WalkResult Walk(string root, WalkOptions? options = null)
+    public WalkResult Walk(string root, WalkOptions? options = null)
     {
         var opts = options ?? new WalkOptions();
         var maxBytes = (long)opts.MaxFileSizeKb * 1024;
@@ -76,39 +76,15 @@ public static class CodeWalker
     }
 
     /// <summary>File text as UTF-8; <c>null</c> when unreadable, so one file cannot fail the scan.</summary>
-    public static string? ReadText(string path)
-    {
-        try
-        {
-            return File.ReadAllText(path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            return null;
-        }
-    }
+    public string? ReadText(string path) => workspace.ReadText(path);
 
     /// <summary>At most <paramref name="maxChars"/> and one more characters of a file, so the caller tells a file that fits from one that does not; <c>null</c> when unreadable.</summary>
     /// <remarks>A path a manifest names may be a device or a file of any size: read whole, <c>/dev/zero</c> never ends.</remarks>
-    public static string? ReadText(string path, int maxChars)
-    {
-        try
-        {
-            using var reader = new StreamReader(path, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var buffer = new char[maxChars + 1];
-            var read = reader.ReadBlock(buffer, 0, buffer.Length);
-
-            return new string(buffer, 0, read);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            return null;
-        }
-    }
+    public string? ReadText(string path, int maxChars) => workspace.ReadText(path, maxChars);
 
     /// <summary>The absolute path of a file a manifest names under <paramref name="root"/>; <c>null</c> when it climbs out of the root or passes through a link.</summary>
     /// <remarks>A manifest is a file in the user's repository and may have come with a clone. The walk that wrote it never follows a link and never leaves the root, so a path that does either was not written by it — and would read the user's files into the model's context.</remarks>
-    public static string? ResolveUnder(string root, string relativePath)
+    public string? ResolveUnder(string root, string relativePath)
     {
         var resolvedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         var path = Path.GetFullPath(Path.Combine(resolvedRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
@@ -122,18 +98,11 @@ public static class CodeWalker
         return path;
     }
 
-    private static bool PassesThroughLink(string root, string path)
+    private bool PassesThroughLink(string root, string path)
     {
         for (var current = path; current.Length > root.Length; current = Path.GetDirectoryName(current)!)
         {
-            try
-            {
-                if (new FileInfo(current).LinkTarget is not null)
-                {
-                    return true;
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            if (workspace.IsLink(current))
             {
                 return true;
             }
@@ -142,7 +111,7 @@ public static class CodeWalker
         return false;
     }
 
-    private static void Visit(
+    private void Visit(
         string root,
         string directory,
         int depth,
@@ -164,18 +133,7 @@ public static class CodeWalker
             return;
         }
 
-        FileSystemInfo[] entries;
-
-        try
-        {
-            entries = new DirectoryInfo(directory).GetFileSystemInfos();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return;
-        }
-
-        foreach (var entry in entries)
+        foreach (var entry in workspace.Entries(directory))
         {
             if (files.Count >= opts.MaxFiles)
             {
@@ -184,30 +142,25 @@ public static class CodeWalker
                 return;
             }
 
-            if (entry.LinkTarget is not null)
+            if (entry.IsLink)
             {
                 continue;
             }
 
-            if (entry is DirectoryInfo subdirectory)
+            if (entry.IsDirectory)
             {
-                if (IgnoredDirectories.Contains(subdirectory.Name) || subdirectory.Name.StartsWith('.'))
+                if (IgnoredDirectories.Contains(entry.Name) || entry.Name.StartsWith('.'))
                 {
                     skipped.Ignored++;
                     continue;
                 }
 
-                Visit(root, subdirectory.FullName, depth + 1, files, skipped, opts, extensions, maxBytes);
+                Visit(root, entry.Path, depth + 1, files, skipped, opts, extensions, maxBytes);
                 continue;
             }
 
-            if (entry is not FileInfo file)
-            {
-                continue;
-            }
-
-            var relative = Path.GetRelativePath(root, file.FullName).Replace(Path.DirectorySeparatorChar, '/');
-            var extension = file.Extension.ToLowerInvariant();
+            var relative = Path.GetRelativePath(root, entry.Path).Replace(Path.DirectorySeparatorChar, '/');
+            var extension = Path.GetExtension(entry.Path).ToLowerInvariant();
 
             if (extensions is not null && !extensions.Contains(extension))
             {
@@ -225,24 +178,18 @@ public static class CodeWalker
                 continue;
             }
 
-            long size;
-
-            try
-            {
-                size = file.Length;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            if (entry.Length < 0)
             {
                 continue;
             }
 
-            if (size > maxBytes)
+            if (entry.Length > maxBytes)
             {
                 skipped.TooLarge++;
                 continue;
             }
 
-            files.Add(new WalkedFile(file.FullName, relative, extension, size));
+            files.Add(new WalkedFile(entry.Path, relative, extension, entry.Length));
         }
     }
 }

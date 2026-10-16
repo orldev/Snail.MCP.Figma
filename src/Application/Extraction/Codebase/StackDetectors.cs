@@ -17,7 +17,7 @@ public sealed class PackageInfo
 }
 
 /// <summary>Detects framework, styling method and vendor layers from package.json and files — no AST, no code execution.</summary>
-public static partial class StackDetectors
+public sealed partial class StackDetectors(CodeWalker sources, IWorkspace workspace)
 {
     [GeneratedRegex(@"^[\^~]?4\.")]
     private static partial Regex TailwindV4Version();
@@ -49,9 +49,9 @@ public static partial class StackDetectors
     ];
 
     /// <summary>The package name and dependencies from <c>package.json</c> under <c>root</c>; empty when the file is missing or unreadable.</summary>
-    public static PackageInfo ReadPackageInfo(string root)
+    public PackageInfo ReadPackageInfo(string root)
     {
-        var raw = CodeWalker.ReadText(Path.Combine(root, "package.json"));
+        var raw = sources.ReadText(Path.Combine(root, "package.json"));
 
         if (raw is null)
         {
@@ -126,7 +126,7 @@ public static partial class StackDetectors
     }
 
     /// <summary>The styling methods the dependencies and style files point to, values of <see cref="DsStylingMethods"/>.</summary>
-    public static List<string> DetectStylingMethods(PackageInfo package, IReadOnlyList<WalkedFile> files)
+    public List<string> DetectStylingMethods(PackageInfo package, IReadOnlyList<WalkedFile> files)
     {
         var found = new List<string>();
 
@@ -150,7 +150,7 @@ public static partial class StackDetectors
                     return false;
                 }
 
-                var text = CodeWalker.ReadText(file.Path);
+                var text = sources.ReadText(file.Path);
 
                 return text is not null
                     && (text.Contains("@import \"tailwindcss\"", StringComparison.Ordinal)
@@ -171,14 +171,14 @@ public static partial class StackDetectors
     }
 
     /// <summary>The vendor component libraries found through their configuration files, directories or dependencies.</summary>
-    public static List<DsComponentLibrary> DetectComponentLibraries(string root, PackageInfo package)
+    public List<DsComponentLibrary> DetectComponentLibraries(string root, PackageInfo package)
     {
         var libraries = new List<DsComponentLibrary>();
 
         var shadcnConfig = new[] { "components.json", "src/components.json" }
-            .FirstOrDefault(p => File.Exists(Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar))));
+            .FirstOrDefault(p => workspace.HasFile(Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar))));
         var shadcnDirectory = new[] { "components/ui", "src/components/ui", "app/components/ui" }
-            .FirstOrDefault(p => Directory.Exists(Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar))));
+            .FirstOrDefault(p => workspace.HasDirectory(Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar))));
 
         if (shadcnConfig is not null || shadcnDirectory is not null)
         {

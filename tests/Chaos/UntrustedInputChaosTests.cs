@@ -5,7 +5,6 @@ using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Tokens;
 using Snail.MCP.Figma.Application.Tokens.Parsers;
 using Snail.MCP.Figma.Configuration;
-using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Chaos;
 
@@ -54,9 +53,9 @@ public class UntrustedInputChaosTests
             Targets = [new DsTargetAnalysis { Root = root }],
             Components = [new DsComponentEntry { Name = "Evil", File = file, Framework = "react", Classification = DsClassifications.Bespoke }],
         };
-        ExtractionManifests.Write(ExtractionManifests.AnalysisPath(outDir), analysis);
+        RealExtraction.Manifests.Write(ExtractionManifests.AnalysisPath(outDir), analysis);
 
-        var answer = await new DesignSystemExtractionTools(NullLogger<DesignSystemExtractionTools>.Instance).ExtractComponentAsync(outDir, "Evil");
+        var answer = await RealExtraction.Tools().ExtractComponentAsync(outDir, "Evil");
 
         Assert.DoesNotContain("S3CRET-TOKEN", answer, StringComparison.Ordinal);
     }

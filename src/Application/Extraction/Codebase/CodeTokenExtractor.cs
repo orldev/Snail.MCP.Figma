@@ -26,7 +26,7 @@ public sealed record ExtractTokensResult(
     Dictionary<string, int> Counts);
 
 /// <summary>Assembles mined values into the shared token model: declared values always become tokens, inferred ones are promoted by frequency; names stay structural.</summary>
-public static partial class CodeTokenExtractor
+public sealed partial class CodeTokenExtractor(CodeWalker sources)
 {
     private const int MaxSourcesPerToken = 6;
 
@@ -93,7 +93,7 @@ public static partial class CodeTokenExtractor
     }
 
     /// <summary>The tokens mined from the walked style and code files, with the raw values and warnings that remain in doubt.</summary>
-    public static ExtractTokensResult Extract(IReadOnlyList<WalkedFile> files, ExtractTokensOptions? options = null)
+    public ExtractTokensResult Extract(IReadOnlyList<WalkedFile> files, ExtractTokensOptions? options = null)
     {
         var opts = options ?? new ExtractTokensOptions();
         var warnings = new List<string>();
@@ -113,7 +113,7 @@ public static partial class CodeTokenExtractor
                 continue;
             }
 
-            var text = CodeWalker.ReadText(file.Path);
+            var text = sources.ReadText(file.Path);
 
             if (text is null)
             {
@@ -449,7 +449,7 @@ public static partial class CodeTokenExtractor
     }
 
     /// <summary>Frequency mining of Tailwind utility classes from the app's own theme.</summary>
-    private static void MineTailwindUtilities(
+    private void MineTailwindUtilities(
         ExtractTokensOptions options,
         List<MinedVariable> mined,
         Dictionary<string, int> utilities,
@@ -464,7 +464,7 @@ public static partial class CodeTokenExtractor
 
         foreach (var root in options.TargetRoots)
         {
-            var themeText = CodeWalker.ReadText(Path.Combine(root, "node_modules", "tailwindcss", "theme.css"));
+            var themeText = sources.ReadText(Path.Combine(root, "node_modules", "tailwindcss", "theme.css"));
 
             if (themeText is not null)
             {
