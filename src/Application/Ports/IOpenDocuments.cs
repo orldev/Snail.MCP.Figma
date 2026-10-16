@@ -4,8 +4,10 @@ namespace Snail.MCP.Figma.Application.Ports;
 /// <remarks>The target moves only on the agent's word. It used to follow the human's clicks, and with the plugin open in several files a click meant for another agent redirected a running build into the wrong file.</remarks>
 public interface IOpenDocuments
 {
+    /// <summary>Sessions registered for files, one per file key, including ones whose connection has closed but is not yet removed.</summary>
     IReadOnlyCollection<IOpenDocument> Sessions { get; }
 
+    /// <summary>Whether any registered session has an open connection.</summary>
     bool HasConnection { get; }
 
     /// <summary>File the commands go to; <c>null</c> until the agent names one or a single connected file makes the choice obvious.</summary>

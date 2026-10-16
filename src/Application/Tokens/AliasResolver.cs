@@ -13,6 +13,7 @@ public sealed partial class AliasResolver
     private readonly Dictionary<string, Token> _bySetQualifiedPath = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _warnings = [];
 
+    /// <summary>Indexes every token of the document by its dotted path and by its set-qualified path.</summary>
     public AliasResolver(TokenDocument document)
     {
         foreach (var set in document.Sets)
@@ -25,6 +26,7 @@ public sealed partial class AliasResolver
         }
     }
 
+    /// <summary>Broken references, loops and over-deep chains met while resolving, one message each.</summary>
     public IReadOnlyList<string> Warnings => _warnings;
 
     /// <summary>When the string is a reference, returns the path without braces.</summary>

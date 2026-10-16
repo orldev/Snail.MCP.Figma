@@ -6,10 +6,13 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 /// <summary>Settings for generating the design-system package.</summary>
 public sealed record ScaffoldOptions
 {
+    /// <summary>The directory the package is generated into; every written path is reported relative to it.</summary>
     public required string OutDir { get; init; }
 
+    /// <summary>The npm package name written into <c>package.json</c> and the README heading.</summary>
     public required string PackageName { get; init; }
 
+    /// <summary>The application framework that decides the package's peer and dev dependencies, one of <see cref="DsFrameworks"/>.</summary>
     public required string Framework { get; init; }
 
     /// <summary>Token file formats; canonical DTCG is always added.</summary>
@@ -19,14 +22,19 @@ public sealed record ScaffoldOptions
     public bool ShouldOverwrite { get; init; }
 }
 
+/// <summary>What a scaffold run wrote, left alone and still asks of the caller.</summary>
 public sealed class ScaffoldResult
 {
+    /// <summary>Paths of the files written, relative to the output directory.</summary>
     public List<string> FilesWritten { get; } = [];
 
+    /// <summary>Paths of existing files left untouched because overwriting was off.</summary>
     public List<string> FilesSkipped { get; } = [];
 
+    /// <summary>Problems met while scaffolding that did not stop it.</summary>
     public List<string> Warnings { get; } = [];
 
+    /// <summary>Commands and actions the caller runs next, starting with installing Storybook through its own CLI.</summary>
     public List<string> NextSteps { get; } = [];
 }
 
@@ -70,6 +78,7 @@ public static partial class DesignSystemScaffolder
         [DsFrameworks.Unknown] = new(StringComparer.Ordinal) { ["vite"] = "^7.0.0" },
     };
 
+    /// <summary>The outcome of writing the <c>design-system/</c> package for the analysed project and its token document.</summary>
     public static ScaffoldResult Scaffold(DsAnalysis analysis, TokenDocument document, ScaffoldOptions options)
     {
         var result = new ScaffoldResult();

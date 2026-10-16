@@ -12,6 +12,7 @@ public sealed class IdleShutdownWatcher(
     ILogger<IdleShutdownWatcher> logger)
     : BackgroundService
 {
+    /// <summary>Checks on every poll whether the idle timeout has passed with no plugin connected, and stops the host when it has.</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(options.PollInterval, timeProvider);

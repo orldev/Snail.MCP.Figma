@@ -61,6 +61,7 @@ public sealed class SqliteRenderSnapshotStore(
         }
     }
 
+    /// <summary>Stores or replaces the render link for its node and variant, valid for <see cref="CacheOptions.ImageTtlHours"/>; a failed write is logged and swallowed.</summary>
     public async Task SetAsync(RenderSnapshot image, CancellationToken cancellationToken = default)
     {
         await using var connection = await database.TryOpenAsync(cancellationToken).ConfigureAwait(false);
@@ -100,6 +101,7 @@ public sealed class SqliteRenderSnapshotStore(
         }
     }
 
+    /// <summary>Drops the renders of the given nodes in the file and answers how many were removed; <c>0</c> when the cache cannot be opened.</summary>
     public async Task<int> InvalidateNodesAsync(
         string fileKey,
         IReadOnlyCollection<string> nodeIds,

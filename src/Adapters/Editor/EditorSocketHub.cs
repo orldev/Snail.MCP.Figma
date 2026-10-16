@@ -262,6 +262,8 @@ public sealed class EditorSocketHub(
     private static string? Addressee(JsonNode? data) =>
         data?["agent"] is JsonValue value && value.TryGetValue<string>(out var agent) && !string.IsNullOrWhiteSpace(agent) ? agent : null;
 
+    /// <summary>Identifies the file of a connection, once the panel has proved it is this machine's installed plugin (<see cref="BridgeToken"/>).</summary>
+    /// <remarks>A panel without the secret — an older bundle, or a page posing as one — is told an update is waiting, which is what the human sees, and the connection is closed.</remarks>
     private async Task HandleFileInfoAsync(EditorSession session, JsonNode? data, CancellationToken cancellationToken)
     {
         var fileKey = data?["fileKey"]?.GetValue<string>();

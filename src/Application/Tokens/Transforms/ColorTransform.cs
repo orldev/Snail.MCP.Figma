@@ -8,10 +8,13 @@ public static class ColorTransform
     /// <summary>Color components in 0..1, as Figma returns them.</summary>
     public readonly record struct Rgba(double R, double G, double B, double A)
     {
+        /// <summary>Red channel as a byte in 0..255, clamped and rounded for hex and <c>rgb()</c> output.</summary>
         public int R255 => Quantize(R);
 
+        /// <summary>Green channel as a byte in 0..255, clamped and rounded for hex and <c>rgb()</c> output.</summary>
         public int G255 => Quantize(G);
 
+        /// <summary>Blue channel as a byte in 0..255, clamped and rounded for hex and <c>rgb()</c> output.</summary>
         public int B255 => Quantize(B);
 
         private static int Quantize(double channel) => (int)Math.Round(Math.Clamp(channel, 0, 1) * 255);

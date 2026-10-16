@@ -4,6 +4,7 @@ namespace Snail.MCP.Figma.Tools.Prompts;
 /// <remarks>A host that discovers tools on demand shows the model only this text and a search box, so every family is named here by the words a task is described with. Claude Code cuts the text at 2,048 characters, so what matters most comes first and the whole stays under that; <c>ServerInstructionsTests</c> keeps the map complete, the references real and the length in.</remarks>
 public static class ServerInstructions
 {
+    /// <summary>The instructions text the server registers for the MCP handshake.</summary>
     public const string Text = """
         Snail.MCP.Figma: 141 tools for reading and editing Figma. Reads go through the Figma Desktop plugin while it runs in the file (unsaved edits visible, no quota) and fall back to REST; every write needs the plugin.
 

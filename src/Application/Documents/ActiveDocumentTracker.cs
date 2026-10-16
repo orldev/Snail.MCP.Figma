@@ -7,16 +7,19 @@ public sealed class ActiveDocumentTracker
     private string? _fileKey;
     private string? _fileName;
 
+    /// <summary>Key of the last file worked with; <c>null</c> until one is remembered.</summary>
     public string? FileKey
     {
         get { lock (_gate) { return _fileKey; } }
     }
 
+    /// <summary>Name of the last file worked with; <c>null</c> when none was ever given.</summary>
     public string? FileName
     {
         get { lock (_gate) { return _fileName; } }
     }
 
+    /// <summary>Makes the file the active one, keeping the previous name when none is given.</summary>
     public void Remember(string fileKey, string? fileName = null)
     {
         lock (_gate)

@@ -5,6 +5,7 @@ namespace Snail.MCP.Figma.Configuration;
 /// <summary>Server mode; the donor's Cloudflare mode is not ported.</summary>
 public enum ServerMode
 {
+    /// <summary>The server runs as a process on the user's own machine.</summary>
     Local,
 }
 
@@ -34,11 +35,13 @@ public enum Transport
 /// <summary>Root server configuration, bound from a JSON file and environment variables.</summary>
 public sealed class ServerConfig
 {
+    /// <summary>Configuration section bound before the root settings, which override what it sets.</summary>
     public const string SectionName = "Snail";
 
     /// <summary>Figma personal or OAuth token; set it through <c>SNAIL_MCP_FIGMA_ACCESS_TOKEN</c>, never in a file.</summary>
     public string? AccessToken { get; set; }
 
+    /// <summary>Server mode, reported by diagnostics; <see cref="ServerMode.Local"/> by default and the only value (<c>SNAIL_MCP_FIGMA_MODE</c>).</summary>
     public ServerMode Mode { get; set; } = ServerMode.Local;
 
     /// <summary>The address of the MCP endpoint when <see cref="Transport"/> is <see cref="Transport.Http"/>; outside the bridge's port range.</summary>
@@ -50,22 +53,28 @@ public sealed class ServerConfig
     /// <summary>Where the shared server listens for MCP; <see cref="DefaultUrl"/> when not set.</summary>
     public string? Url { get; set; }
 
+    /// <summary>Whether this is the one shared server of the machine, which <see cref="Transport.Http"/> makes it.</summary>
     public bool IsShared => Transport is Transport.Http;
 
     /// <summary>Data root: database, installed plugin, logs; defaults to <c>~/.s3l-mcp-figma</c>.</summary>
     public string DataDirectory { get; set; } = ServerPaths.DefaultDataDirectory;
 
+    /// <summary>Settings of the WebSocket bridge to the Figma plugin, the <c>Bridge</c> section (<c>SNAIL_MCP_FIGMA_BRIDGE__…</c>).</summary>
     public EditorLinkOptions Bridge { get; set; } = new();
 
+    /// <summary>Settings of the snapshot cache, the <c>Cache</c> section (<c>SNAIL_MCP_FIGMA_CACHE__…</c>).</summary>
     public CacheOptions Cache { get; set; } = new();
 
+    /// <summary>Settings of the node sanitizer, the <c>Sanitization</c> section (<c>SNAIL_MCP_FIGMA_SANITIZATION__…</c>).</summary>
     public SanitizationOptions Sanitization { get; set; } = new();
 
+    /// <summary>Settings of the screenshot store, the <c>Screenshots</c> section (<c>SNAIL_MCP_FIGMA_SCREENSHOTS__…</c>).</summary>
     public ScreenshotOptions Screenshots { get; set; } = new();
 
     /// <summary>Minutes without a tool call after which the process exits, unless a plugin is connected; 0 disables the watchdog.</summary>
     public int IdleTimeoutMinutes { get; set; } = 60;
 
+    /// <summary>Whether a non-blank <see cref="AccessToken"/> is set, which the REST channel needs.</summary>
     public bool HasAccessToken => !string.IsNullOrWhiteSpace(AccessToken);
 
     /// <summary>Cache database file (SQLite).</summary>
@@ -108,6 +117,7 @@ public sealed class EditorLinkOptions
 /// <summary>Settings of the snapshot cache, a SQLite file every server process of the machine shares.</summary>
 public sealed class CacheOptions
 {
+    /// <summary>Whether REST reads are kept as snapshots in the SQLite file; <c>true</c> by default (<c>SNAIL_MCP_FIGMA_CACHE__ENABLED</c>).</summary>
     public bool Enabled { get; set; } = true;
 
     /// <summary>Database file name inside <see cref="ServerConfig.DataDirectory"/>.</summary>
@@ -132,6 +142,7 @@ public sealed class CacheOptions
 /// <summary>Sanitizer and savings-metric settings.</summary>
 public sealed class SanitizationOptions
 {
+    /// <summary>How much the sanitizer strips from nodes; <see cref="SanitizationProfile.Aggressive"/> by default (<c>SNAIL_MCP_FIGMA_SANITIZATION__PROFILE</c>).</summary>
     public SanitizationProfile Profile { get; set; } = SanitizationProfile.Aggressive;
 
     /// <summary>Log <c>bytes_in / bytes_out / ratio</c> to stderr.</summary>

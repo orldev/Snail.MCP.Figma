@@ -73,6 +73,7 @@ public sealed class VersionTools(
             });
         }, cancellationToken);
 
+    /// <summary>Compares the page structure of two versions and, for chosen nodes, their details.</summary>
     [McpServerTool(Name = "figma_diff_versions", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Version.DiffVersions)]
     public Task<string> DiffVersionsAsync(

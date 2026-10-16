@@ -5,8 +5,10 @@ namespace Snail.MCP.Figma.Application.Tokens.Parsers;
 /// <summary>DTCG (W3C Design Tokens): nested groups with <c>$value</c> and <c>$type</c> on leaves — the canonical storage format.</summary>
 public sealed class DtcgParser : ITokenParser
 {
+    /// <summary>Configuration name of this format, <c>dtcg</c>.</summary>
     public string Format => "dtcg";
 
+    /// <summary>Reads a DTCG JSON file into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();

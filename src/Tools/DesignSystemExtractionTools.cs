@@ -282,6 +282,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
+    /// <summary>Connects a freshly installed Storybook in the output folder to the extracted tokens, fonts and themes.</summary>
     [McpServerTool(Name = "figma_ds_setup_storybook", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsSetupStorybook)]
     public Task<string> SetupStorybookAsync(
@@ -347,6 +348,7 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
+    /// <summary>Reads the summary of the porting progress or records the status of one component.</summary>
     [McpServerTool(Name = "figma_ds_status", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsStatus)]
     public Task<string> StatusAsync(

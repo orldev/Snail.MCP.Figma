@@ -14,6 +14,7 @@ public static class ParityReport
     /// <summary>Numeric tolerance: a pixel either way is rounding, not a mismatch.</summary>
     private const double NumericTolerance = 0.5;
 
+    /// <summary>The parity score of a code spec against the design, with the matched, mismatched and design-missing fields and a one-line summary.</summary>
     public static JsonObject Compare(JsonObject design, JsonObject code)
     {
         var matches = new JsonArray();

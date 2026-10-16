@@ -170,6 +170,7 @@ public static partial class ShowcaseMdx
             "</svg>");
     }
 
+    /// <summary>The MDX page <c>Design Tokens/Overview</c> that renders every token of the document with its value baked into the markup.</summary>
     public static string TokenShowcase(TokenDocument document)
     {
         var resolve = MakeResolver(document);
@@ -327,6 +328,7 @@ public static partial class ShowcaseMdx
         return 10;
     }
 
+    /// <summary>The MDX page <c>Design Tokens/Typography</c> that renders the type scale, families and the heading hierarchy found in the source styles.</summary>
     public static string TypographyShowcase(TokenDocument document, IReadOnlyList<DsTypographyRule> rules)
     {
         var lines = new List<string>
@@ -436,6 +438,7 @@ public static partial class ShowcaseMdx
         return match.Value.Contains('{', StringComparison.Ordinal) ? null : match.Value;
     }
 
+    /// <summary>The MDX page <c>Design Tokens/Iconography</c> that renders each icon found in source, read relative to its target root.</summary>
     public static string IconShowcase(IReadOnlyList<(DsIconEntry Icon, string Root)> entries)
     {
         var lines = new List<string>

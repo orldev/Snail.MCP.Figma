@@ -10,8 +10,10 @@ public sealed class Remarks(int capacity)
 
     private TaskCompletionSource _arrival = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>Most remarks held at once; beyond it the oldest is dropped.</summary>
     public int Capacity { get; } = capacity;
 
+    /// <summary>Number of remarks waiting to be read.</summary>
     public int Count
     {
         get { lock (_gate) { return _pending.Count; } }

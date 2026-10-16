@@ -20,6 +20,7 @@ public sealed class DesignCodeTools(
     ILogger<DesignCodeTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Gathers the tree, reconstruction spec and styles of a node so the agent can implement it in code.</summary>
     [McpServerTool(Name = "figma_get_component_for_development", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.GetComponentForDevelopment)]
     public Task<string> GetForDevelopmentAsync(
@@ -53,6 +54,7 @@ public sealed class DesignCodeTools(
             }, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
+    /// <summary>Adds states, reactions, slots and annotations read through the plugin to the development breakdown of a node.</summary>
     [McpServerTool(Name = "figma_get_component_for_development_deep", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignCode.GetComponentForDevelopmentDeep)]
     public Task<string> GetForDevelopmentDeepAsync(
@@ -84,6 +86,7 @@ public sealed class DesignCodeTools(
             }, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
+    /// <summary>Collects the deduplicated colors, typography, spacing and radii used in the design itself.</summary>
     [McpServerTool(Name = "figma_extract_style_values", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.ExtractStyleValues)]
     public Task<string> ExtractTokensAsync(
@@ -129,6 +132,7 @@ public sealed class DesignCodeTools(
             return ToolResponse.Ok(StyleExtractor.Format(styles), envelope => envelope["fileKey"] = fileKey);
         }, cancellationToken);
 
+    /// <summary>Scores how closely a Figma component matches a code-side spec and lists the mismatches.</summary>
     [McpServerTool(Name = "figma_check_design_parity", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.CheckDesignParity)]
     public Task<string> CheckParityAsync(
@@ -159,6 +163,7 @@ public sealed class DesignCodeTools(
             return ToolResponse.Ok(report, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
+    /// <summary>Writes Markdown documentation for a component, merging in optional data taken from its source code.</summary>
     [McpServerTool(Name = "figma_generate_component_doc", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.DesignCode.GenerateComponentDoc)]
     public Task<string> GenerateComponentDocAsync(

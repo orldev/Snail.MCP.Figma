@@ -5,6 +5,7 @@ namespace Snail.MCP.Figma.Application.Extraction;
 /// <summary>Component documentation in Markdown, built from design data.</summary>
 public static class ComponentDoc
 {
+    /// <summary>The Markdown documentation of a component node: its name, description and styles, plus what the code side says about it when given.</summary>
     public static string Render(JsonNode node, IReadOnlyList<ExtractedStyle> styles, JsonObject? codeInfo)
     {
         var name = node["name"]?.GetValue<string>() ?? "Component";

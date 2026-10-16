@@ -124,6 +124,22 @@ servers without a bridge map it, would have cut off the plugin, which always sen
 A session nobody has used for 15 minutes ends, and its agent leaves the panel: a VS Code window that was killed
 never says goodbye.
 
+## Who the bridge trusts
+
+Figma runs a plugin's window with Origin `null`, and any web page can take that origin in a sandboxed iframe, so the
+origin check cannot tell the plugin from a page posing as it. What a page cannot do is read a file on disk. The first
+server that starts on the machine writes a secret into the data folder (`bridge.token`, readable by its owner alone,
+created exclusively so two servers starting together agree on one), and the installer writes it into the panel it
+copies into `plugin/`. The panel sends it back in `FILE_INFO`; a panel without it — an older bundle, or a page — is told
+an update is waiting, which is what the human sees, and the connection is closed. A reply to a command is taken only
+from the connection the command was sent on: request ids are a counter and a clock, easy to guess.
+
+The bridge reads a message of at most 128 MB — a screenshot of a whole page at 4x is about 70 MB in base64 — and drops
+a longer one as it arrives, keeping the connection every agent of that file shares. It parses a message from the bytes
+it arrived in: decoding them into a string first cost four times the message in allocations. It pings each panel every
+20 seconds and gives up a connection whose pong does not come back: a Figma window that froze, or a laptop that slept,
+used to leave the file connected with nobody behind it.
+
 ## Variables: one shape, a snapshot that can be doubted
 
 REST answers variables as dictionaries keyed by id, the plugin as arrays whose items carry their own id.
@@ -149,6 +165,11 @@ in the same expensive rate-limit bucket as a full read, so it would double the q
 it. Precise invalidation comes from the plugin instead.
 
 ## Quota circuit breaker
+
+A dropped connection, an HttpClient timeout and a 502, 503 or 504 of Figma's edge are retried for a read, twice, a
+second and two seconds apart; a comment is not posted twice. What still fails leaves the REST adapter as the same
+`Unavailable` failure as an error Figma answered with, so a cached snapshot is served as `cache-stale` and the agent
+reads the cause instead of a bare "an error occurred".
 
 When Figma answers 429 with a long `Retry-After` (a daily plan quota), the endpoint bucket is closed locally
 until it expires and further requests to it are refused without a network round trip — a refusal that is

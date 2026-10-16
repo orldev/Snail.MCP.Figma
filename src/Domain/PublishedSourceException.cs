@@ -9,6 +9,7 @@ public enum SourceFailure
     /// <summary>Access denied: no rights to the document or a plan restriction.</summary>
     Forbidden,
 
+    /// <summary>The document, node or key does not exist, or is not visible with the token.</summary>
     NotFound,
 
     /// <summary>Quota exhausted; <see cref="PublishedSourceException.RetryAfter"/> says how long to wait.</summary>

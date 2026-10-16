@@ -6,7 +6,9 @@ public interface IEditorExtensionInstaller
     /// <summary>Extension directory next to the assembly; <c>null</c> when the build has none.</summary>
     string? BundledDirectory { get; }
 
+    /// <summary>Directory the extension is installed into for the editor to import it from.</summary>
     string TargetDirectory { get; }
 
+    /// <summary>Whether the target directory holds an installed extension manifest.</summary>
     bool IsInstalled { get; }
 }

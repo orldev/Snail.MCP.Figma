@@ -12,6 +12,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Returns the nodes selected in the target file.</summary>
     [McpServerTool(Name = "figma_get_selection", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.GetSelection)]
     public Task<string> GetSelectionAsync(CancellationToken cancellationToken = default) =>
@@ -42,6 +43,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 }));
         }, cancellationToken);
 
+    /// <summary>Moves a node to new coordinates relative to its parent through the plugin.</summary>
     [McpServerTool(Name = "figma_move_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.MoveNode)]
     public Task<string> MoveNodeAsync(
@@ -56,6 +58,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["y"] = y,
         }, cancellationToken);
 
+    /// <summary>Resizes a node, optionally letting its children follow their constraints.</summary>
     [McpServerTool(Name = "figma_resize_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.ResizeNode)]
     public Task<string> ResizeNodeAsync(
@@ -72,6 +75,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["withConstraints"] = withConstraints,
         }, cancellationToken);
 
+    /// <summary>Replaces the fills of a node with the given paints through the plugin.</summary>
     [McpServerTool(Name = "figma_set_fills", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SetFills)]
     public Task<string> SetFillsAsync(
@@ -95,6 +99,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Replaces the characters of a text node through the plugin.</summary>
     [McpServerTool(Name = "figma_set_text", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SetText)]
     public Task<string> SetTextAsync(
@@ -107,6 +112,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             ["text"] = text,
         }, cancellationToken);
 
+    /// <summary>Runs a JavaScript body against the Plugin API in the target file.</summary>
     [McpServerTool(Name = "figma_execute", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.Execute)]
     public Task<string> ExecuteAsync(
@@ -132,6 +138,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Runs a sequence of short scripts one by one, stopping when the human leaves a remark.</summary>
     [McpServerTool(Name = "figma_execute_steps", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.ExecuteSteps)]
     public Task<string> ExecuteStepsAsync(
@@ -262,6 +269,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                     data);
         }, cancellationToken);
 
+    /// <summary>Lists the colors used in the current selection with the styles behind them.</summary>
     [McpServerTool(Name = "figma_get_selection_colors", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.GetSelectionColors)]
     public Task<string> GetSelectionColorsAsync(CancellationToken cancellationToken = default) =>
@@ -288,6 +296,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 : ToolResponse.Ok(payload ?? new JsonObject());
         }, cancellationToken);
 
+    /// <summary>Reorders the local styles of one type, alphabetically or by a given id list.</summary>
     [McpServerTool(Name = "figma_sort_styles", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.SortStyles)]
     public Task<string> SortStylesAsync(
@@ -362,6 +371,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Closes the current undo group so everything since the last commit undoes in one step.</summary>
     [McpServerTool(Name = "figma_commit_undo", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Write.CommitUndo)]
     public Task<string> CommitUndoAsync(CancellationToken cancellationToken = default) =>
@@ -382,6 +392,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["committed"] = true });
         }, cancellationToken);
 
+    /// <summary>Creates a local paint, text, effect or grid style through the plugin.</summary>
     [McpServerTool(Name = "figma_create_style", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Write.CreateStyle)]
     public Task<string> CreateStyleAsync(
@@ -455,6 +466,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Reports whether the plugin is connected, which files it sees and which of them is the target.</summary>
     [McpServerTool(Name = "figma_get_status", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         UseStructuredContent = true, OutputSchemaType = typeof(Answer<BridgeStatus>))]
     [Description(ToolDescriptions.Write.GetStatus)]

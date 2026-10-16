@@ -5,8 +5,10 @@ namespace Snail.MCP.Figma.Application.Tokens.Formatters;
 /// <summary>CSS custom properties; references stay <c>var(--…)</c> so the cascade keeps working, composite tokens are expanded.</summary>
 public sealed class CssVarsFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>css-vars</c>.</summary>
     public string Format => "css-vars";
 
+    /// <summary>Renders the document as CSS custom properties, one selector block per mode.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();

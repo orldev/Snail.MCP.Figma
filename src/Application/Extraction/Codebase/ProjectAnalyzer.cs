@@ -7,33 +7,46 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 /// <summary>Settings of a full analysis run.</summary>
 public sealed record AnalyzeOptions
 {
+    /// <summary>The directory the design-system package will be generated into; manifests go into its <c>.extraction/</c> folder.</summary>
     public required string OutDir { get; init; }
 
+    /// <summary>Relative-path substrings; matching any keeps the file in the walk.</summary>
     public IReadOnlyList<string>? Include { get; init; }
 
+    /// <summary>Relative-path substrings; matching any drops the file from the walk.</summary>
     public IReadOnlyList<string>? Exclude { get; init; }
 
+    /// <summary>Number of files after which the walk of each target stops collecting.</summary>
     public int MaxFiles { get; init; } = 5000;
 }
 
 /// <summary>Manifest storage on disk under <c>&lt;outDir&gt;/.extraction/</c>; tools return a summary and the path.</summary>
 public static class ExtractionManifests
 {
+    /// <summary>File name of the analysis manifest, see <see cref="DsAnalysis"/>.</summary>
     public const string AnalysisFile = "analysis.json";
+    /// <summary>File name of the porting-progress manifest, see <see cref="DsStatusManifest"/>.</summary>
     public const string StatusFile = "status.json";
+    /// <summary>File name of the token extraction report, see <see cref="DsTokensReport"/>.</summary>
     public const string TokensReportFile = "tokens-report.json";
+    /// <summary>File name of the list of theme modes, written only when the tokens have more than one.</summary>
     public const string TokenModesFile = "tokens-modes.json";
 
+    /// <summary>The <c>.extraction/</c> folder under <c>outDir</c> that holds every manifest.</summary>
     public static string Directory(string outDir) => Path.Combine(outDir, ".extraction");
 
+    /// <summary>Full path of the analysis manifest for <c>outDir</c>.</summary>
     public static string AnalysisPath(string outDir) => Path.Combine(Directory(outDir), AnalysisFile);
 
+    /// <summary>Full path of the porting-progress manifest for <c>outDir</c>.</summary>
     public static string StatusPath(string outDir) => Path.Combine(Directory(outDir), StatusFile);
 
     /// <summary>Relative paths resolve against the process working directory, like CLI tools do.</summary>
     public static string ResolvePath(string path) =>
         Path.IsPathRooted(path) ? Path.GetFullPath(path) : Path.GetFullPath(Path.Combine(System.IO.Directory.GetCurrentDirectory(), path));
 
+    /// <summary>Writes beside the manifest and moves the file over it, so a reader meets the old manifest or the new one and never half of either.</summary>
+    /// <remarks>A torn status.json reads as corrupt, a corrupt one as missing, and a missing one is started afresh: every component's progress went back to pending. The name beside it is unique because two server processes may write the same manifest.</remarks>
     public static void Write<T>(string path, T data)
     {
         var directory = Path.GetDirectoryName(path);
@@ -86,6 +99,7 @@ public static partial class ProjectAnalyzer
     private const int MaxTypographyRules = 120;
     private const long MaxIconBytes = 32 * 1024;
 
+    /// <summary>The analysis of every target root: its stack, style sources, icons, typography, component inventory and architecture.</summary>
     public static DsAnalysis Analyze(IReadOnlyList<string> targetRoots, AnalyzeOptions options)
     {
         var analysis = new DsAnalysis { OutDir = options.OutDir };

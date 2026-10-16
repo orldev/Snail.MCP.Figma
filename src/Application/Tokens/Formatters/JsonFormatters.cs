@@ -3,8 +3,10 @@ namespace Snail.MCP.Figma.Application.Tokens.Formatters;
 /// <summary>Flat JSON keyed by dotted path, for consumers that do not know DTCG.</summary>
 public sealed class JsonFlatFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>json-flat</c>.</summary>
     public string Format => "json-flat";
 
+    /// <summary>Renders the document as flat JSON objects keyed by dotted path.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -50,8 +52,10 @@ public sealed class JsonFlatFormatter : ITokenFormatter
 /// <summary>Nested JSON without meta keys: groups are objects, values are scalars.</summary>
 public sealed class JsonNestedFormatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>json-nested</c>.</summary>
     public string Format => "json-nested";
 
+    /// <summary>Renders the document as nested JSON objects with bare values.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -102,8 +106,10 @@ public sealed class JsonNestedFormatter : ITokenFormatter
 /// <summary>Style Dictionary v3: <c>value</c> on leaves, references with a <c>.value</c> suffix.</summary>
 public sealed class StyleDictionaryV3Formatter : ITokenFormatter
 {
+    /// <summary>Configuration name of this format, <c>style-dictionary-v3</c>.</summary>
     public string Format => "style-dictionary-v3";
 
+    /// <summary>Renders the document as Style Dictionary v3 JSON.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();
@@ -175,8 +181,10 @@ public sealed class TokensStudioFormatter : ITokenFormatter
         [TokenTypes.Border] = "border",
     };
 
+    /// <summary>Configuration name of this format, <c>tokens-studio</c>.</summary>
     public string Format => "tokens-studio";
 
+    /// <summary>Renders the document as Tokens Studio JSON.</summary>
     public FormatResult Write(TokenDocument document, FormatOptions options)
     {
         var warnings = new List<string>();

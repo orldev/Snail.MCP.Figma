@@ -5,7 +5,9 @@ public sealed class ActivityTracker(TimeProvider timeProvider) : IActivityTracke
 {
     private long _lastActivityTicks = timeProvider.GetUtcNow().UtcTicks;
 
+    /// <inheritdoc/>
     public DateTime LastActivityUtc => new(Interlocked.Read(ref _lastActivityTicks), DateTimeKind.Utc);
 
+    /// <inheritdoc/>
     public void Touch() => Interlocked.Exchange(ref _lastActivityTicks, timeProvider.GetUtcNow().UtcTicks);
 }

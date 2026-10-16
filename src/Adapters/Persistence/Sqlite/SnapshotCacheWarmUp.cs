@@ -12,6 +12,7 @@ namespace Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 /// </remarks>
 public sealed class SnapshotCacheWarmUp(ISnapshotDatabase database, ILogger<SnapshotCacheWarmUp> logger) : BackgroundService
 {
+    /// <summary>Opens the cache once right after startup so that the first slow open is paid while nobody waits.</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();

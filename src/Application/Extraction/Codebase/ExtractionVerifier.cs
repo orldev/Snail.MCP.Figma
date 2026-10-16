@@ -7,22 +7,29 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 /// <summary>One verification check.</summary>
 public sealed class VerifyCheck
 {
+    /// <summary>What the check verified, phrased as the claim it tests.</summary>
     public required string Name { get; init; }
 
     /// <summary><c>pass</c>, <c>fail</c>, <c>warn</c> or <c>skip</c>.</summary>
     public required string Status { get; init; }
 
+    /// <summary>The offending files, variables or values behind the outcome, capped at twenty entries.</summary>
     public List<string> Details { get; init; } = [];
 }
 
+/// <summary>The outcome of verifying an extracted design system and the way to mirror it into Figma.</summary>
 public sealed class VerifyReport
 {
+    /// <summary>Whether no check failed; warnings and skips do not count against it.</summary>
     public bool HasPassed { get; set; }
 
+    /// <summary>Every check that ran, in the order it ran.</summary>
     public List<VerifyCheck> Checks { get; init; } = [];
 
+    /// <summary>Whether every check passed and a token file exists, so the system can be mirrored into Figma.</summary>
     public bool IsFigmaRoundTripReady { get; set; }
 
+    /// <summary>The steps that move the tokens and components into Figma, should design lead.</summary>
     public List<string> FigmaRoundTripHow { get; init; } = [];
 }
 
@@ -46,6 +53,7 @@ public static partial class ExtractionVerifier
 
     private const int MaxDetails = 20;
 
+    /// <summary>The checks of the design-system package in <c>outDir</c>, cross-referenced with the analysis and porting status where they exist.</summary>
     public static VerifyReport Verify(string outDir, DsAnalysis? analysis, DsStatusManifest? status)
     {
         var report = new VerifyReport();

@@ -8,6 +8,7 @@ public static class ServerPaths
     /// <summary>The server's short name, which names its folders: ~/.s3l-mcp-figma and ~/.config/s3l-mcp-figma.</summary>
     public const string ShortName = "figma";
 
+    /// <summary>The user's home folder, which a leading <c>~</c> in a configured path stands for.</summary>
     public static string Home => Environment.GetFolderPath(
         Environment.SpecialFolder.UserProfile,
         Environment.SpecialFolderOption.DoNotVerify);

@@ -19,6 +19,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
     private const string ImageRefusalHint =
         "A picture wider or taller than Figma's own ceiling fails inside the plugin as 'Image is too large' — crop it or export it smaller.";
 
+    /// <summary>Duplicates a node through the plugin.</summary>
     [McpServerTool(Name = "figma_clone_node", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.CloneNode)]
     public Task<string> CloneNodeAsync(
@@ -27,6 +28,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         ApplyAsync(EditorCommands.CloneNode,
             new JsonObject { ["nodeId"] = NodeId.Normalize(nodeId) }, cancellationToken);
 
+    /// <summary>Deletes a node together with its subtree through the plugin.</summary>
     [McpServerTool(Name = "figma_delete_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.DeleteNode)]
     public Task<string> DeleteNodeAsync(
@@ -35,6 +37,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         ApplyAsync(EditorCommands.DeleteNode,
             new JsonObject { ["nodeId"] = NodeId.Normalize(nodeId) }, cancellationToken);
 
+    /// <summary>Gives a node a new layer name through the plugin.</summary>
     [McpServerTool(Name = "figma_rename_node", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.RenameNode)]
     public Task<string> RenameNodeAsync(
@@ -47,6 +50,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             ["newName"] = newName,
         }, cancellationToken);
 
+    /// <summary>Replaces the strokes of a node with the given paints through the plugin.</summary>
     [McpServerTool(Name = "figma_set_strokes", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.SetStrokes)]
     public Task<string> SetStrokesAsync(
@@ -72,6 +76,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Fills a node with an image read from a file on disk or passed as base64 bytes.</summary>
     [McpServerTool(Name = "figma_set_image_fill", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.SetImageFill)]
     public Task<string> SetImageFillAsync(
@@ -104,6 +109,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 : ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Creates a node of a given type under a parent through the plugin.</summary>
     [McpServerTool(Name = "figma_create_child", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.CreateChild)]
     public Task<string> CreateChildAsync(
@@ -129,6 +135,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Sets the description of a component or a style through the plugin.</summary>
     [McpServerTool(Name = "figma_set_description", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.SetDescription)]
     public Task<string> SetDescriptionAsync(
@@ -143,6 +150,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             ["descriptionMarkdown"] = descriptionMarkdown,
         }, cancellationToken);
 
+    /// <summary>Sets property values on a component instance through the plugin.</summary>
     [McpServerTool(Name = "figma_set_instance_properties", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Node.SetInstanceProperties)]
     public Task<string> SetInstancePropertiesAsync(
@@ -167,6 +175,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Adds a page to the document, optionally switching the editor to it.</summary>
     [McpServerTool(Name = "figma_create_page", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.CreatePage)]
     public Task<string> CreatePageAsync(
@@ -197,6 +206,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Turns SVG markup into a frame of vectors under a parent or on the current page.</summary>
     [McpServerTool(Name = "figma_create_node_from_svg", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.CreateNodeFromSvg)]
     public Task<string> CreateNodeFromSvgAsync(
@@ -259,6 +269,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Places a raster image as a rectangle sized to the source, taken from disk, base64 or a URL.</summary>
     [McpServerTool(Name = "figma_place_image", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description(ToolDescriptions.Node.PlaceImage)]
     public Task<string> PlaceImageAsync(
@@ -337,6 +348,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Builds a whole node tree from one declarative spec through the plugin.</summary>
     [McpServerTool(Name = "figma_create_node_from_jsx", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.CreateNodeFromJsx)]
     public Task<string> CreateNodeFromJsxAsync(
@@ -404,6 +416,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Applies a boolean operation or a flatten to vector nodes through the plugin.</summary>
     [McpServerTool(Name = "figma_boolean_operation", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.BooleanOperation)]
     public Task<string> BooleanOperationAsync(
@@ -477,6 +490,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Groups nodes under the parent of the first one through the plugin.</summary>
     [McpServerTool(Name = "figma_group_nodes", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.GroupNodes)]
     public Task<string> GroupNodesAsync(
@@ -533,6 +547,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Dissolves a group or frame into its parent and returns the ids of the released children.</summary>
     [McpServerTool(Name = "figma_ungroup_node", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Node.UngroupNode)]
     public Task<string> UngroupNodeAsync(

@@ -11,6 +11,14 @@ Desktop and start Plugins → Development → Snail Bridge, then check `figma_ge
 still does not see it, open the panel — the circle on the right shows the log — see
 [Plugin setup](plugin-setup.md).
 
+## The panel shows the update banner and never connects
+
+The server refused the panel because it did not send this machine's bridge token: it runs from a bundle installed
+before the token existed, or it was imported from somewhere other than `~/.s3l-mcp-figma/plugin`. Close the plugin and
+start it again from **Plugins → Development → Snail Bridge**; if the banner stays, import `manifest.json` from the data
+folder again. The server log says `did not send this machine's bridge token` for every refusal. Deleting
+`bridge.token` makes a new one at the next start, and the installer writes it into the panel again.
+
 ## `ERR_CONNECTION_REFUSED` lines in the DevTools console
 
 Chrome prints its own `net::ERR_CONNECTION_REFUSED` line for every probe of a closed port — no JavaScript can

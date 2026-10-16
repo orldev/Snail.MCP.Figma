@@ -34,8 +34,10 @@ public sealed class TokensStudioParser : ITokenParser
         ["boolean"] = TokenTypes.Boolean,
     };
 
+    /// <summary>Configuration name of this format, <c>tokens-studio</c>.</summary>
     public string Format => "tokens-studio";
 
+    /// <summary>Reads a Tokens Studio JSON file into the document, one set per name in <c>$metadata.tokenSetOrder</c> when it lists any.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();

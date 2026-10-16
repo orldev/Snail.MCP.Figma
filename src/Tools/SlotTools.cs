@@ -10,6 +10,7 @@ namespace Snail.MCP.Figma.Tools;
 public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
     : EditorToolBase(plugin, logger)
 {
+    /// <summary>Creates a slot node together with its linked slot property inside a component.</summary>
     [McpServerTool(Name = "figma_create_slot", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.CreateSlot)]
     public Task<string> CreateSlotAsync(
@@ -28,6 +29,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             ["layoutMode"] = layoutMode,
         }, cancellationToken);
 
+    /// <summary>Lists the slots of a component, a component set or an instance with their contents.</summary>
     [McpServerTool(Name = "figma_get_slots", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.GetSlots)]
     public Task<string> GetSlotsAsync(
@@ -38,6 +40,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             ["nodeId"] = NodeId.Normalize(nodeId),
         }, cancellationToken);
 
+    /// <summary>Fills an instance slot with a clone of a node or with a newly created node.</summary>
     [McpServerTool(Name = "figma_append_to_slot", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.AppendToSlot)]
     public Task<string> AppendToSlotAsync(
@@ -86,6 +89,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Returns an instance slot to its default contents.</summary>
     [McpServerTool(Name = "figma_reset_slot", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.ResetSlot)]
     public Task<string> ResetSlotAsync(
@@ -112,6 +116,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
             return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
+    /// <summary>Defines a slot property bound to an existing frame of a component.</summary>
     [McpServerTool(Name = "figma_add_slot_property", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description(ToolDescriptions.Slot.AddSlotProperty)]
     public Task<string> AddSlotPropertyAsync(

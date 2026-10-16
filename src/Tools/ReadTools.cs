@@ -61,6 +61,7 @@ public sealed class ReadTools(
     private static string PluginUnavailable(string fileKey) =>
         ToolResponse.Error(Messages.PluginUnavailable(fileKey), Messages.PluginUnavailableHint);
 
+    /// <summary>Returns the cleaned document tree of the file to a given depth, from the plugin or from REST.</summary>
     [McpServerTool(Name = "figma_get_file_data", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileData)]
     public Task<string> GetFileDataAsync(
@@ -125,6 +126,7 @@ public sealed class ReadTools(
             return ToolResponse.FromRead(read, fileKey);
         }, cancellationToken);
 
+    /// <summary>Returns the metadata and children of one node, from the plugin or from REST.</summary>
     [McpServerTool(Name = "figma_get_component", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetComponent)]
     public Task<string> GetComponentAsync(
@@ -197,6 +199,7 @@ public sealed class ReadTools(
             return ToolResponse.FromRead(read, fileKey, envelope => envelope["nodeId"] = normalized);
         }, cancellationToken);
 
+    /// <summary>Returns the variables of the file with a summary per collection, from the plugin or from REST.</summary>
     [McpServerTool(Name = "figma_get_variables", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetVariables)]
     public Task<string> GetVariablesAsync(
@@ -275,6 +278,7 @@ public sealed class ReadTools(
             });
         }, cancellationToken);
 
+    /// <summary>Returns the name, modification time and last editor of the file through REST without downloading the document.</summary>
     [McpServerTool(Name = "figma_get_file_meta", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileMeta)]
     public Task<string> GetFileMetaAsync(
@@ -300,6 +304,7 @@ public sealed class ReadTools(
             });
         }, cancellationToken);
 
+    /// <summary>Returns the color, text, effect and grid styles of the file, from the plugin or from REST.</summary>
     [McpServerTool(Name = "figma_get_styles", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetStyles)]
     public Task<string> GetStylesAsync(
@@ -364,6 +369,7 @@ public sealed class ReadTools(
                 });
         }, cancellationToken);
 
+    /// <summary>Renders a node to an image, preferring a plugin capture over the cache and REST.</summary>
     [McpServerTool(Name = "figma_get_component_image", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetComponentImage)]
     public Task<CallToolResult> GetComponentImageAsync(
@@ -537,6 +543,7 @@ public sealed class ReadTools(
         });
     }
 
+    /// <summary>Returns the hierarchy of the file without visual properties through REST.</summary>
     [McpServerTool(Name = "figma_get_file_for_plugin", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Read.GetFileForPlugin)]
     public Task<string> GetFileForPluginAsync(

@@ -9,6 +9,7 @@ public static class IdleShutdownRegistrationExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>Registers the activity tracker and, when <paramref name="idleTimeoutMinutes"/> is above zero, the watchdog that stops an idle host.</summary>
         public IServiceCollection AddIdleShutdownWatcher(int idleTimeoutMinutes)
         {
             services.TryAddSingleton(TimeProvider.System);

@@ -140,6 +140,7 @@ public static partial class ComponentInventory
         public Dictionary<string, List<string>> AttributeSamples { get; } = new(StringComparer.Ordinal);
     }
 
+    /// <summary>The components defined in the walked source files with their usage counts, vendor relation and duplicate groups, each tagged with the given target index.</summary>
     public static InventoryResult Build(IReadOnlyList<WalkedFile> files, int targetIndex)
     {
         var definitions = new List<Definition>();

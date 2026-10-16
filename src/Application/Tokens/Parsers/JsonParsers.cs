@@ -5,8 +5,10 @@ namespace Snail.MCP.Figma.Application.Tokens.Parsers;
 /// <summary>Flat JSON: dotted path key, literal value.</summary>
 public sealed class JsonFlatParser : ITokenParser
 {
+    /// <summary>Configuration name of this format, <c>json-flat</c>.</summary>
     public string Format => "json-flat";
 
+    /// <summary>Reads a flat JSON object keyed by dotted path into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         var warnings = new List<string>();
@@ -70,8 +72,10 @@ public sealed class JsonFlatParser : ITokenParser
 /// <summary>Nested JSON without DTCG meta keys: groups are objects, leaves are scalars.</summary>
 public sealed class JsonNestedParser : ITokenParser
 {
+    /// <summary>Configuration name of this format, <c>json-nested</c>.</summary>
     public string Format => "json-nested";
 
+    /// <summary>Reads nested JSON with bare values into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         if (!JsonFlatParser.TryParseObject(content, out var root, out var error))
@@ -115,8 +119,10 @@ public sealed class JsonNestedParser : ITokenParser
 /// <summary>Style Dictionary v3: nested groups, <c>value</c> on leaves, braced references with a <c>.value</c> suffix that is dropped.</summary>
 public sealed class StyleDictionaryV3Parser : ITokenParser
 {
+    /// <summary>Configuration name of this format, <c>style-dictionary-v3</c>.</summary>
     public string Format => "style-dictionary-v3";
 
+    /// <summary>Reads a Style Dictionary v3 JSON file into the context set.</summary>
     public ParseResult Parse(string content, ParseContext context)
     {
         if (!JsonFlatParser.TryParseObject(content, out var root, out var error))
