@@ -6,6 +6,10 @@ namespace Snail.MCP.Figma.Adapters.Editor;
 public sealed class CaptureStore(ServerConfig config, ILogger<CaptureStore> logger)
     : ICaptureStore
 {
+    /// <summary>The formats Figma exports, and so the only extensions a capture file may take.</summary>
+    /// <remarks>The format arrives in the reply of whatever answered on the bridge; taken verbatim it once named a path, and <c>png/../../x</c> wrote outside the screenshots folder.</remarks>
+    private static readonly HashSet<string> ExportFormats = new(["png", "jpg", "jpeg", "svg", "pdf"], StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Writes the <c>base64</c> payload of <paramref name="image"/> to a file and returns the same object with a <c>path</c> instead.</summary>
     public JsonObject SaveAndReplace(JsonObject image)
     {
@@ -17,6 +21,12 @@ public sealed class CaptureStore(ServerConfig config, ILogger<CaptureStore> logg
         }
 
         var format = image["format"]?.GetValue<string>() ?? "PNG";
+
+        if (!ExportFormats.Contains(format))
+        {
+            throw new InvalidOperationException($"The plugin returned an image in an unknown format: {format}.");
+        }
+
         var bytes = Convert.FromBase64String(base64);
 
         Directory.CreateDirectory(config.ScreenshotDirectory);

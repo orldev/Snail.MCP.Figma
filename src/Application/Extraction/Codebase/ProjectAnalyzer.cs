@@ -43,7 +43,9 @@ public static class ExtractionManifests
             System.IO.Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, JsonSerializer.Serialize(data, DsJson.Info<T>()) + Environment.NewLine);
+        var written = $"{path}.{Guid.NewGuid():N}.tmp";
+        File.WriteAllText(written, JsonSerializer.Serialize(data, DsJson.Info<T>()) + Environment.NewLine);
+        File.Move(written, path, overwrite: true);
     }
 
     /// <summary>Manifest from disk; <c>null</c> when missing or corrupt, so the call does not fail.</summary>

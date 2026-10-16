@@ -57,29 +57,64 @@ public sealed class EditorSession : IOpenDocument
     /// <remarks>Figma's documentchange event says nothing about variables, so an edit a human makes in the variables panel reaches the server as silence; age is the only signal left for it.</remarks>
     public static readonly TimeSpan VariablesBelievedFor = TimeSpan.FromSeconds(30);
 
+    private readonly Lock _variablesGate = new();
+
     private DateTimeOffset _variablesTakenAt;
 
-    private bool _areVariablesDoubted;
+    private long _writes;
+
+    private long _writesInSnapshot;
 
     /// <summary>Variables as the plugin last sent them; served without the socket only while <see cref="HasFreshVariables"/>.</summary>
     public JsonNode? VariablesSnapshot { get; private set; }
 
-    /// <summary>Whether the snapshot may answer a read: it exists, nothing was written since, and it is young.</summary>
+    /// <summary>Whether the snapshot may answer a read: it exists, it already contains every write made so far, and it is young.</summary>
     public bool HasFreshVariables => HasFreshVariablesAt(DateTimeOffset.UtcNow);
 
-    internal bool HasFreshVariablesAt(DateTimeOffset moment) =>
-        VariablesSnapshot is not null && !_areVariablesDoubted && moment - _variablesTakenAt < VariablesBelievedFor;
+    internal bool HasFreshVariablesAt(DateTimeOffset moment)
+    {
+        lock (_variablesGate)
+        {
+            return VariablesSnapshot is not null && _writesInSnapshot == _writes && moment - _variablesTakenAt < VariablesBelievedFor;
+        }
+    }
 
-    /// <summary>Takes what the plugin just read from the file as the truth of this moment.</summary>
+    /// <summary>How many writes the file has seen so far; a reader takes it before asking the plugin, and the answer contains exactly those.</summary>
+    public long WritesSoFar
+    {
+        get { lock (_variablesGate) { return _writes; } }
+    }
+
+    /// <summary>Takes variables the plugin read when asked after <paramref name="writesWhenAsked"/> writes: believed while no write came since.</summary>
+    public void RememberVariables(JsonNode? variables, long writesWhenAsked)
+    {
+        lock (_variablesGate)
+        {
+            VariablesSnapshot = variables;
+            _variablesTakenAt = DateTimeOffset.UtcNow;
+            _writesInSnapshot = writesWhenAsked;
+        }
+    }
+
+    /// <summary>Takes variables the panel pushed on its own, read at a moment nobody knows: believed only while no write came since the last snapshot that was.</summary>
+    /// <remarks>The panel broadcasts every REFRESH result to all servers. One that another server asked for before this server's write can arrive after it, and believed, it would hide the agent's new variable for thirty seconds.</remarks>
     public void RememberVariables(JsonNode? variables)
     {
-        VariablesSnapshot = variables;
-        _variablesTakenAt = DateTimeOffset.UtcNow;
-        _areVariablesDoubted = false;
+        lock (_variablesGate)
+        {
+            VariablesSnapshot = variables;
+            _variablesTakenAt = DateTimeOffset.UtcNow;
+        }
     }
 
     /// <summary>Something was written to the file, by the agent or by the human, so the snapshot may no longer match it.</summary>
-    public void DoubtVariables() => _areVariablesDoubted = true;
+    public void DoubtVariables()
+    {
+        lock (_variablesGate)
+        {
+            _writes++;
+        }
+    }
 
     /// <summary>Ring buffer of the plugin sandbox console.</summary>
     public RingBuffer<JsonNode> ConsoleLogs { get; } = new(1000);

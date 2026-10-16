@@ -138,21 +138,29 @@ public sealed class AgentSlot : IOpenDocuments
         return [.. mine.Concat(document.Peers).Distinct(StringComparer.Ordinal)];
     }
 
+    /// <inheritdoc/>
     public Task PublishRemarksWaitingAsync(IOpenDocument document, CancellationToken cancellationToken) =>
         _roster.PublishWaitingAsync(document, cancellationToken);
 
+    /// <inheritdoc/>
     public long ConsoleMark(IOpenDocument document) =>
         _consoleMarks.TryGetValue(document.ConnectionId, out var mark) ? mark : 0;
 
+    /// <inheritdoc/>
     public void ClearConsole(IOpenDocument document) =>
         _consoleMarks[document.ConnectionId] = document.ConsoleLogs.Added;
 
     /// <summary>Names the agent once: the first call starts <paramref name="naming"/>, and every call of the agent waits for that one answer.</summary>
-    /// <remarks>A client often opens with several calls at once. Before, the first asked for the folder while the others went on to their tools: one of them chose a file before the agent knew its folder, and the choice was never written down to come back to.</remarks>
+    /// <remarks>A client often opens with several calls at once. Before, the first asked for the folder while the others went on to their tools: one of them chose a file before the agent knew its folder, and the choice was never written down to come back to. A naming that failed is not kept: the next call asks again, rather than every call of the session failing with it.</remarks>
     internal Task NameOnceAsync(Func<Task> naming)
     {
         lock (_naming)
         {
+            if (_named is { IsFaulted: true } or { IsCanceled: true })
+            {
+                _named = null;
+            }
+
             return _named ??= naming();
         }
     }
@@ -237,7 +245,6 @@ public sealed class AgentSlot : IOpenDocuments
 
         var departed = Interlocked.Exchange(ref _departure, new CancellationTokenSource());
         departed.Cancel();
-        departed.Dispose();
     }
 
     private void Claim(EditorSession session)

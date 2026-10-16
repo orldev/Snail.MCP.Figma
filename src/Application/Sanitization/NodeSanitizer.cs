@@ -91,9 +91,7 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
     private JsonNode? VisitObject(JsonObject source, int depth, WalkContext context)
     {
         var dropped = SanitizationRules.DroppedKeys(context.Request.Profile);
-        var isNode = source.ContainsKey("id") && source.ContainsKey("type");
-
-        if (isNode)
+        if (IsSceneNode(source))
         {
             context.NodesEmitted++;
         }
@@ -244,9 +242,22 @@ public sealed class NodeSanitizer(SanitizationOptions options, ILogger<NodeSanit
         _ => false,
     };
 
+    /// <summary>Whether the object is a node of the canvas, the unit the node budget counts.</summary>
+    /// <remarks>A variable binding carries an id and a type too (<c>VARIABLE_ALIAS</c>); counted as a node, a frame with three bindings spent four of the budget and real children were cut as <c>maxNodes</c>.</remarks>
+    private static bool IsSceneNode(JsonObject candidate) =>
+        candidate.ContainsKey("id") &&
+        candidate["type"] is JsonValue type &&
+        !IsVariableAlias(type);
+
+    /// <summary>Compares the parsed text in place: reading it out as a string allocated one per node, measured as 40 KB more on <c>SanitizeFile</c>.</summary>
+    private static bool IsVariableAlias(JsonValue type) =>
+        type.TryGetValue<JsonElement>(out var parsed)
+            ? parsed.ValueKind == JsonValueKind.String && parsed.ValueEquals("VARIABLE_ALIAS")
+            : type.TryGetValue<string>(out var kind) && kind == "VARIABLE_ALIAS";
+
     private static int CountNodes(JsonNode? node) => node switch
     {
-        JsonObject obj => (obj.ContainsKey("id") && obj.ContainsKey("type") ? 1 : 0) +
+        JsonObject obj => (IsSceneNode(obj) ? 1 : 0) +
                           (obj["children"] is JsonArray children ? CountNodes(children) : 0),
         JsonArray array => array.Sum(CountNodes),
         _ => 0,

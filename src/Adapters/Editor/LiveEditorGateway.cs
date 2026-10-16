@@ -51,6 +51,8 @@ public sealed class LiveEditorGateway(
             return session.VariablesSnapshot!.DeepClone();
         }
 
+        var writesWhenAsked = session.WritesSoFar;
+
         var refreshed = await router
             .SendAsync(session, Agent, EditorCommands.RefreshVariables.Name, null, timeout, cancellationToken)
             .ConfigureAwait(false);
@@ -62,7 +64,7 @@ public sealed class LiveEditorGateway(
                 .ConfigureAwait(false);
         }
 
-        session.RememberVariables(variables.DeepClone());
+        session.RememberVariables(variables.DeepClone(), writesWhenAsked);
 
         return variables.DeepClone();
     }

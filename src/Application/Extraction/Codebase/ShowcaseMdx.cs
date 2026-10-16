@@ -13,6 +13,9 @@ public static partial class ShowcaseMdx
     private const int MaxInlineSvgBytes = 8 * 1024;
     private const int MaxIconsRendered = 80;
 
+    /// <summary>How much of an icon file is read: the walk that listed it skips anything larger.</summary>
+    private const int MaxIconChars = 512 * 1024;
+
     private const string RowStyle =
         "{ display: \"flex\", alignItems: \"center\", gap: 14, padding: \"4px 0\", fontSize: 12, fontFamily: \"monospace\" }";
 
@@ -461,7 +464,8 @@ public static partial class ShowcaseMdx
                 break;
             }
 
-            var raw = CodeWalker.ReadText(Path.Combine(root, icon.File.Replace('/', Path.DirectorySeparatorChar)));
+            var path = CodeWalker.ResolveUnder(root, icon.File);
+            var raw = path is null ? null : CodeWalker.ReadText(path, MaxIconChars);
             var svg = raw is null ? null : ExtractFirstSvg(raw);
 
             if (svg is null)

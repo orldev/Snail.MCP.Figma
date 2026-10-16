@@ -15,4 +15,10 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 303, Level = LogLevel.Warning, Message = "Figma API rate-limited the request (429), attempt {Attempt}/{MaxAttempts}, waiting {DelayMs} ms")]
     internal static partial void RateLimitedRetrying(ILogger logger, int attempt, int maxAttempts, int delayMs);
+
+    [LoggerMessage(EventId = 304, Level = LogLevel.Warning, Message = "Figma API answered {Status}, attempt {Attempt}/{MaxAttempts}, waiting {DelayMs} ms")]
+    internal static partial void ServerErrorRetrying(ILogger logger, int status, int attempt, int maxAttempts, int delayMs);
+
+    [LoggerMessage(EventId = 305, Level = LogLevel.Warning, Message = "Figma API was not reached, attempt {Attempt}/{MaxAttempts}: {Reason}")]
+    internal static partial void TransportFailedRetrying(ILogger logger, int attempt, int maxAttempts, string reason);
 }

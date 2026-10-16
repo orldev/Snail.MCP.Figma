@@ -19,13 +19,16 @@ public enum SourceFailure
 }
 
 /// <summary>Published-source (REST) failure with the reason classified by the adapter.</summary>
+/// <remarks>A dropped connection or a timeout of the transport arrives here too, as <see cref="SourceFailure.Unavailable"/> with the transport's exception inside: the caller's fallbacks — a stale snapshot, the error envelope — are written against this type alone.</remarks>
 public sealed class PublishedSourceException(
     SourceFailure failure,
     string message,
     bool isAuthError = false,
-    TimeSpan? retryAfter = null)
-    : Exception(message)
+    TimeSpan? retryAfter = null,
+    Exception? innerException = null)
+    : Exception(message, innerException)
 {
+    /// <summary>Classified reason the source returned nothing.</summary>
     public SourceFailure Failure { get; } = failure;
 
     /// <summary>Token expired or invalid, as opposed to a plan-related Forbidden that is not an auth problem.</summary>
@@ -50,6 +53,11 @@ public sealed class PublishedSourceException(
                     ? $"The Figma plan quota is exhausted, the endpoint reopens in about {Describe(wait)}. " +
                       "Retrying earlier is pointless; cached snapshots keep being served."
                     : "Retry the request in a few seconds.";
+            }
+
+            if (InnerException is not null)
+            {
+                return "Figma could not be reached; retry in a moment. Cached snapshots are served meanwhile where there are any.";
             }
 
             return "Check the file key and your access rights to it.";

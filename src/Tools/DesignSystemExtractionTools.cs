@@ -13,20 +13,7 @@ namespace Snail.MCP.Figma.Tools;
 [McpServerToolType]
 public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtractionTools> logger)
 {
-    [GeneratedRegex(@"import\s+[^'""]*from\s+['""](\.[^'""]+)['""]")]
-    private static partial Regex LocalImportPattern();
-
-    [GeneratedRegex(@"\.(module\.)?(css|scss)$")]
-    private static partial Regex StyleImportPattern();
-
-    [GeneratedRegex(@"class(?:Name)?\s*=\s*(?:""([^""]+)""|'([^']+)')")]
-    private static partial Regex ClassAttributePattern();
-
-    [GeneratedRegex(@"var\(\s*(--[\w-]+)")]
-    private static partial Regex CustomPropertyUsagePattern();
-
-    private const int MaxComponentSourceKb = 64;
-
+    /// <summary>Analyzes one or more application codebases and writes the component and styling inventory that extraction starts from.</summary>
     [McpServerTool(Name = "figma_ds_analyze", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsAnalyze)]
     public Task<string> AnalyzeAsync(
@@ -124,7 +111,8 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_extract_tokens", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    /// <summary>Mines design tokens from an analyzed codebase into DTCG and optional code formats.</summary>
+    [McpServerTool(Name = "figma_ds_extract_tokens", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsExtractTokens)]
     public Task<string> ExtractTokensAsync(
         [Description("The directory used in figma_ds_analyze: .extraction/analysis.json is read from it.")] string? outDir = null,
@@ -235,7 +223,8 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
-    [McpServerTool(Name = "figma_ds_scaffold", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    /// <summary>Generates the skeleton of the design system package in the output folder from the analysis and the tokens.</summary>
+    [McpServerTool(Name = "figma_ds_scaffold", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsScaffold)]
     public Task<string> ScaffoldAsync(
         [Description("The directory used in figma_ds_analyze and figma_ds_extract_tokens.")] string outDir,
@@ -322,152 +311,16 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
             });
         }, cancellationToken);
 
+    /// <summary>Breaks one inventory component down for porting, with its sources, props, variants and a story scaffold.</summary>
     [McpServerTool(Name = "figma_ds_extract_component", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsExtractComponent)]
     public Task<string> ExtractComponentAsync(
         [Description("The directory used in figma_ds_analyze.")] string outDir,
         [Description("Component name from the inventory: see topByUsage in the figma_ds_analyze response or the manifest itself.")] string component,
         CancellationToken cancellationToken = default) =>
-        RunAsync(() =>
-        {
-            var resolvedOut = ExtractionManifests.ResolvePath(outDir);
-            var analysis = ExtractionManifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
+        RunAsync(() => Answer(ComponentPorting.Extract(outDir, component)), cancellationToken);
 
-            if (analysis is null)
-            {
-                return ToolResponse.Error(
-                    $"There is no analysis manifest: {ExtractionManifests.AnalysisPath(resolvedOut)}.",
-                    "Run figma_ds_analyze with the same outDir first.");
-            }
-
-            var matches = analysis.Components
-                .Where(c => string.Equals(c.Name, component, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (matches.Count == 0)
-            {
-                var near = analysis.Components
-                    .Where(c => c.Name.Contains(component, StringComparison.OrdinalIgnoreCase))
-                    .Take(10)
-                    .Select(c => c.Name)
-                    .ToList();
-
-                return ToolResponse.Error(
-                    $"Component '{component}' was not found in the inventory.",
-                    near.Count > 0 ? $"Did you mean one of: {string.Join(", ", near)}?" : "See the available names in the figma_ds_analyze response.");
-            }
-
-            var entry = matches.FirstOrDefault(c =>
-                !string.Equals(c.Classification, DsClassifications.PureVendor, StringComparison.Ordinal)) ?? matches[0];
-
-            if (string.Equals(entry.Classification, DsClassifications.PureVendor, StringComparison.Ordinal) || entry.File is null)
-            {
-                return ToolResponse.Ok(new JsonObject
-                {
-                    ["component"] = Serialize(entry),
-                    ["portable"] = false,
-                    ["guidance"] =
-                        "A pure vendor component — there is nothing to port. Describe it through the token theme and " +
-                        "agreed-usage documentation; if you need your own version, add a wrapper in the design system.",
-                });
-            }
-
-            var root = analysis.Targets.ElementAtOrDefault(entry.TargetIndex)?.Root;
-
-            if (root is null)
-            {
-                return ToolResponse.Error(
-                    $"Component {entry.Name} has no target root in the manifest.",
-                    "The manifest is stale — rerun figma_ds_analyze.");
-            }
-
-            var absolute = Path.Combine(root, entry.File.Replace('/', Path.DirectorySeparatorChar));
-            var source = CodeWalker.ReadText(absolute);
-
-            if (source is null)
-            {
-                return ToolResponse.Error(
-                    $"File {absolute} could not be read.",
-                    "The analysis manifest may be stale — rerun figma_ds_analyze.");
-            }
-
-            var truncated = source.Length > MaxComponentSourceKb * 1024;
-
-            if (truncated)
-            {
-                source = source[..(MaxComponentSourceKb * 1024)];
-            }
-
-            var localImports = new List<string>();
-            var styleImports = new List<string>();
-            var directory = Path.GetDirectoryName(absolute)!;
-
-            foreach (Match match in LocalImportPattern().Matches(source))
-            {
-                var specifier = match.Groups[1].Value;
-
-                if (StyleImportPattern().IsMatch(specifier))
-                {
-                    styleImports.Add(specifier);
-                }
-                else
-                {
-                    localImports.Add(Path.GetFullPath(Path.Combine(directory, specifier.Replace('/', Path.DirectorySeparatorChar))));
-                }
-            }
-
-            var classNames = new List<string>();
-
-            foreach (Match match in ClassAttributePattern().Matches(source))
-            {
-                var raw = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-
-                foreach (var cls in raw.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries))
-                {
-                    if (classNames.Count < 80 && !classNames.Contains(cls, StringComparer.Ordinal))
-                    {
-                        classNames.Add(cls);
-                    }
-                }
-            }
-
-            var customProperties = CustomPropertyUsagePattern().Matches(source)
-                .Select(m => m.Groups[1].Value)
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
-
-            return ToolResponse.Ok(new JsonObject
-            {
-                ["component"] = new JsonObject
-                {
-                    ["name"] = entry.Name,
-                    ["file"] = entry.File,
-                    ["sourceApp"] = root,
-                    ["classification"] = entry.Classification,
-                    ["vendorModule"] = entry.VendorModule,
-                    ["props"] = Serialize(entry.Props),
-                    ["observedProps"] = Serialize(entry.ObservedProps),
-                    ["usage"] = Serialize(entry.Usage),
-                    ["duplicates"] = Serialize(entry.Duplicates),
-                },
-                ["source"] = source,
-                ["sourceTruncated"] = truncated,
-                ["localImports"] = ToJsonArray(localImports.Take(30)),
-                ["styleTouchpoints"] = new JsonObject
-                {
-                    ["cssModuleImports"] = ToJsonArray(styleImports),
-                    ["classNames"] = ToJsonArray(classNames),
-                    ["customProperties"] = ToJsonArray(customProperties),
-                },
-                ["storyScaffold"] = DesignSystemScaffolder.StoryScaffold(entry),
-                ["portingChecklist"] = new JsonArray(
-                    $"Create <outDir>/src/components/{entry.Name}/{entry.Name}.<ext> and detach the app specifics: routing, state, data loading.",
-                    "Replace hardcoded values with tokens from tokens/ — check styleTouchpoints.customProperties against tokens.json.",
-                    "Finish storyScaffold into <Name>.stories: one story per real variant.",
-                    "Check it by eye in Storybook and record it with figma_ds_status."),
-            });
-        }, cancellationToken);
-
+    /// <summary>Runs the deterministic checks on the extracted package before handover or import into Figma.</summary>
     [McpServerTool(Name = "figma_ds_verify", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.DesignSystemExtraction.DsVerify)]
     public Task<string> VerifyAsync(
@@ -503,72 +356,10 @@ public sealed partial class DesignSystemExtractionTools(ILogger<DesignSystemExtr
         [Description("Why it was skipped, what was merged, what to watch out for.")] string? notes = null,
         [Description("Relative path of the story file once it is written.")] string? storyFile = null,
         CancellationToken cancellationToken = default) =>
-        RunAsync(() =>
-        {
-            var resolvedOut = ExtractionManifests.ResolvePath(outDir);
-            var statusPath = ExtractionManifests.StatusPath(resolvedOut);
-            var manifest = ExtractionManifests.Read<DsStatusManifest>(statusPath);
+        RunAsync(() => Answer(PortingProgress.Update(outDir, component, status, notes, storyFile)), cancellationToken);
 
-            if (manifest is null)
-            {
-                var analysis = ExtractionManifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
-
-                if (analysis is null)
-                {
-                    return ToolResponse.Error(
-                        $"Neither a progress manifest nor an analysis manifest exists in {ExtractionManifests.Directory(resolvedOut)}.",
-                        "Run figma_ds_analyze with the same outDir first.");
-                }
-
-                manifest = ProjectAnalyzer.InitStatus(analysis);
-            }
-
-            if (!string.IsNullOrWhiteSpace(component))
-            {
-                if (string.IsNullOrWhiteSpace(status) || !DsPortStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
-                {
-                    return ToolResponse.Error(
-                        $"Status '{status}' is not in the list.",
-                        $"Allowed: {string.Join(", ", DsPortStatuses.All)}.");
-                }
-
-                var now = DateTimeOffset.UtcNow.ToString("O");
-                manifest.Components[component] = new DsStatusEntry
-                {
-                    Status = status.ToLowerInvariant(),
-                    Notes = notes,
-                    StoryFile = storyFile,
-                    UpdatedAt = now,
-                };
-                manifest.UpdatedAt = now;
-                ExtractionManifests.Write(statusPath, manifest);
-            }
-
-            var counts = new JsonObject();
-
-            foreach (var group in manifest.Components.Values.GroupBy(e => e.Status, StringComparer.Ordinal))
-            {
-                counts[group.Key] = group.Count();
-            }
-
-            var remaining = manifest.Components
-                .Where(pair => pair.Value.Status is DsPortStatuses.Pending or DsPortStatuses.InProgress)
-                .Take(25)
-                .Select(pair => (JsonNode)new JsonObject
-                {
-                    ["name"] = pair.Key,
-                    ["status"] = pair.Value.Status,
-                })
-                .ToArray();
-
-            return ToolResponse.Ok(new JsonObject
-            {
-                ["statusPath"] = statusPath,
-                ["counts"] = counts,
-                ["remaining"] = new JsonArray(remaining),
-                ["updated"] = string.IsNullOrWhiteSpace(component) ? null : component,
-            });
-        }, cancellationToken);
+    private static string Answer(ExtractionAnswer answer) =>
+        answer.Payload is { } payload ? ToolResponse.Ok(payload) : ToolResponse.Error(answer.Error!, answer.Hint);
 
     /// <summary>File-system errors come back as data so the model can read the cause and fix the call.</summary>
     private Task<string> RunAsync(Func<string> action, CancellationToken cancellationToken)

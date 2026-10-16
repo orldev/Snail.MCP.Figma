@@ -209,8 +209,8 @@ public static partial class StorybookPreset
                 continue;
             }
 
-            var absolute = Path.Combine(target!.Root, source.File.Replace('/', Path.DirectorySeparatorChar));
-            var css = CodeWalker.ReadText(absolute);
+            var absolute = CodeWalker.ResolveUnder(target!.Root, source.File);
+            var css = absolute is null ? null : CodeWalker.ReadText(absolute, (int)MaxStylesheetBytes);
 
             if (css is null || css.Length > MaxStylesheetBytes)
             {

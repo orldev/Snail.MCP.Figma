@@ -22,9 +22,13 @@ public sealed class ReadTools(
     SanitizationOptions sanitizationOptions,
     EditorLinkOptions bridgeOptions,
     ILogger<ReadTools> logger)
+    : EditorToolBase(plugin, logger)
 {
+    /// <summary>A read that failed through the plugin can be repeated through REST, and the hints say so.</summary>
+    protected override FailureHints Hints => FailureHints.Read;
+
     /// <summary>A live plugin session exists for the file — reading through it is free and fresher than REST.</summary>
-    private bool HasLiveSession(string fileKey) => plugin.Documents.Resolve(fileKey) is not null;
+    private bool HasLiveSession(string fileKey) => Plugin.Documents.Resolve(fileKey) is not null;
 
     /// <summary>In auto mode the plugin goes first unless disabled in configuration.</summary>
     private bool IsPluginPreferred => bridgeOptions.PreferPluginForReads;
@@ -86,7 +90,7 @@ public sealed class ReadTools(
             {
                 try
                 {
-                    var payload = await plugin.ReadTreeAsync(fileKey, null, effectiveDepth, effectiveMaxNodes, ct)
+                    var payload = await Plugin.ReadTreeAsync(fileKey, null, effectiveDepth, effectiveMaxNodes, ct)
                         .ConfigureAwait(false);
 
                     if (payload?["node"] is { } node)
@@ -102,7 +106,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    Log.FileTreeThroughRest(logger, ex.Message);
+                    Log.FileTreeThroughRest(Logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -150,7 +154,7 @@ public sealed class ReadTools(
             {
                 try
                 {
-                    var payload = await plugin.ReadTreeAsync(
+                    var payload = await Plugin.ReadTreeAsync(
                         fileKey, normalized, effectiveDepth, sanitizationOptions.DefaultMaxNodes, ct).ConfigureAwait(false);
 
                     if (payload?["found"]?.GetValue<bool>() == false)
@@ -173,7 +177,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    Log.NodeThroughRest(logger, normalized, ex.Message);
+                    Log.NodeThroughRest(Logger, normalized, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -223,7 +227,7 @@ public sealed class ReadTools(
             {
                 try
                 {
-                    local = await plugin.ReadAsync(
+                    local = await Plugin.ReadAsync(
                         EditorCommands.GetVariablesData,
                         fileKey: fileKey,
                         timeout: TimeSpan.FromSeconds(45),
@@ -233,7 +237,7 @@ public sealed class ReadTools(
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    Log.VariablesThroughRest(logger, ex.Message);
+                    Log.VariablesThroughRest(Logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -253,7 +257,7 @@ public sealed class ReadTools(
                 }
                 catch (PublishedSourceException ex)
                 {
-                    Log.PublishedVariablesUnavailable(logger, ex.Message);
+                    Log.PublishedVariablesUnavailable(Logger, ex.Message);
                     formatted["publishedError"] = ex.Message;
                 }
             }
@@ -319,14 +323,14 @@ public sealed class ReadTools(
             {
                 try
                 {
-                    var payload = await plugin.ReadStylesAsync(fileKey, ct).ConfigureAwait(false);
+                    var payload = await Plugin.ReadStylesAsync(fileKey, ct).ConfigureAwait(false);
                     styles = payload?["styles"];
                     stylesSource = "plugin";
                 }
                 catch (Exception ex) when (
                     mode == "auto" && ex is EditorUnavailableException or EditorCommandException or TimeoutException)
                 {
-                    Log.StylesThroughRest(logger, ex.Message);
+                    Log.StylesThroughRest(Logger, ex.Message);
                 }
             }
             else if (mode == "plugin")
@@ -448,7 +452,7 @@ public sealed class ReadTools(
 
                 if (captured is { } shot)
                 {
-                    Log.CapturedThroughPlugin(logger, normalized);
+                    Log.CapturedThroughPlugin(Logger, normalized);
 
                     return shot;
                 }
@@ -476,7 +480,7 @@ public sealed class ReadTools(
 
         try
         {
-            var result = await plugin.ReadAsync(
+            var result = await Plugin.ReadAsync(
                 EditorCommands.CaptureScreenshot,
                 new JsonObject
                 {
@@ -502,7 +506,7 @@ public sealed class ReadTools(
         }
         catch (Exception ex) when (ex is EditorUnavailableException or EditorCommandException or TimeoutException or InvalidOperationException)
         {
-            Log.CaptureFailed(logger, nodeId, ex.Message);
+            Log.CaptureFailed(Logger, nodeId, ex.Message);
 
             return null;
         }
@@ -570,7 +574,7 @@ public sealed class ReadTools(
                     ["savedRatio"] = Math.Round(sanitized.Ratio, 4),
                 };
             });
-        });
+        }, cancellationToken);
 
     /// <summary>Profile and limits of the request on top of configured defaults.</summary>
     private SanitizationRequest BuildRequest(string? profile, int? depth, int? maxNodes)
@@ -589,49 +593,5 @@ public sealed class ReadTools(
             MaxDepth = depth ?? sanitizationOptions.DefaultDepth,
             MaxNodes = maxNodes ?? sanitizationOptions.DefaultMaxNodes,
         };
-    }
-
-    /// <summary>Errors come back as data so the model can read the cause and fix the call.</summary>
-    private Task<string> ExecuteAsync(Func<CancellationToken, Task<string>> action, CancellationToken cancellationToken = default) =>
-        GuardAsync(action, static (message, hint) => ToolResponse.Error(message, hint), cancellationToken);
-
-    /// <summary>The same guard for the tool that may answer with a picture.</summary>
-    private Task<CallToolResult> ExecutePicturedAsync(
-        Func<CancellationToken, Task<CallToolResult>> action,
-        CancellationToken cancellationToken = default) =>
-        GuardAsync(action, static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)), cancellationToken);
-
-    /// <summary>One error ladder for both result shapes: what differs is only how the message and the hint are packed.</summary>
-    private async Task<T> GuardAsync<T>(
-        Func<CancellationToken, Task<T>> action,
-        Func<string, string?, T> fail,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await action(cancellationToken).ConfigureAwait(false);
-        }
-        catch (PublishedSourceException ex)
-        {
-            Log.ApiError(logger, ex);
-
-            return fail(ex.Message, ex.Hint);
-        }
-        catch (EditorUnavailableException ex)
-        {
-            return fail(ex.Message, Messages.ReadFallback.NotConnected);
-        }
-        catch (EditorCommandException ex)
-        {
-            return fail(ex.Message, Messages.ReadFallback.CommandFailed);
-        }
-        catch (TimeoutException ex)
-        {
-            return fail(ex.Message, Messages.ReadFallback.Timeout);
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            return fail(ex.Message, Messages.PassFileUrlHint);
-        }
     }
 }
