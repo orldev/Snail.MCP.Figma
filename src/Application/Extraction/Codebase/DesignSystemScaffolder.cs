@@ -39,7 +39,7 @@ public sealed class ScaffoldResult
 }
 
 /// <summary>Scaffolds the <c>design-system/</c> package: skeleton, token files, showcase docs and CSF3 story stubs; Storybook itself is installed by its own CLI.</summary>
-public static partial class DesignSystemScaffolder
+public sealed partial class DesignSystemScaffolder(IWorkspace workspace, TokenFileWriter tokenFiles, ShowcaseMdx showcase)
 {
     [GeneratedRegex(@"[^\w]")]
     private static partial Regex NonWordPattern();
@@ -79,16 +79,16 @@ public static partial class DesignSystemScaffolder
     };
 
     /// <summary>The outcome of writing the <c>design-system/</c> package for the analysed project and its token document.</summary>
-    public static ScaffoldResult Scaffold(DsAnalysis analysis, TokenDocument document, ScaffoldOptions options)
+    public ScaffoldResult Scaffold(DsAnalysis analysis, TokenDocument document, ScaffoldOptions options)
     {
         var result = new ScaffoldResult();
         var formats = TokenFileWriter.WithCanonicalFirst(options.Formats);
 
         WritePackageJson(analysis, options, result);
 
-        var tokenFiles = TokenFileWriter.Write(document, options.OutDir, formats);
-        result.FilesWritten.AddRange(tokenFiles.FilesWritten.Select(path => Relative(options.OutDir, path)));
-        result.Warnings.AddRange(tokenFiles.Warnings);
+        var written = tokenFiles.Write(document, options.OutDir, formats);
+        result.FilesWritten.AddRange(written.FilesWritten.Select(path => Relative(options.OutDir, path)));
+        result.Warnings.AddRange(written.Warnings);
 
         WriteAggregateCss(options, formats, result);
 
@@ -109,7 +109,7 @@ public static partial class DesignSystemScaffolder
 
         if (icons.Count > 0)
         {
-            Write(options, result, "src/docs/Icons.mdx", ShowcaseMdx.IconShowcase(icons), alwaysOverwrite: true);
+            Write(options, result, "src/docs/Icons.mdx", showcase.IconShowcase(icons), alwaysOverwrite: true);
         }
 
         Write(options, result, "README.md", GenerateReadme(analysis, options, formats));
@@ -249,7 +249,7 @@ public static partial class DesignSystemScaffolder
         return string.Join('\n', lines);
     }
 
-    private static void WritePackageJson(DsAnalysis analysis, ScaffoldOptions options, ScaffoldResult result)
+    private void WritePackageJson(DsAnalysis analysis, ScaffoldOptions options, ScaffoldResult result)
     {
         var devDependencies = new JsonObject();
 
@@ -290,7 +290,7 @@ public static partial class DesignSystemScaffolder
         Write(options, result, "package.json", package.ToJsonString(DsJson.Options) + '\n');
     }
 
-    private static void WriteAggregateCss(ScaffoldOptions options, IReadOnlyList<string> formats, ScaffoldResult result)
+    private void WriteAggregateCss(ScaffoldOptions options, IReadOnlyList<string> formats, ScaffoldResult result)
     {
         var hasCssVars = formats.Contains("css-vars", StringComparer.OrdinalIgnoreCase);
         var hasTailwind = formats.Contains("tailwind-v4", StringComparer.OrdinalIgnoreCase);
@@ -308,7 +308,7 @@ public static partial class DesignSystemScaffolder
         Write(options, result, "tokens/index.css", string.Join('\n', imports) + '\n');
     }
 
-    private static void Write(
+    private void Write(
         ScaffoldOptions options,
         ScaffoldResult result,
         string relativePath,
@@ -317,15 +317,14 @@ public static partial class DesignSystemScaffolder
     {
         var absolute = Path.Combine(options.OutDir, relativePath.Replace('/', Path.DirectorySeparatorChar));
 
-        if (File.Exists(absolute) && !options.ShouldOverwrite && !alwaysOverwrite)
+        if (workspace.HasFile(absolute) && !options.ShouldOverwrite && !alwaysOverwrite)
         {
             result.FilesSkipped.Add(relativePath);
 
             return;
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
-        File.WriteAllText(absolute, content);
+        workspace.WriteText(absolute, content);
         result.FilesWritten.Add(relativePath);
     }
 

@@ -3,9 +3,6 @@ namespace Snail.MCP.Figma.Application.Snapshots;
 /// <summary>Sanitized node snapshot; the same node under another profile or depth is a different snapshot.</summary>
 public sealed class NodeSnapshot
 {
-    /// <summary>Record identifier; the SQLite store neither sets nor reads it and keys snapshots by file, node and variant.</summary>
-    public string? Id { get; set; }
-
     /// <summary>Key of the file the node belongs to.</summary>
     public required string FileKey { get; set; }
 

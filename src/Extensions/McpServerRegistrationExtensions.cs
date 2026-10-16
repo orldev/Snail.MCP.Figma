@@ -55,7 +55,8 @@ public static class McpServerRegistrationExtensions
                 .AddSingleton(bridge)
                 .AddIntegration()
                 .AddSnapshotPersistence()
-                .AddReadPipeline();
+                .AddReadPipeline()
+                .AddDesignSystemExtraction();
         }
     }
 }

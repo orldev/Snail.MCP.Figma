@@ -110,7 +110,6 @@ public sealed class SqliteDocumentVersionLedger(
 
         return new DocumentVersionRecord
         {
-            Id = fileKey,
             FileKey = fileKey,
             Version = SnapshotSql.TextOrNull(reader, 0),
             LastModified = reader.IsDBNull(1) ? null : SnapshotSql.Moment(reader.GetInt64(1)),

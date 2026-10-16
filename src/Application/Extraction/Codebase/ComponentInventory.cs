@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Application.Extraction.Codebase;
 public sealed record InventoryResult(List<DsComponentEntry> Components, List<DsDuplicateGroup> DuplicateGroups);
 
 /// <summary>Component inventory by regex: finds what the app really uses, its vendor relation, prop contracts and usage counts, reading each file once.</summary>
-public static partial class ComponentInventory
+public sealed partial class ComponentInventory(CodeWalker sources)
 {
     /// <summary>Import prefixes that mean a wrapper or pure vendor usage.</summary>
     private static readonly string[] VendorPrefixes =
@@ -141,7 +141,7 @@ public static partial class ComponentInventory
     }
 
     /// <summary>The components defined in the walked source files with their usage counts, vendor relation and duplicate groups, each tagged with the given target index.</summary>
-    public static InventoryResult Build(IReadOnlyList<WalkedFile> files, int targetIndex)
+    public InventoryResult Build(IReadOnlyList<WalkedFile> files, int targetIndex)
     {
         var definitions = new List<Definition>();
         var indexes = new List<FileIndex>();
@@ -153,7 +153,7 @@ public static partial class ComponentInventory
                 continue;
             }
 
-            var text = CodeWalker.ReadText(file.Path);
+            var text = sources.ReadText(file.Path);
 
             if (text is null)
             {

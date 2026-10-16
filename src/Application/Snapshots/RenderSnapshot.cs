@@ -3,9 +3,6 @@ namespace Snail.MCP.Figma.Application.Snapshots;
 /// <summary>Link to a rendered node picture; rendering is the most expensive bucket while the link lives 30 days.</summary>
 public sealed class RenderSnapshot
 {
-    /// <summary>Record identifier; the SQLite store neither sets nor reads it and keys links by file, node and variant.</summary>
-    public string? Id { get; set; }
-
     /// <summary>Key of the file the node belongs to.</summary>
     public required string FileKey { get; set; }
 

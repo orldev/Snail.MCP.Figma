@@ -21,7 +21,7 @@ public sealed class StorybookPresetResult
 }
 
 /// <summary>Storybook workshop glue for an extracted design system: <c>preview.css</c>, a <c>main.js</c> patch and a theme decorator in <c>preview.jsx</c>.</summary>
-public static partial class StorybookPreset
+public sealed partial class StorybookPreset(IWorkspace workspace, CodeWalker sources)
 {
     [GeneratedRegex(@"@theme\b[^{]*")]
     private static partial Regex ThemeBlockMarker();
@@ -124,12 +124,12 @@ public static partial class StorybookPreset
     }
 
     /// <summary>Generates and patches the glue inside <c>&lt;outDir&gt;/.storybook</c>; safe to rerun.</summary>
-    public static StorybookPresetResult Setup(DsAnalysis analysis, string outDir)
+    public StorybookPresetResult Setup(DsAnalysis analysis, string outDir)
     {
         var result = new StorybookPresetResult();
         var storybookDir = Path.Combine(outDir, ".storybook");
 
-        if (!Directory.Exists(storybookDir))
+        if (!workspace.HasDirectory(storybookDir))
         {
             result.ManualSteps.Add(
                 "There is no .storybook directory — run `npm create storybook@latest -- --yes --no-dev` in the package first, then run the tool again.");
@@ -150,7 +150,7 @@ public static partial class StorybookPreset
         CopyFontFiles(target, outDir, mined.FontFiles, result);
 
         var previewCss = BuildPreviewCss(outDir, usesTailwind, mined, result);
-        File.WriteAllText(Path.Combine(storybookDir, "preview.css"), previewCss);
+        workspace.WriteText(Path.Combine(storybookDir, "preview.css"), previewCss);
         result.FilesWritten.Add(".storybook/preview.css");
 
         PatchMain(storybookDir, outDir, usesTailwind, mined.FontFiles.Count > 0, result);
@@ -174,9 +174,9 @@ public static partial class StorybookPreset
         public HashSet<string> FontFiles { get; } = new(StringComparer.Ordinal);
     }
 
-    private static void CheckTailwindPackages(string outDir, StorybookPresetResult result)
+    private void CheckTailwindPackages(string outDir, StorybookPresetResult result)
     {
-        var raw = CodeWalker.ReadText(Path.Combine(outDir, "package.json"));
+        var raw = sources.ReadText(Path.Combine(outDir, "package.json"));
 
         if (raw is null)
         {
@@ -203,7 +203,7 @@ public static partial class StorybookPreset
         }
     }
 
-    private static MinedStyles MineSourceStyles(DsTargetAnalysis? target, StorybookPresetResult result)
+    private MinedStyles MineSourceStyles(DsTargetAnalysis? target, StorybookPresetResult result)
     {
         var mined = new MinedStyles();
 
@@ -214,8 +214,8 @@ public static partial class StorybookPreset
                 continue;
             }
 
-            var absolute = CodeWalker.ResolveUnder(target!.Root, source.File);
-            var css = absolute is null ? null : CodeWalker.ReadText(absolute, (int)MaxStylesheetBytes);
+            var absolute = sources.ResolveUnder(target!.Root, source.File);
+            var css = absolute is null ? null : sources.ReadText(absolute, (int)MaxStylesheetBytes);
 
             if (css is null || css.Length > MaxStylesheetBytes)
             {
@@ -256,7 +256,7 @@ public static partial class StorybookPreset
         return mined;
     }
 
-    private static void CopyFontFiles(
+    private void CopyFontFiles(
         DsTargetAnalysis? target,
         string outDir,
         IEnumerable<string> fontFiles,
@@ -281,25 +281,24 @@ public static partial class StorybookPreset
                 continue;
             }
 
-            if (!File.Exists(source) || File.Exists(destination))
+            if (!workspace.HasFile(source) || workspace.HasFile(destination))
             {
                 continue;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(source, destination);
+            workspace.Copy(source, destination);
             result.FilesWritten.Add($"public{file}");
         }
     }
 
-    private static string BuildPreviewCss(
+    private string BuildPreviewCss(
         string outDir,
         bool usesTailwind,
         MinedStyles mined,
         StorybookPresetResult result)
     {
         var tokensCssPath = Path.Combine(outDir, "tokens", "tokens.css");
-        var tokensImport = File.Exists(tokensCssPath)
+        var tokensImport = workspace.HasFile(tokensCssPath)
             ? "@import '../tokens/tokens.css';"
             : "/* tokens/tokens.css not found — run figma_ds_extract_tokens with the css-vars format */";
 
@@ -354,7 +353,7 @@ public static partial class StorybookPreset
 
         var previewCss = string.Join('\n', lines);
 
-        var tokensCssText = File.Exists(tokensCssPath) ? File.ReadAllText(tokensCssPath) : string.Empty;
+        var tokensCssText = workspace.ReadText(tokensCssPath) ?? string.Empty;
         var defined = new HashSet<string>(
             DefinedVariablePattern().Matches(previewCss + tokensCssText).Select(m => m.Groups[1].Value),
             StringComparer.Ordinal);
@@ -398,7 +397,7 @@ public static partial class StorybookPreset
         return previewCss;
     }
 
-    private static void PatchMain(
+    private void PatchMain(
         string storybookDir,
         string outDir,
         bool usesTailwind,
@@ -407,7 +406,7 @@ public static partial class StorybookPreset
     {
         var mainPath = new[] { "main.js", "main.ts" }
             .Select(name => Path.Combine(storybookDir, name))
-            .FirstOrDefault(File.Exists);
+            .FirstOrDefault(workspace.HasFile);
 
         if (mainPath is null)
         {
@@ -417,7 +416,13 @@ public static partial class StorybookPreset
             return;
         }
 
-        var main = File.ReadAllText(mainPath);
+        if (workspace.ReadText(mainPath) is not { } main)
+        {
+            result.ManualSteps.Add($"{mainPath} could not be read — add the tailwind plugin for vite and esbuild.jsx='automatic' by hand.");
+
+            return;
+        }
+
         var changed = false;
 
         if (usesTailwind && !main.Contains("@tailwindcss/vite", StringComparison.Ordinal))
@@ -464,16 +469,16 @@ public static partial class StorybookPreset
 
         if (changed)
         {
-            File.WriteAllText(mainPath, main);
+            workspace.WriteText(mainPath, main);
             result.Patched.Add(Path.GetRelativePath(outDir, mainPath).Replace(Path.DirectorySeparatorChar, '/'));
         }
     }
 
-    private static void PatchPreview(string storybookDir, string outDir, StorybookPresetResult result)
+    private void PatchPreview(string storybookDir, string outDir, StorybookPresetResult result)
     {
         var previewPath = new[] { "preview.jsx", "preview.js", "preview.tsx", "preview.ts" }
             .Select(name => Path.Combine(storybookDir, name))
-            .FirstOrDefault(File.Exists);
+            .FirstOrDefault(workspace.HasFile);
 
         if (previewPath is null)
         {
@@ -490,7 +495,13 @@ public static partial class StorybookPreset
             return;
         }
 
-        var preview = File.ReadAllText(previewPath);
+        if (workspace.ReadText(previewPath) is not { } preview)
+        {
+            result.ManualSteps.Add($"{previewPath} could not be read — import \"./preview.css\" and add the theme decorator by hand.");
+
+            return;
+        }
+
         var changed = false;
 
         if (!preview.Contains("preview.css", StringComparison.Ordinal))
@@ -518,15 +529,15 @@ public static partial class StorybookPreset
 
         if (changed)
         {
-            File.WriteAllText(previewPath, preview);
+            workspace.WriteText(previewPath, preview);
             result.Patched.Add(Path.GetRelativePath(outDir, previewPath).Replace(Path.DirectorySeparatorChar, '/'));
         }
     }
 
-    private static List<string>? ReadModeNames(string outDir)
+    private List<string>? ReadModeNames(string outDir)
     {
         var path = Path.Combine(ExtractionManifests.Directory(outDir), ExtractionManifests.TokenModesFile);
-        var raw = CodeWalker.ReadText(path);
+        var raw = sources.ReadText(path);
 
         if (raw is null)
         {

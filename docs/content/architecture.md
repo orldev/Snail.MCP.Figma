@@ -6,11 +6,12 @@ ports only. Folder = layer = namespace.
 | Layer | Holds |
 |-------|-------|
 | `Domain` | `NodeId`, `DocumentLocator`, `PublishedSourceException` with `SourceFailure`, editor exceptions, `RingBuffer` |
-| `Application/Ports` | the published source split by intent, the live editor, the snapshot stores, diagnostics |
+| `Application/Ports` | the published source split by intent, the live editor, the snapshot stores, diagnostics, the workspace of the extraction |
 | `Application` | the read pipeline, snapshot policy, sanitizer, tokens, extraction, version diffing |
 | `Adapters/Rest` | `RestDocumentGateway`, `QuotaGate` — the only place that speaks HTTP |
 | `Adapters/Editor` | the WebSocket hub, command router, file registry, the agents and their slots, server-side sibling discovery, embedded read scripts, capture store |
 | `Adapters/Persistence/Sqlite` | the three snapshot stores and the cache file, prepared on first use and shared by every server process |
+| `Adapters/Workspace` | `LocalWorkspace`, the one place the design-system extraction reads the user's apps and writes the package |
 | `Tools` | the MCP driving adapter: 141 tools and the prompt catalog |
 | `Extensions` / `Hosting` | the composition root and the process lifetime |
 

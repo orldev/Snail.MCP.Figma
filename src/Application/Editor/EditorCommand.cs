@@ -20,10 +20,6 @@ public static class EditorCommands
     public static readonly EditorCommand SetNodeFills = new("SET_NODE_FILLS");
     /// <summary>Replaces the strokes of a node.</summary>
     public static readonly EditorCommand SetNodeStrokes = new("SET_NODE_STROKES");
-    /// <summary>Sets the opacity of a node.</summary>
-    public static readonly EditorCommand SetNodeOpacity = new("SET_NODE_OPACITY");
-    /// <summary>Sets the corner radius of a node.</summary>
-    public static readonly EditorCommand SetNodeCornerRadius = new("SET_NODE_CORNER_RADIUS");
     /// <summary>Replaces the characters of a text node.</summary>
     public static readonly EditorCommand SetTextContent = new("SET_TEXT_CONTENT");
     /// <summary>Duplicates a node next to the original.</summary>
@@ -46,8 +42,6 @@ public static class EditorCommands
     public static readonly EditorCommand GetComponent = new("GET_COMPONENT");
     /// <summary>Reads a component recursively in full, the tree code generation is built from.</summary>
     public static readonly EditorCommand DeepGetComponent = new("DEEP_GET_COMPONENT");
-    /// <summary>Reports which file the plugin instance is running in.</summary>
-    public static readonly EditorCommand GetFileInfo = new("GET_FILE_INFO");
     /// <summary>Lists every local component of the file, the manifest of its design system.</summary>
     public static readonly EditorCommand GetLocalComponents = new("GET_LOCAL_COMPONENTS");
     /// <summary>Returns the variables and collections the plugin cached when it loaded.</summary>

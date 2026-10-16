@@ -14,7 +14,7 @@ public sealed record ExtractionAnswer(JsonObject? Payload, string? Error = null,
 }
 
 /// <summary>One component of the inventory made ready to port: its source, what it imports and which styles it touches, a story to start from.</summary>
-public static partial class ComponentPorting
+public sealed partial class ComponentPorting(CodeWalker sources, ExtractionManifests manifests)
 {
     [GeneratedRegex(@"import\s+[^'""]*from\s+['""](\.[^'""]+)['""]")]
     private static partial Regex LocalImportPattern();
@@ -31,10 +31,10 @@ public static partial class ComponentPorting
     private const int MaxComponentSourceKb = 64;
 
     /// <summary>The component named in the analysis manifest under <paramref name="outDir"/>, read from its own app.</summary>
-    public static ExtractionAnswer Extract(string outDir, string component)
+    public ExtractionAnswer Extract(string outDir, string component)
     {
         var resolvedOut = ExtractionManifests.ResolvePath(outDir);
-        var analysis = ExtractionManifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
+        var analysis = manifests.Read<DsAnalysis>(ExtractionManifests.AnalysisPath(resolvedOut));
 
         if (analysis is null)
         {
@@ -84,7 +84,7 @@ public static partial class ComponentPorting
                 "The manifest is stale — rerun figma_ds_analyze.");
         }
 
-        var absolute = CodeWalker.ResolveUnder(root, entry.File);
+        var absolute = sources.ResolveUnder(root, entry.File);
 
         if (absolute is null)
         {
@@ -93,7 +93,7 @@ public static partial class ComponentPorting
                 "The analysis manifest was not written by figma_ds_analyze as it stands — rerun figma_ds_analyze.");
         }
 
-        var source = CodeWalker.ReadText(absolute, MaxComponentSourceKb * 1024);
+        var source = sources.ReadText(absolute, MaxComponentSourceKb * 1024);
 
         if (source is null)
         {
