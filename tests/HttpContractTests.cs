@@ -224,7 +224,8 @@ public sealed class HttpContractTests : IAsyncLifetime
     private async Task<FakeEditorExtension> ConnectPanelAsync(string fileKey)
     {
         var panel = new FakeEditorExtension();
-        await panel.ConnectAsync(_bridgePort, fileKey, fileKey, protocol: 2);
+        var token = await File.ReadAllTextAsync(Path.Combine(_dataDirectory, Snail.MCP.Figma.Adapters.Editor.BridgeToken.FileName));
+        await panel.ConnectAsync(_bridgePort, fileKey, fileKey, protocol: 2, token: token.Trim());
         await BridgeHostFixture.WaitUntilAsync(
             () => panel.Received.Any(message => message["type"]?.GetValue<string>() == "AGENTS"),
             "the panel of protocol 2 was not told the agents");

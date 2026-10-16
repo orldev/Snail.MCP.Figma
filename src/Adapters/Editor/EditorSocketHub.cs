@@ -1,5 +1,4 @@
 using System.Net.WebSockets;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
@@ -13,11 +12,19 @@ public sealed class EditorSocketHub(
     EditorCommandRouter router,
     SnapshotInvalidator invalidation,
     EditorLinkOptions options,
+    BridgeToken token,
     ILogger<EditorSocketHub> logger)
     : ILiveEditorLink
 {
     /// <summary>Screenshots and large component trees reach tens of megabytes.</summary>
     private const int ReceiveBufferSize = 64 * 1024;
+
+    /// <summary>The largest plugin message the hub reads; a larger one is dropped as it arrives and the connection stays.</summary>
+    /// <remarks>A screenshot at 4x of a full page comes to about 70 MB in base64. Without a ceiling, one endless message — the bridge admits any local process and any page with Origin <c>null</c> — took every agent of the server down with the memory it ate.</remarks>
+    public const int DefaultMaxMessageBytes = 128 * 1024 * 1024;
+
+    /// <summary>The ceiling in force; a test lowers it to send an oversized message cheaply.</summary>
+    public int MaxMessageBytes { get; set; } = DefaultMaxMessageBytes;
 
     /// <summary>Port the hub actually listens on; zero means the bridge is down.</summary>
     public int Port { get; set; }
@@ -25,10 +32,13 @@ public sealed class EditorSocketHub(
     /// <summary>Version of the bundle installed on disk; a session reporting another version gets the update banner.</summary>
     public string? ExpectedPluginVersion { get; set; }
 
+    /// <summary>Version this server announces to every plugin in its hello; the assembly's version once the bridge is set up.</summary>
     public string ServerVersion { get; set; } = "0.0.0";
 
+    /// <summary>Whether the hub has a port and accepts plugin connections.</summary>
     public bool IsListening => Port > 0;
 
+    /// <inheritdoc/>
     public string? Address => Port > 0 ? $"ws://127.0.0.1:{Port}{options.Path}" : null;
 
     /// <summary>Handles the WebSocket endpoint.</summary>
@@ -83,6 +93,8 @@ public sealed class EditorSocketHub(
         while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
         {
             using var payload = new MemoryStream();
+            var isOversized = false;
+            long length = 0;
             WebSocketReceiveResult received;
 
             do
@@ -97,34 +109,53 @@ public sealed class EditorSocketHub(
                     return;
                 }
 
-                await payload.WriteAsync(buffer.AsMemory(0, received.Count), cancellationToken).ConfigureAwait(false);
+                length += received.Count;
+                isOversized |= length > MaxMessageBytes;
+
+                if (!isOversized)
+                {
+                    await payload.WriteAsync(buffer.AsMemory(0, received.Count), cancellationToken).ConfigureAwait(false);
+                }
             }
             while (!received.EndOfMessage);
 
-            var text = Encoding.UTF8.GetString(payload.ToArray());
+            if (isOversized)
+            {
+                Log.MessageTooLarge(logger, length, MaxMessageBytes, session.FileKey);
+
+                continue;
+            }
 
             try
             {
-                await DispatchAsync(session, text, cancellationToken).ConfigureAwait(false);
+                await DispatchAsync(session, payload, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not WebSocketException)
             {
                 Log.MessageFailed(logger, ex, session.FileKey);
             }
+
+            if (session.IsRefused)
+            {
+                await socket.CloseOutputAsync(WebSocketCloseStatus.PolicyViolation, "not this machine's plugin", cancellationToken)
+                    .ConfigureAwait(false);
+
+                return;
+            }
         }
     }
 
-    private async Task DispatchAsync(EditorSession session, string text, CancellationToken cancellationToken)
+    private async Task DispatchAsync(EditorSession session, MemoryStream payload, CancellationToken cancellationToken)
     {
         JsonNode? message;
 
         try
         {
-            message = JsonNode.Parse(text);
+            message = EditorWireProtocol.Parse(payload);
         }
         catch (Exception ex)
         {
-            Log.MessageNotParsed(logger, ex, text.Length);
+            Log.MessageNotParsed(logger, ex, (int)payload.Length);
 
             return;
         }
@@ -136,7 +167,7 @@ public sealed class EditorSocketHub(
 
         session.LastActivityAt = DateTimeOffset.UtcNow;
 
-        if (router.TryComplete(message))
+        if (router.TryComplete(session, message))
         {
             return;
         }
@@ -238,6 +269,15 @@ public sealed class EditorSocketHub(
         if (string.IsNullOrWhiteSpace(fileKey))
         {
             Log.FileInfoWithoutKey(logger);
+
+            return;
+        }
+
+        if (!token.IsMatchedBy(data?["token"] is JsonValue offered && offered.TryGetValue<string>(out var text) ? text : null))
+        {
+            Log.PanelNotRecognized(logger, fileKey);
+            await session.SendAsync(EditorWireProtocol.PluginUpdateAvailable(), cancellationToken).ConfigureAwait(false);
+            session.Refuse();
 
             return;
         }

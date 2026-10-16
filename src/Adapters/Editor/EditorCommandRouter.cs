@@ -100,12 +100,16 @@ public sealed class EditorCommandRouter(
         return await pending.Completion.Task.ConfigureAwait(false);
     }
 
-    /// <summary>Completes a pending wait with a plugin reply; <c>false</c> means the message is an event, not a reply.</summary>
-    public bool TryComplete(JsonNode message)
+    /// <summary>Completes a pending wait with a reply that came over the connection the command was sent on; <c>false</c> means the message is an event, not a reply.</summary>
+    /// <remarks>Request ids are a counter and a clock, easy to guess: taken from any connection, a reply could answer a command sent into another file.</remarks>
+    public bool TryComplete(EditorSession session, JsonNode message)
     {
         var id = message["id"]?.GetValue<string>();
 
-        if (id is null || !_pending.TryRemove(id, out var pending))
+        if (id is null ||
+            !_pending.TryGetValue(id, out var pending) ||
+            !string.Equals(pending.ConnectionId, session.ConnectionId, StringComparison.Ordinal) ||
+            !_pending.TryRemove(new KeyValuePair<string, PendingRequest>(id, pending)))
         {
             return false;
         }

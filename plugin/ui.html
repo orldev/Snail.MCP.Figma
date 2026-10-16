@@ -983,6 +983,12 @@
       var WS_PORT_RANGE_START = 9223;
       var WS_PORT_RANGE_END = 9232;
 
+      // This machine's bridge token. The server writes it here when it installs
+      // the plugin (BridgeToken.cs) and refuses a FILE_INFO without it: a web page
+      // can open a socket with Origin "null" as this window does, but cannot read
+      // the installed file.
+      var BRIDGE_TOKEN = '__SNAIL_BRIDGE_TOKEN__';
+
       // Multi-connection state: plugin connects to ALL active MCP servers
       // so that every Claude tab/CLI instance gets Figma access.
       var activeConnections = []; // Array of { port, ws, serverVersion?, serverInfo? }
@@ -1239,6 +1245,7 @@
               }
               // Протокол 2: панель различает агентов внутри одного подключения.
               introduced.protocol = 2;
+              introduced.token = BRIDGE_TOKEN;
               connWs.send(JSON.stringify({ type: 'FILE_INFO', data: introduced }));
             }
           })

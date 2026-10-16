@@ -29,6 +29,9 @@ public class BridgeHostFixture : IAsyncLifetime
 
     public int Port { get; private set; }
 
+    /// <summary>The machine's bridge token as this host knows it; a fake panel proves itself with it.</summary>
+    public BridgeToken Token { get; } = new(Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
+
     /// <summary>stdio here: one agent, the one that started the process.</summary>
     protected virtual Transport Transport => Transport.Stdio;
 
@@ -99,6 +102,7 @@ public class BridgeHostFixture : IAsyncLifetime
         builder.Services.AddSingleton<AgentRoster>();
         builder.Services.AddTransient(provider => provider.GetRequiredService<AgentRoster>().Current);
         builder.Services.AddTransient(provider => provider.GetRequiredService<AgentSlot>().Tracker);
+        builder.Services.AddSingleton(Token);
         builder.Services.AddSingleton<EditorCommandRouter>();
         builder.Services.AddSingleton<EditorSocketHub>();
         builder.Services.AddSingleton<LiveEditorGateway>();
@@ -133,7 +137,7 @@ public class BridgeHostFixture : IAsyncLifetime
     public async Task<FakeEditorExtension> ConnectPluginAsync(string fileKey, string fileName = "Test file", int protocol = 1)
     {
         var plugin = new FakeEditorExtension();
-        await plugin.ConnectAsync(Port, fileKey, fileName, _bridgePath, protocol);
+        await plugin.ConnectAsync(Port, fileKey, fileName, _bridgePath, protocol, Token.Value);
 
         await WaitUntilAsync(() => Registry.Open(fileKey) is not null,
             $"hub did not register file {fileKey}");

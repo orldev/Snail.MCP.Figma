@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Adapters.Rest;
+using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma.Extensions;
 
@@ -42,6 +43,7 @@ public static class IntegrationRegistrationExtensions
             services.AddTransient(provider => provider.GetRequiredService<AgentRoster>().Current);
             services.AddTransient<IOpenDocuments>(provider => provider.GetRequiredService<AgentSlot>());
             services.AddTransient(provider => provider.GetRequiredService<AgentSlot>().Tracker);
+            services.AddSingleton(provider => BridgeToken.LoadOrCreate(provider.GetRequiredService<ServerConfig>().DataDirectory));
             services.AddSingleton<EditorCommandRouter>();
             services.AddSingleton<EditorSocketHub>();
             services.AddSingleton<ILiveEditorLink>(provider => provider.GetRequiredService<EditorSocketHub>());
