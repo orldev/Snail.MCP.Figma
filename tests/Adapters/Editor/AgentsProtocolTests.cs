@@ -166,7 +166,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
     {
         using var serving = bridge.Roster.Serve(session, "claude-code");
 
-        return bridge.Gateway.ReadAsync(EditorCommands.GetFileInfo);
+        return bridge.Gateway.ReadAsync(EditorCommands.GetLocalComponents);
     }
 
     /// <summary>Reads take turns too: a read's timeout runs from the moment it is sent, and must not be spent waiting in the plugin behind the agent's own earlier reads.</summary>
@@ -177,7 +177,7 @@ public class AgentsProtocolTests(SharedBridgeHostFixture bridge) : IClassFixture
         var sessionId = NewKey("s");
         await using var plugin = await bridge.ConnectPluginAsync(fileKey, protocol: Protocol);
         await ClaimAsync(sessionId, fileKey);
-        plugin.Silent.Add(EditorCommands.GetFileInfo.Name);
+        plugin.Silent.Add(EditorCommands.GetLocalComponents.Name);
 
         var first = ReadSelectionAsync(sessionId);
         var second = ReadSelectionAsync(sessionId);

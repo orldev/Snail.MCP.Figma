@@ -8,7 +8,8 @@ namespace Snail.MCP.Figma.Tests.Contracts;
 public partial class EditorCommandContractTests
 {
     /// <summary>Handlers the plugin UI triggers on its own; no server command maps to them.</summary>
-    private static readonly HashSet<string> PluginInternal = ["RESIZE_UI"];
+    /// <remarks><c>GET_FILE_INFO</c> is how the panel learns the file it introduces to every server in <c>FILE_INFO</c>; the server never asks for it.</remarks>
+    private static readonly HashSet<string> PluginInternal = ["RESIZE_UI", "GET_FILE_INFO"];
 
     [Fact]
     public void EditorCommands_EveryCommand_HasAHandlerInTheBundle()

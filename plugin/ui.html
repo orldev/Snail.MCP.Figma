@@ -815,18 +815,6 @@
         .catch(function(err) { return { success: false, error: err.message || String(err) }; });
     };
 
-    // Set node opacity
-    window.setNodeOpacity = (nodeId, opacity) => {
-      return window.sendPluginCommand('SET_NODE_OPACITY', { nodeId: nodeId, opacity: opacity })
-        .catch(function(err) { return { success: false, error: err.message || String(err) }; });
-    };
-
-    // Set node corner radius
-    window.setNodeCornerRadius = (nodeId, radius) => {
-      return window.sendPluginCommand('SET_NODE_CORNER_RADIUS', { nodeId: nodeId, radius: radius })
-        .catch(function(err) { return { success: false, error: err.message || String(err) }; });
-    };
-
     // Clone a node
     window.cloneNode = (nodeId) => {
       return window.sendPluginCommand('CLONE_NODE', { nodeId: nodeId })
@@ -1048,8 +1036,6 @@
         'MOVE_NODE': function(params) { return window.moveNode(params.nodeId, params.x, params.y); },
         'SET_NODE_FILLS': function(params) { return window.setNodeFills(params.nodeId, params.fills); },
         'SET_NODE_STROKES': function(params) { return window.setNodeStrokes(params.nodeId, params.strokes, params.strokeWeight); },
-        'SET_NODE_OPACITY': function(params) { return window.setNodeOpacity(params.nodeId, params.opacity); },
-        'SET_NODE_CORNER_RADIUS': function(params) { return window.setNodeCornerRadius(params.nodeId, params.radius); },
         'CLONE_NODE': function(params) { return window.cloneNode(params.nodeId); },
         'DELETE_NODE': function(params) { return window.deleteNode(params.nodeId); },
         'RENAME_NODE': function(params) { return window.renameNode(params.nodeId, params.newName); },
@@ -2575,12 +2561,6 @@
           break;
         case 'SET_NODE_STROKES_RESULT':
           handleResult('SET_NODE_STROKES', 'node');
-          break;
-        case 'SET_NODE_OPACITY_RESULT':
-          handleResult('SET_NODE_OPACITY', 'node');
-          break;
-        case 'SET_NODE_CORNER_RADIUS_RESULT':
-          handleResult('SET_NODE_CORNER_RADIUS', 'node');
           break;
         case 'CLONE_NODE_RESULT':
           handleResult('CLONE_NODE', 'node');

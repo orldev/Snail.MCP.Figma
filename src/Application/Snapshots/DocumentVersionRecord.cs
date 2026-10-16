@@ -3,9 +3,6 @@ namespace Snail.MCP.Figma.Application.Snapshots;
 /// <summary>Last known version of a file; a separate record because it is checked on every read.</summary>
 public sealed class DocumentVersionRecord
 {
-    /// <summary>Record identifier; the SQLite ledger neither sets nor reads it and keys records by file.</summary>
-    public string? Id { get; set; }
-
     /// <summary>Key of the file the version belongs to.</summary>
     public required string FileKey { get; set; }
 
