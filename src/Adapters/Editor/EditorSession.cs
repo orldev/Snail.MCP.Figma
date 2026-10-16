@@ -94,14 +94,24 @@ public sealed class EditorSession : IOpenDocument
     public Task PublishRemarksWaitingAsync(int waiting, CancellationToken cancellationToken) =>
         SendAsync(EditorWireProtocol.RemarksWaiting(waiting), cancellationToken);
 
+    /// <inheritdoc/>
     public Task PublishBuildProgressAsync(int step, int total, CancellationToken cancellationToken) =>
         SendAsync(EditorWireProtocol.BuildProgress(step, total), cancellationToken);
 
+    /// <inheritdoc/>
     public Task PublishTargetBoundAsync(bool bound, CancellationToken cancellationToken) =>
         SendAsync(EditorWireProtocol.TargetBound(bound), cancellationToken);
 
+    /// <summary>Whether the plugin's socket is still open.</summary>
     public bool IsOpen => _socket.State == WebSocketState.Open;
 
+    /// <summary>Whether the panel failed to prove it is this machine's installed plugin; the hub then closes the connection.</summary>
+    public bool IsRefused { get; private set; }
+
+    /// <summary>Marks the connection as one the hub will not serve.</summary>
+    public void Refuse() => IsRefused = true;
+
+    /// <summary>Sends one message to the plugin, waiting for any send already in progress to finish first.</summary>
     public async Task SendAsync(JsonNode message, CancellationToken cancellationToken)
     {
         var bytes = Encoding.UTF8.GetBytes(message.ToJsonString());

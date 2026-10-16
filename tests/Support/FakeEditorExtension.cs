@@ -25,7 +25,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
     /// <summary>Commands the plugin takes and never answers, as a script that is still running.</summary>
     public HashSet<string> Silent { get; } = new(StringComparer.Ordinal);
 
-    public async Task ConnectAsync(int port, string fileKey, string fileName, string path = "/", int protocol = 1)
+    public async Task ConnectAsync(int port, string fileKey, string fileName, string path = "/", int protocol = 1, string? token = null)
     {
         await _socket.ConnectAsync(new Uri($"ws://127.0.0.1:{port}{path}"), CancellationToken.None);
 
@@ -43,6 +43,7 @@ public sealed class FakeEditorExtension : IAsyncDisposable
                 ["editorType"] = "figma",
                 ["currentPage"] = "Page 1",
                 ["protocol"] = protocol,
+                ["token"] = token,
             },
         });
     }

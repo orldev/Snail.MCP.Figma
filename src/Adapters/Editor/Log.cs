@@ -99,4 +99,10 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 131, Level = LogLevel.Information, Message = "Agent {Id} is named after its folder: {Name}")]
     internal static partial void AgentNamed(ILogger logger, string? id, string? name);
+
+    [LoggerMessage(EventId = 132, Level = LogLevel.Warning, Message = "A plugin message of {Length} bytes from {FileKey} is over the {Limit}-byte ceiling and was dropped")]
+    internal static partial void MessageTooLarge(ILogger logger, long length, int limit, string? fileKey);
+
+    [LoggerMessage(EventId = 133, Level = LogLevel.Warning, Message = "A panel naming {FileKey} did not send this machine's bridge token and was refused; an older plugin bundle needs a restart of the plugin")]
+    internal static partial void PanelNotRecognized(ILogger logger, string? fileKey);
 }
