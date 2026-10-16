@@ -24,11 +24,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
     {
         var api = new FakePublishedSource(new JsonObject());
 
-        return new VersionTools(
-            _bridge.Gateway, api, api,
-            new Snail.MCP.Figma.Application.Documents.ActiveDocumentTracker(),
-            new Snail.MCP.Figma.Application.Diff.VersionSnapshotCache(4),
-            NullLogger<VersionTools>.Instance);
+        return VersionToolsTests.VersionToolsOver(_bridge.Gateway, api, new Snail.MCP.Figma.Application.Diff.VersionSnapshotCache(4));
     }
 
     private SessionTools Session() => new(
@@ -43,7 +39,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
         public JsonObject SaveAndReplace(JsonObject image)
         {
             var bytes = Convert.FromBase64String(image["base64"]!.GetValue<string>());
-            var path = Path.Combine(Path.GetTempPath(), "snail-export-tests", $"{Guid.NewGuid().ToString("N")}.{(image["format"]?.GetValue<string>() ?? "bin").ToLowerInvariant()}");
+            var path = Path.Combine(TemporaryFolder.Create(), $"export.{(image["format"]?.GetValue<string>() ?? "bin").ToLowerInvariant()}");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllBytes(path, bytes);
             image.Remove("base64");
