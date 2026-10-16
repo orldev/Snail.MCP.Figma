@@ -16,26 +16,8 @@ internal static partial class Log
     [LoggerMessage(EventId = 503, Level = LogLevel.Warning, Message = "Design-system extraction failed")]
     internal static partial void ExtractionFailed(ILogger logger, Exception failure);
 
-    [LoggerMessage(EventId = 504, Level = LogLevel.Information, Message = "The design system kit was compressed: {Original} KB → {Compressed} KB, level {Level}")]
-    internal static partial void KitCompressed(ILogger logger, string? original, string? compressed, string? level);
-
     [LoggerMessage(EventId = 505, Level = LogLevel.Information, Message = "Plugin did not return variables, trying REST: {Message}")]
     internal static partial void VariablesTriedThroughRest(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 506, Level = LogLevel.Warning, Message = "Tokens not received: {Message}")]
-    internal static partial void KitTokensMissing(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 507, Level = LogLevel.Warning, Message = "Components not received: {Message}")]
-    internal static partial void KitComponentsMissing(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 508, Level = LogLevel.Warning, Message = "Node batch could not be read: {Message}")]
-    internal static partial void KitNodeBatchMissing(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 509, Level = LogLevel.Warning, Message = "Component images not received: {Message}")]
-    internal static partial void KitImagesMissing(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 510, Level = LogLevel.Warning, Message = "Styles not received: {Message}")]
-    internal static partial void KitStylesMissing(ILogger logger, string? message);
 
     [LoggerMessage(EventId = 511, Level = LogLevel.Warning, Message = "Bridge unavailable: {Message}")]
     internal static partial void BridgeUnavailable(ILogger logger, string? message);
@@ -69,10 +51,4 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 521, Level = LogLevel.Warning, Message = "Variables REST unavailable: {Message}")]
     internal static partial void VariablesRestUnavailable(ILogger logger, string? message);
-
-    [LoggerMessage(EventId = 522, Level = LogLevel.Warning, Message = "History paging stopped at page {Page}: {Message}")]
-    internal static partial void HistoryPagingStopped(ILogger logger, int page, string? message);
-
-    [LoggerMessage(EventId = 523, Level = LogLevel.Warning, Message = "Version metadata could not be read fully: {Message}")]
-    internal static partial void VersionMetadataIncomplete(ILogger logger, string? message);
 }

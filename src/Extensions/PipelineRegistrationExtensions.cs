@@ -6,6 +6,7 @@ using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
@@ -22,11 +23,17 @@ public static class PipelineRegistrationExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>Registers the read pipeline: snapshot invalidation, version history and diffs, sanitizing, reading and rendering.</summary>
         public IServiceCollection AddReadPipeline()
         {
             services.AddSingleton<SnapshotInvalidator>();
             services.AddSingleton(provider => new VersionSnapshotCache(
                 provider.GetRequiredService<CacheOptions>().VersionSnapshotEntries));
+            services.AddSingleton<VersionSnapshots>();
+            services.AddSingleton<VersionLog>();
+            services.AddSingleton<VersionComparison>();
+            services.AddSingleton<NodeBlame>();
+            services.AddSingleton<KitAssembly>();
             services.AddSingleton<NodeSanitizer>();
             services.AddSingleton<DocumentReader>();
             services.AddSingleton<DocumentRenderer>();

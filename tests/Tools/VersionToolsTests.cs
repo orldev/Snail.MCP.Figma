@@ -1,5 +1,6 @@
 using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
@@ -12,13 +13,24 @@ public class VersionToolsTests(BridgeHostFixture bridge)
 
     private readonly BridgeHostFixture _bridge = bridge;
 
-    private VersionTools Tools(ScriptedPublishedSource api) => new(
-        _bridge.Gateway,
-        api,
-        api,
-        new ActiveDocumentTracker(),
-        new VersionSnapshotCache(),
-        NullLogger<VersionTools>.Instance);
+    private VersionTools Tools(ScriptedPublishedSource api) => VersionToolsOver(_bridge.Gateway, api, new VersionSnapshotCache());
+
+    /// <summary>The version tools over one published source, wired as the server wires them.</summary>
+    internal static VersionTools VersionToolsOver<TSource>(ILiveEditor plugin, TSource api, VersionSnapshotCache cache)
+        where TSource : IPublishedDocumentSource, IDocumentHistory
+    {
+        var snapshots = new VersionSnapshots(api, cache);
+        var log = new VersionLog(api, NullLogger<VersionLog>.Instance);
+
+        return new VersionTools(
+            plugin,
+            log,
+            snapshots,
+            new VersionComparison(snapshots, log),
+            new NodeBlame(snapshots, log),
+            new ActiveDocumentTracker(),
+            NullLogger<VersionTools>.Instance);
+    }
 
     private static JsonNode Parse(string response) => JsonNode.Parse(response)!;
 
