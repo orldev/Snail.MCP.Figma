@@ -15,6 +15,9 @@ public static class FigmaVariableConverter
         ["BOOLEAN"] = TokenTypes.Boolean,
     };
 
+    /// <summary>Scopes that bind a FLOAT to something other than a length.</summary>
+    private static readonly HashSet<string> UnitlessScopes = new(["OPACITY", "FONT_VARIATIONS", "TEXT_CONTENT"], StringComparer.Ordinal);
+
     /// <summary>Builds the document; <paramref name="codeNameByModeName"/> renames Figma modes to code names.</summary>
     public static TokenDocument Convert(JsonNode variablesData, IReadOnlyDictionary<string, string>? codeNameByModeName = null)
     {
@@ -75,18 +78,19 @@ public static class FigmaVariableConverter
 
             var name = variable["name"]?.GetValue<string>() ?? variableId;
             var resolvedType = variable["resolvedType"]?.GetValue<string>() ?? "STRING";
+            var scopes = ReadScopes(variable["scopes"]);
 
             var token = new Token
             {
                 Path = name.Split('/', StringSplitOptions.RemoveEmptyEntries),
-                Type = DtcgTypeByFigmaType.GetValueOrDefault(resolvedType, TokenTypes.String),
+                Type = TypeOf(resolvedType, scopes),
                 Description = EmptyToNull(variable["description"]?.GetValue<string>()),
                 Figma = new FigmaTokenExtensions
                 {
                     VariableId = variableId,
                     CollectionId = collectionId,
                     FigmaResolvedType = resolvedType,
-                    Scopes = ReadScopes(variable["scopes"]),
+                    Scopes = scopes,
                     CodeSyntax = ReadCodeSyntax(variable["codeSyntax"]),
                 },
             };
@@ -153,6 +157,27 @@ public static class FigmaVariableConverter
         }
 
         return TokenValue.FromLiteral(value?.DeepClone());
+    }
+
+    /// <summary>The DTCG type of a variable: a FLOAT is a length unless its scopes say it is a weight or a plain number.</summary>
+    /// <remarks>Every FLOAT used to become a dimension, so a font weight of 700 was exported as <c>700px</c> and an opacity of 0.5 as <c>0.5px</c>. A FLOAT open to every scope says nothing and stays a dimension.</remarks>
+    private static string TypeOf(string resolvedType, IReadOnlyList<string>? scopes)
+    {
+        var isFloat = string.Equals(resolvedType, "FLOAT", StringComparison.OrdinalIgnoreCase);
+
+        if (!isFloat || scopes is null)
+        {
+            return DtcgTypeByFigmaType.GetValueOrDefault(resolvedType, TokenTypes.String);
+        }
+
+        if (scopes.All(scope => scope == "FONT_WEIGHT"))
+        {
+            return TokenTypes.FontWeight;
+        }
+
+        var isUnitless = scopes.All(scope => scope == "FONT_WEIGHT" || UnitlessScopes.Contains(scope));
+
+        return isUnitless ? TokenTypes.Number : TokenTypes.Dimension;
     }
 
     private static Dictionary<string, string> ModeNamesFor(

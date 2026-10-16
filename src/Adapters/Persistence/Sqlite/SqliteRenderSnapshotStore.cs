@@ -119,17 +119,25 @@ public sealed class SqliteRenderSnapshotStore(
 
         try
         {
+            var wanted = nodeIds.Select(NodeId.Normalize).ToHashSet(StringComparer.Ordinal);
+
+            await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            await using var delete = SnapshotSql.Command(
+                connection,
+                """DELETE FROM "Renders" WHERE "FileKey" = $file AND "NodeId" = $node;""",
+                ("$file", fileKey),
+                ("$node", string.Empty));
+            delete.Transaction = transaction;
+
             var removed = 0;
 
-            foreach (var nodeId in nodeIds.Select(NodeId.Normalize).ToHashSet(StringComparer.Ordinal))
+            foreach (var nodeId in wanted)
             {
-                await using var delete = SnapshotSql.Command(
-                    connection,
-                    """DELETE FROM "Renders" WHERE "FileKey" = $file AND "NodeId" = $node;""",
-                    ("$file", fileKey),
-                    ("$node", nodeId));
+                delete.Parameters["$node"].Value = nodeId;
                 removed += await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
+
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 
             return removed;
         }

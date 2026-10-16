@@ -12,6 +12,10 @@ namespace Snail.MCP.Figma.Extensions;
 /// <summary>Kestrel and HTTP endpoints of the bridge: the WebSocket upgrade and /health for the plugin watchdog.</summary>
 public static class EditorLinkHostingExtensions
 {
+    /// <summary>How often the bridge pings a panel, and how long it waits for the pong before it gives the connection up.</summary>
+    /// <remarks>A Figma window that froze or a laptop that slept leaves a socket open on our side with nobody behind it: the file stayed connected and every command into it ran into its timeout. Chromium answers a ping by itself, so a live panel never notices.</remarks>
+    internal static readonly TimeSpan BridgeKeepAlive = TimeSpan.FromSeconds(20);
+
     extension(WebApplicationBuilder builder)
     {
         /// <summary>Picks the port before Kestrel is configured, see <see cref="EditorLinkEndpoint"/>.</summary>
@@ -41,7 +45,7 @@ public static class EditorLinkHostingExtensions
             hub.ServerVersion = ThisAssembly.InformationalVersion;
             hub.ExpectedPluginVersion = app.Services.GetService<EditorExtensionInstaller>()?.InstalledPluginVersion;
 
-            app.UseWebSockets();
+            app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = BridgeKeepAlive, KeepAliveTimeout = BridgeKeepAlive });
 
             app.MapWhen(
                 ctx => ctx.Connection.LocalPort == endpoint.Port && ctx.Request.Path == endpoint.Path && ctx.WebSockets.IsWebSocketRequest,

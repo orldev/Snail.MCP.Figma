@@ -15,7 +15,7 @@ public sealed class EditorCommandRouter(
     /// <summary>Requests currently awaiting a reply.</summary>
     public int PendingCount => _pending.Count;
 
-    /// <summary>Sends an agent's command to the file's plugin when its turn comes and awaits the reply; throws <see cref="EditorUnavailableException"/> when the send fails or the agent left while waiting, and <see cref="TimeoutException"/> on silence.</summary>
+    /// <summary>Sends an agent's command to the file's plugin when its turn comes and awaits the reply; throws <see cref="EditorUnavailableException"/> when the send fails or the agent left while waiting, <see cref="TimeoutException"/> on silence, and <see cref="OperationCanceledException"/> when the caller gave up — never dressed as a missing plugin.</summary>
     /// <remarks>Which file is the caller's decision: the router serves every agent and knows none of their targets. The timeout starts when the command leaves the agent's queue: waiting for its own previous command is not the plugin's silence.</remarks>
     public async Task<JsonNode?> SendAsync(
         EditorSession session,
@@ -86,6 +86,12 @@ public sealed class EditorCommandRouter(
         try
         {
             await session.SendAsync(EditorWireProtocol.Request(id, method, parameters, agent), cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _pending.TryRemove(id, out _);
+
+            throw;
         }
         catch (Exception ex)
         {

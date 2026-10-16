@@ -17,8 +17,14 @@ public sealed class OpenDocumentRegistry(ILogger<OpenDocumentRegistry> logger)
         _byFileKey.Values.Where(session => session.IsOpen).MaxBy(session => session.LastInteractionAt);
 
     /// <summary>Binds a session to its file after <c>FILE_INFO</c>; a reconnecting plugin replaces the session it left behind.</summary>
+    /// <remarks>A session that names another file gives up the key it held: left in place, that key would send the first file's commands into the second.</remarks>
     public void Register(EditorSession session, string fileKey, string? fileName)
     {
+        if (session.FileKey is { } previous && !string.Equals(previous, fileKey, StringComparison.Ordinal))
+        {
+            _byFileKey.TryRemove(new KeyValuePair<string, EditorSession>(previous, session));
+        }
+
         session.FileKey = fileKey;
         session.FileName = fileName;
         _byFileKey[fileKey] = session;

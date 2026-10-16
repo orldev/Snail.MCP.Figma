@@ -116,7 +116,11 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
             static (message, hint) => ToolResponse.Textual(ToolResponse.Error(message, hint)),
             cancellationToken);
 
-    /// <summary>One error ladder for both result shapes: what differs is only how the message and the hint are packed.</summary>
+    /// <summary>The hints this family answers failures with.</summary>
+    protected virtual FailureHints Hints => FailureHints.Editor;
+
+    /// <summary>The one error ladder of every tool: what differs between result shapes is how the message and the hint are packed, and between families only the hints.</summary>
+    /// <remarks>The message is always the failure's own. A command that found no plugin names the file the agent works in and how to reach it; a generic "not connected" in its place sent agents to the wrong file.</remarks>
     private async Task<T> GuardAsync<T>(
         Func<CancellationToken, Task<T>> action,
         Func<string, string?, T> fail,
@@ -130,11 +134,11 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         {
             Log.BridgeUnavailable(Logger, ex.Message);
 
-            return fail(Messages.PluginNotConnected, Messages.HowToConnectPlugin);
+            return fail(ex.Message, Hints.NotConnected);
         }
         catch (EditorCommandException ex)
         {
-            return fail(ex.Message, Messages.CheckNodeIdHint);
+            return fail(ex.Message, Hints.CommandFailed);
         }
         catch (EditorTargetAmbiguousException ex)
         {
@@ -142,15 +146,17 @@ public abstract class EditorToolBase(ILiveEditor plugin, ILogger logger)
         }
         catch (TimeoutException ex)
         {
-            return fail(ex.Message, Messages.PluginWindowHint);
+            return fail(ex.Message, Hints.Timeout);
         }
         catch (PublishedSourceException ex)
         {
+            Log.ApiError(Logger, ex);
+
             return fail(ex.Message, ex.Hint);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            return fail(ex.Message, null);
+            return fail(ex.Message, Hints.BadArgument);
         }
     }
 }

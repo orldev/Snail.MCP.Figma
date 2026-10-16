@@ -15,12 +15,17 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
     /// <summary>Cap on honoring <c>Retry-After</c>: a pathological header must not hang the caller.</summary>
     private static readonly TimeSpan MaxRetryAfter = TimeSpan.FromSeconds(30);
 
+    /// <summary>Answers of Figma's edge that say "not now" rather than "no": a read is tried again after them.</summary>
+    private static readonly HashSet<HttpStatusCode> PassingServerErrors =
+        [HttpStatusCode.BadGateway, HttpStatusCode.ServiceUnavailable, HttpStatusCode.GatewayTimeout];
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ServerConfig _config;
     private readonly ILogger<RestDocumentGateway> _logger;
     private readonly QuotaGate _rateLimit;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
 
+    /// <summary>Creates the gateway that waits out <c>Retry-After</c> with <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</summary>
     public RestDocumentGateway(
         IHttpClientFactory httpClientFactory,
         ServerConfig config,
@@ -190,7 +195,7 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
     internal Task<JsonNode> DeleteAsync(string endpoint, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Delete, endpoint, body: null, cancellationToken);
 
-    /// <summary>One API request with retries on 429, shared by reads and comment writes.</summary>
+    /// <summary>One API request with retries on 429, and for reads on a passing server error or a dropped connection, shared by reads and comment writes.</summary>
     private async Task<JsonNode> SendAsync(
         HttpMethod method,
         string endpoint,
@@ -220,35 +225,30 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
 
         using var client = CreateClient();
         var url = ApiBase + endpoint;
+        var isRepeatable = method == HttpMethod.Get;
 
         HttpResponseMessage response;
 
         for (var attempt = 1; ; attempt++)
         {
-            using var request = new HttpRequestMessage(method, url);
+            var isLastAttempt = attempt >= MaxAttempts;
 
-            if (body is not null)
+            try
             {
-                request.Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+                response = await SendOnceAsync(client, method, url, body, cancellationToken).ConfigureAwait(false);
+            }
+            catch (PublishedSourceException ex) when (isRepeatable && !isLastAttempt)
+            {
+                Log.TransportFailedRetrying(_logger, attempt, MaxAttempts, ex.Message);
+                await _delay(TimeSpan.FromSeconds(attempt), cancellationToken).ConfigureAwait(false);
+
+                continue;
             }
 
-            response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-
-            if (response.StatusCode != HttpStatusCode.TooManyRequests || attempt >= MaxAttempts)
+            if (isLastAttempt || NextDelay(response, isRepeatable, attempt) is not { } delay)
             {
                 break;
             }
-
-            var retryAfter = ReadRetryAfter(response);
-
-            if (retryAfter > MaxRetryAfter)
-            {
-                Log.QuotaExhausted(_logger, retryAfter);
-                break;
-            }
-
-            var delay = retryAfter ?? TimeSpan.FromSeconds(attempt);
-            Log.RateLimitedRetrying(_logger, attempt, MaxAttempts, (int)delay.TotalMilliseconds);
 
             response.Dispose();
             await _delay(delay, cancellationToken).ConfigureAwait(false);
@@ -280,6 +280,71 @@ public sealed class RestDocumentGateway : IPublishedDocumentSource, IRenderSourc
             return JsonNode.Parse(payload)
                 ?? throw new PublishedSourceException(Classify(response.StatusCode), "Figma returned an empty response");
         }
+    }
+
+    /// <summary>Sends the request once; a failure of the transport leaves as <see cref="SourceFailure.Unavailable"/>, so it meets the same fallbacks as an error Figma answered with.</summary>
+    /// <remarks>An HttpClient timeout arrives as a TaskCanceledException with the caller's token untouched; only a cancelled caller stays a cancellation.</remarks>
+    private static async Task<HttpResponseMessage> SendOnceAsync(
+        HttpClient client,
+        HttpMethod method,
+        string url,
+        JsonNode? body,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(method, url);
+
+        if (body is not null)
+        {
+            request.Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+        }
+
+        try
+        {
+            return await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new PublishedSourceException(SourceFailure.Unavailable, $"Figma API could not be reached: {ex.Message}", innerException: ex);
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PublishedSourceException(
+                SourceFailure.Unavailable,
+                $"Figma API did not answer within {client.Timeout.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)} s.",
+                innerException: ex);
+        }
+    }
+
+    /// <summary>How long to wait before the next attempt; <c>null</c> when the answer is final.</summary>
+    /// <remarks>A 429 is retried for every method, since Figma did not process the request. A 502, 503 or 504 of the edge is retried for a read only: a comment posted twice is worse than one that failed.</remarks>
+    private TimeSpan? NextDelay(HttpResponseMessage response, bool isRepeatable, int attempt)
+    {
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            var retryAfter = ReadRetryAfter(response);
+
+            if (retryAfter > MaxRetryAfter)
+            {
+                Log.QuotaExhausted(_logger, retryAfter);
+
+                return null;
+            }
+
+            var rateLimitWait = retryAfter ?? TimeSpan.FromSeconds(attempt);
+            Log.RateLimitedRetrying(_logger, attempt, MaxAttempts, (int)rateLimitWait.TotalMilliseconds);
+
+            return rateLimitWait;
+        }
+
+        if (!isRepeatable || !PassingServerErrors.Contains(response.StatusCode))
+        {
+            return null;
+        }
+
+        var wait = TimeSpan.FromSeconds(attempt);
+        Log.ServerErrorRetrying(_logger, (int)response.StatusCode, attempt, MaxAttempts, (int)wait.TotalMilliseconds);
+
+        return wait;
     }
 
     private HttpClient CreateClient()

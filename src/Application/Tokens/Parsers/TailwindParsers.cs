@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Snail.MCP.Figma.Application.Tokens.Parsers;
@@ -43,7 +44,8 @@ public sealed partial class TailwindV3Parser : ITokenParser
     [GeneratedRegex(@"'([^']*)'")]
     private static partial Regex SingleQuotedStringPattern();
 
-    [GeneratedRegex(@"([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*)\s*:")]
+    /// <summary>An unquoted key, numeric ones included: Tailwind's own scale is keyed <c>0.5</c>, <c>128</c>.</summary>
+    [GeneratedRegex(@"([{,]\s*)([A-Za-z0-9_$][A-Za-z0-9_$.-]*)\s*:")]
     private static partial Regex BareKeyPattern();
 
     [GeneratedRegex(@",(\s*[}\]])")]
@@ -79,9 +81,7 @@ public sealed partial class TailwindV3Parser : ITokenParser
                 continue;
             }
 
-            var json = ToJson(body);
-
-            if (JsonNode.Parse(json) is not JsonObject parsed)
+            if (TryReadSection(body) is not { } parsed)
             {
                 warnings.Add($"Section {key}: the contents did not reduce to JSON, skipping.");
                 continue;
@@ -102,6 +102,20 @@ public sealed partial class TailwindV3Parser : ITokenParser
         }
 
         return new ParseResult(context.Document, warnings);
+    }
+
+    /// <summary>The section as JSON, or <c>null</c> when it holds what only JavaScript can evaluate.</summary>
+    /// <remarks>A config is code: <c>colors.indigo</c>, a spread or a <c>require</c> cannot be read without running it, and one such line used to fail the whole import instead of skipping its section.</remarks>
+    private static JsonObject? TryReadSection(string body)
+    {
+        try
+        {
+            return JsonNode.Parse(ToJson(body)) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static void Walk(JsonObject node, List<string> path, string type, TokenSet set, ParseContext context)

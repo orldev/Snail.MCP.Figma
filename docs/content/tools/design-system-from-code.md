@@ -66,7 +66,7 @@ The first step of design system extraction: it breaks down the codebase of a pro
 
 Mines design tokens FROM THE CODEBASE into canonical DTCG (plus, optionally, CSS variables, Tailwind, SCSS, TypeScript). It starts with what is declared: the :root and @theme custom properties (light and dark themes become modes of one token), SCSS variables, tailwind.config values, shadcn HSL triples; then it promotes repeated raw values (colors, spacing, radii, font sizes) above the frequency threshold. Every token carries its origin in $extensions: file, line, confidence, frequency. The names are structural, as found — semantic renaming is a separate pass with the team. The result is immediately usable by figma_import_tokens. Requires a figma_ds_analyze run over the same outDir. Values are pulled out of the DESIGN by a different tool — figma_extract_style_values.
 
-*only adds · repeat-safe · the connected file only.*
+*may overwrite or delete · repeat-safe · the connected file only.*
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -123,7 +123,7 @@ Mines design tokens FROM THE CODEBASE into canonical DTCG (plus, optionally, CSS
 
 Assembles the scaffold of a design system package in outDir from a finished analysis and tokens: package.json (the application framework goes into peer dependencies), the src/components layout, token files through the shared formatter engine, MDX showcases (tokens, typography, icons) and a README with the workflow. Storybook itself is NOT installed: after the scaffold run `npm create storybook@latest` in outDir — its CLI detects the framework and installs the current version itself. By default it only fills gaps: existing files are skipped unless force is passed. Token files are always refreshed.
 
-*only adds · repeat-safe · the connected file only.*
+*may overwrite or delete · repeat-safe · the connected file only.*
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |

@@ -79,6 +79,60 @@ public static class CodeWalker
         }
     }
 
+    /// <summary>At most <paramref name="maxChars"/> and one more characters of a file, so the caller tells a file that fits from one that does not; <c>null</c> when unreadable.</summary>
+    /// <remarks>A path a manifest names may be a device or a file of any size: read whole, <c>/dev/zero</c> never ends.</remarks>
+    public static string? ReadText(string path, int maxChars)
+    {
+        try
+        {
+            using var reader = new StreamReader(path, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var buffer = new char[maxChars + 1];
+            var read = reader.ReadBlock(buffer, 0, buffer.Length);
+
+            return new string(buffer, 0, read);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The absolute path of a file a manifest names under <paramref name="root"/>; <c>null</c> when it climbs out of the root or passes through a link.</summary>
+    /// <remarks>A manifest is a file in the user's repository and may have come with a clone. The walk that wrote it never follows a link and never leaves the root, so a path that does either was not written by it — and would read the user's files into the model's context.</remarks>
+    public static string? ResolveUnder(string root, string relativePath)
+    {
+        var resolvedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        var path = Path.GetFullPath(Path.Combine(resolvedRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        var isInsideRoot = path.StartsWith(resolvedRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+
+        if (!isInsideRoot || PassesThroughLink(resolvedRoot, path))
+        {
+            return null;
+        }
+
+        return path;
+    }
+
+    private static bool PassesThroughLink(string root, string path)
+    {
+        for (var current = path; current.Length > root.Length; current = Path.GetDirectoryName(current)!)
+        {
+            try
+            {
+                if (new FileInfo(current).LinkTarget is not null)
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void Visit(
         string root,
         string directory,

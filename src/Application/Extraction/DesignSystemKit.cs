@@ -7,10 +7,13 @@ public static class DesignSystemKit
 {
     /// <summary>Compression levels in ascending aggressiveness.</summary>
     public const string Summary = "summary";
+    /// <summary>The middle level, which keeps components to their names, descriptions and properties and trims the token variables.</summary>
     public const string Inventory = "inventory";
+    /// <summary>The most aggressive level, which drops the token collections and keeps components to names, ids and trimmed properties.</summary>
     public const string Compact = "compact";
 
-    /// <summary>Figma color (0..1 components) into uppercase hex.</summary>
+    /// <summary>Figma color (0..1 components) into uppercase hex, with an alpha byte when the color is not opaque.</summary>
+    /// <remarks>An effect keeps its opacity in the color alone: without the alpha byte a 25 % shadow came out solid black.</remarks>
     public static string RgbaToHex(JsonNode? color)
     {
         if (color is null)
@@ -21,7 +24,10 @@ public static class DesignSystemKit
         static int Channel(JsonNode? value) =>
             (int)Math.Clamp(Math.Round((value?.GetValue<double>() ?? 0) * 255, MidpointRounding.AwayFromZero), 0, 255);
 
-        return $"#{Channel(color["r"]):X2}{Channel(color["g"]):X2}{Channel(color["b"]):X2}";
+        var opaque = $"#{Channel(color["r"]):X2}{Channel(color["g"]):X2}{Channel(color["b"]):X2}";
+        var alpha = color["a"] is null ? 255 : Channel(color["a"]);
+
+        return alpha == 255 ? opaque : $"{opaque}{alpha:X2}";
     }
 
     /// <summary>Compact visual spec of a node — what it takes to reproduce it in CSS; <c>null</c> when there is nothing to reproduce.</summary>
