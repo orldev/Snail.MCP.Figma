@@ -72,7 +72,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
         };
 
     [Fact]
-    public async Task FileTreeComesFromThePluginAndRestIsNeverTouched()
+    public async Task ReadTools_PluginConnected_ReadsFileTreeWithoutRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -99,7 +99,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ScriptCarriesTheRequestedDepthAndNodeCap()
+    public async Task ReadTools_FileReadThroughPlugin_ScriptCarriesDepthAndNodeCap()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -122,7 +122,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ComponentReadGoesThroughThePluginWithAJsonSafeNodeId()
+    public async Task ReadTools_ComponentReadThroughPlugin_SendsJsonSafeNodeId()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -150,7 +150,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PluginNotFoundIsAuthoritative_NoRestRetry()
+    public async Task ReadTools_PluginReportsNodeNotFound_DoesNotRetryOnRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -165,7 +165,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task VariablesComeFromThePluginOnAnyPlan()
+    public async Task ReadTools_PluginConnected_ReadsVariablesOnAnyPlan()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -184,7 +184,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
 
     /// <summary>On 19.09.2026 an unreadable payload came back as ok true with zero collections, and only a note from two weeks earlier gave it away.</summary>
     [Fact]
-    public async Task AVariablesPayloadTheServerCannotReadIsAnErrorNotAnEmptyFile()
+    public async Task ReadTools_UnreadableVariablesPayload_IsAnErrorNotAnEmptyFile()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -198,7 +198,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task StylesComeFromThePluginInRestShape()
+    public async Task ReadTools_PluginConnected_ReadsStylesInRestShape()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -220,7 +220,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task BrokenPluginFallsBackToRestInAutoMode()
+    public async Task ReadTools_PluginBrokenInAutoMode_FallsBackToRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -235,7 +235,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SourceRestForcesRestEvenWithALivePlugin()
+    public async Task ReadTools_SourceRestWithLivePlugin_ReadsFromRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -249,7 +249,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task PreferPluginOffKeepsReadsOnRest()
+    public async Task ReadTools_PreferPluginOff_KeepsReadsOnRest()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -263,7 +263,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SourcePluginWithoutASessionExplainsInsteadOfFallingBack()
+    public async Task ReadTools_SourcePluginWithoutSession_ExplainsInsteadOfFallingBack()
     {
         var (tools, api) = Build();
         var response = Parse(await tools.GetStylesAsync(Url(NewFileKey()), source: "plugin"));
@@ -275,7 +275,7 @@ public class ReadToolsLiveEditorTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SessionInAnotherFileDoesNotHijackTheRead()
+    public async Task ReadTools_SessionInAnotherFile_DoesNotHijackRead()
     {
         var connected = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(connected);

@@ -12,11 +12,11 @@ public class QuotaGateTests
     [InlineData("/files/abc/versions", "files/versions")]
     [InlineData("/images/abc?ids=1:2&scale=2", "images")]
     [InlineData("/me", "me")]
-    public void BucketIgnoresFileKeyButKeepsSubresource(string endpoint, string expected) =>
+    public void QuotaGate_EndpointBucketed_IgnoresFileKeyButKeepsSubresource(string endpoint, string expected) =>
         Assert.Equal(expected, QuotaGate.BucketOf(endpoint));
 
     [Fact]
-    public void BlockedBucketDoesNotLeakToItsNeighbours()
+    public void QuotaGate_BucketBlocked_DoesNotLeakToItsNeighbours()
     {
         var gate = new QuotaGate();
         gate.Block("/images/abc", TimeSpan.FromHours(13));
@@ -27,7 +27,7 @@ public class QuotaGateTests
     }
 
     [Fact]
-    public void BlockExpiresOnItsOwnAndForgetsTheBucket()
+    public void QuotaGate_BlockRunsOut_ForgetsTheBucket()
     {
         var now = DateTimeOffset.UtcNow;
         var gate = new QuotaGate(() => now);
@@ -42,7 +42,7 @@ public class QuotaGateTests
     }
 
     [Fact]
-    public void SuccessReleasesTheBucketEvenBeforeRetryAfterRunsOut()
+    public void QuotaGate_ReleasedBeforeRetryAfterRunsOut_UnblocksTheBucket()
     {
         var gate = new QuotaGate();
         gate.Block("/images/abc", TimeSpan.FromHours(13));
@@ -53,7 +53,7 @@ public class QuotaGateTests
     }
 
     [Fact]
-    public void LongerBlockWins()
+    public void QuotaGate_TwoBlocksOnOneBucket_LongerOneWins()
     {
         var gate = new QuotaGate();
         gate.Block("/images/abc", TimeSpan.FromHours(13));

@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Application.Documents;
 public class VariablesShapeTests
 {
     [Fact]
-    public void PluginArraysAreKeyedByTheIdEachItemCarries()
+    public void VariablesShape_PluginArrays_AreKeyedByTheIdEachItemCarries()
     {
         var keyed = VariablesShape.Keyed(PluginVariables.Payload());
 
@@ -15,7 +15,7 @@ public class VariablesShapeTests
     }
 
     [Fact]
-    public void RestDictionariesPassThroughUntouched()
+    public void VariablesShape_RestDictionaries_PassThroughUntouched()
     {
         var rest = new JsonObject
         {
@@ -30,7 +30,7 @@ public class VariablesShapeTests
     }
 
     [Fact]
-    public void AnEmptyFileIsEmptyInBothShapes()
+    public void VariablesShape_EmptyFile_IsEmptyInBothShapes()
     {
         var plugin = new JsonObject { ["variableCollections"] = new JsonArray(), ["variables"] = new JsonArray() };
         var rest = new JsonObject { ["variableCollections"] = new JsonObject(), ["variables"] = new JsonObject() };
@@ -40,7 +40,7 @@ public class VariablesShapeTests
     }
 
     [Fact]
-    public void APayloadWithoutTheSectionsIsRefusedInsteadOfReadAsEmpty()
+    public void VariablesShape_PayloadWithoutSections_IsRefusedInsteadOfReadAsEmpty()
     {
         var failure = Assert.Throws<InvalidOperationException>(() => VariablesShape.Keyed(new JsonObject { ["success"] = true }));
 
@@ -48,7 +48,7 @@ public class VariablesShapeTests
     }
 
     [Fact]
-    public void AnItemWithoutAnIdIsRefused()
+    public void VariablesShape_ItemWithoutId_IsRefused()
     {
         var payload = new JsonObject
         {

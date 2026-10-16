@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Tests.Support;
 public sealed class SnapshotDatabaseFixture : IAsyncLifetime
 {
     private readonly string _dataDirectory =
-        Path.Combine(Path.GetTempPath(), "snail-figma-tests", Guid.NewGuid().ToString("N"));
+        Path.Combine(TemporaryFolder.Create(), "data");
 
     public ISnapshotDatabase Database { get; private set; } = null!;
 

@@ -74,7 +74,7 @@ public class LibraryToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ComponentSetIsAskedForFirstAndCarriesVariantKeys()
+    public async Task LibraryTools_KeyOfComponentSet_AsksSetFirstAndCarriesVariantKeys()
     {
         var api = LibraryApi(asComponentSet: true);
 
@@ -88,7 +88,7 @@ public class LibraryToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task SingleComponentIsFoundThroughTheFallbackAfterA404()
+    public async Task LibraryTools_KeyOfSingleComponent_FindsItThroughFallback()
     {
         var api = LibraryApi(asComponentSet: false);
 
@@ -100,7 +100,7 @@ public class LibraryToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task UnknownKeyIsAnErrorThatNamesWhereKeysComeFrom()
+    public async Task LibraryTools_UnknownComponentKey_ErrorNamesWhereKeysComeFrom()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.NotFound.Add("/v1/component");
@@ -112,7 +112,7 @@ public class LibraryToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task MissingStyleKeyAnswersWith403AndReadsTheSameAsAForeignStyle()
+    public async Task LibraryTools_MissingStyleKeyAnswers403_ReadsSameAsForeignStyle()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.Forbidden.Add("/v1/styles/");

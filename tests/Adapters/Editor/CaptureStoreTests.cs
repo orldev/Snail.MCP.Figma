@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 public sealed class CaptureStoreTests : IDisposable
 {
     private readonly string _dataDirectory =
-        Path.Combine(Path.GetTempPath(), $"snail-screenshots-{Guid.NewGuid().ToString("N")[..12]}");
+        Path.Combine(TemporaryFolder.Create(), "data");
 
     private CaptureStore CreateStore(int retainCount = 30) =>
         new(
@@ -22,7 +22,7 @@ public sealed class CaptureStoreTests : IDisposable
     };
 
     [Fact]
-    public void SaveAndReplace_WritesFileAndReplacesBase64WithPath()
+    public void CaptureStore_ImageSaved_WritesFileAndReplacesBase64WithPath()
     {
         var store = CreateStore();
         var image = Image(Convert.ToBase64String([1, 2, 3]));
@@ -37,7 +37,7 @@ public sealed class CaptureStoreTests : IDisposable
     }
 
     [Fact]
-    public void SaveAndReplace_UsesFormatAsFileExtension()
+    public void CaptureStore_FormatGiven_UsesItAsFileExtension()
     {
         var store = CreateStore();
         var image = Image(Convert.ToBase64String([1]), format: "JPG");
@@ -57,7 +57,7 @@ public sealed class CaptureStoreTests : IDisposable
     }
 
     [Fact]
-    public void SaveAndReplace_PrunesBeyondRetainCount()
+    public void CaptureStore_MoreImagesThanRetainCount_KeepsOnlyRetainCount()
     {
         var store = CreateStore(retainCount: 2);
 

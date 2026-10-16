@@ -12,7 +12,7 @@ public class IdleShutdownWatcherTests
     private static readonly IdleShutdownOptions Options = new(TimeSpan.FromMinutes(60), Poll);
 
     [Fact]
-    public async Task ExitsWhenNothingHappensAndNoPluginIsConnected()
+    public async Task IdleShutdownWatcher_IdleWithNoPluginConnected_StopsTheApplication()
     {
         var (time, lifetime, _, watcher) = Build();
 
@@ -25,7 +25,7 @@ public class IdleShutdownWatcherTests
     }
 
     [Fact]
-    public async Task StaysAliveWhileThePluginIsConnected()
+    public async Task IdleShutdownWatcher_PluginConnected_StaysAlive()
     {
         var (time, lifetime, documents, watcher) = Build();
         documents.HasConnection = true;
@@ -39,7 +39,7 @@ public class IdleShutdownWatcherTests
     }
 
     [Fact]
-    public async Task RestartsTheCountdownAfterThePluginDisconnects()
+    public async Task IdleShutdownWatcher_PluginDisconnects_RestartsTheCountdown()
     {
         var (time, lifetime, documents, watcher) = Build();
         documents.HasConnection = true;

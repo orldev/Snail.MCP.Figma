@@ -7,11 +7,11 @@ public class DocumentLocatorTests
     [InlineData("https://www.figma.com/file/abc123/My-File", "abc123")]
     [InlineData("https://www.figma.com/board/abc123/Board", "abc123")]
     [InlineData("https://www.figma.com/slides/abc123/Deck", "abc123")]
-    public void ExtractFileKey_HandlesEveryProductPath(string url, string expected) =>
+    public void DocumentLocator_EveryProductPath_YieldsTheFileKey(string url, string expected) =>
         Assert.Equal(expected, DocumentLocator.ExtractKey(url));
 
     [Fact]
-    public void BranchUrl_ResolvesToBranchKey()
+    public void DocumentLocator_BranchUrl_ResolvesToBranchKey()
     {
         var info = DocumentLocator.Parse("https://www.figma.com/design/abc123/branch/xyz789/My-File?node-id=1-2");
 
@@ -23,7 +23,7 @@ public class DocumentLocatorTests
     }
 
     [Fact]
-    public void BranchInQueryString_IsAlsoRecognised()
+    public void DocumentLocator_BranchInQueryString_IsAlsoRecognised()
     {
         var info = DocumentLocator.Parse("https://www.figma.com/design/abc123/My-File?branch-id=xyz789&node-id=695-313");
 
@@ -35,7 +35,7 @@ public class DocumentLocatorTests
     [InlineData("695-313", "695:313")]
     [InlineData("695:313", "695:313")]
     [InlineData("I695-313-42", "I695:313:42")]
-    public void NormalizeNodeId_ConvertsDashesToColons(string input, string expected) =>
+    public void NodeId_DashedOrColonedId_NormalizesToColons(string input, string expected) =>
         Assert.Equal(expected, NodeId.Normalize(input));
 
     [Theory]
@@ -43,7 +43,7 @@ public class DocumentLocatorTests
     [InlineData("not a link")]
     [InlineData("")]
     [InlineData(null)]
-    public void NonFigmaInput_ReturnsNull(string? url)
+    public void DocumentLocator_NonFigmaInput_ReturnsNull(string? url)
     {
         var key = DocumentLocator.ExtractKey(url);
         Assert.True(key is null or "abc");

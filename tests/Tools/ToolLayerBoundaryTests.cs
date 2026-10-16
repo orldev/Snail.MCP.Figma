@@ -18,7 +18,7 @@ public class ToolLayerBoundaryTests
         ];
 
     [Fact]
-    public void ToolsDependOnlyOnPortsThroughTheirConstructors()
+    public void ToolLayer_ToolConstructors_DependOnlyOnPorts()
     {
         var toolTypes = typeof(ToolDescriptions).Assembly.GetTypes()
             .Where(type => type.GetCustomAttribute<McpServerToolTypeAttribute>() is not null);
@@ -33,7 +33,7 @@ public class ToolLayerBoundaryTests
     }
 
     [Fact]
-    public void ToolSourcesDoNotMentionInfrastructureTypes()
+    public void ToolLayer_ToolSources_MentionNoInfrastructureTypes()
     {
         var toolsDirectory = Path.Combine(FindRepositoryRoot(), "src", "Tools");
         var pattern = new Regex(

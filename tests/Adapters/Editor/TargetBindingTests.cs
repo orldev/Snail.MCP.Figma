@@ -36,7 +36,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task TheOnlyConnectedFileBecomesTheTargetByItself()
+    public async Task AgentSlot_OnlyConnectedFile_BecomesTheTargetByItself()
     {
         await RegistryIsEmptyAsync();
         var fileKey = NewFileKey();
@@ -48,7 +48,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task ASecondFileDoesNotTakeTheTargetAway()
+    public async Task AgentSlot_SecondFileConnects_KeepsTheFirstAsTarget()
     {
         await RegistryIsEmptyAsync();
         var first = NewFileKey();
@@ -62,7 +62,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task ClaimingTellsTheNewPanelTheAgentIsHereAndTheOldOneItLeft()
+    public async Task AgentSlot_AnotherFileClaimed_TellsTheNewPanelAndTheOld()
     {
         await RegistryIsEmptyAsync();
         var first = NewFileKey();
@@ -78,7 +78,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task ClaimingAFileWithoutThePluginChangesNothing()
+    public async Task AgentSlot_FileWithoutThePluginClaimed_ChangesNothing()
     {
         await RegistryIsEmptyAsync();
         var fileKey = NewFileKey();
@@ -91,7 +91,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>A guess would write into somebody else's file, so the refusal names the choices instead.</summary>
     [Fact]
-    public async Task SeveralFilesAndNoTargetRefuseACommandAndNameTheFiles()
+    public async Task LiveEditorGateway_SeveralFilesAndNoTarget_RefusesACommandAndNamesTheFiles()
     {
         var web = NewFileKey();
         var mobile = NewFileKey();
@@ -111,7 +111,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>The agent that opened a file by link in any tool has said where it works; that file is taken without a separate navigate.</summary>
     [Fact]
-    public async Task TheFileTheAgentLastNamedIsAdoptedWhenNoTargetIsChosen()
+    public async Task LiveEditorGateway_NoTargetChosen_AdoptsTheFileTheAgentLastNamed()
     {
         var web = NewFileKey();
         var mobile = NewFileKey();
@@ -129,7 +129,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>The file left behind is somebody else's: the target stays with its file, and a command says which file is missing instead of writing elsewhere.</summary>
     [Fact]
-    public async Task WhenTheTargetsPluginLeavesTheTargetStaysAndACommandNamesTheFile()
+    public async Task AgentSlot_TargetsPluginLeaves_KeepsTheTargetAndNamesTheFile()
     {
         await RegistryIsEmptyAsync();
         var first = NewFileKey();
@@ -153,7 +153,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task ATargetWhosePluginComesBackIsToldTheAgentIsHereAgain()
+    public async Task AgentSlot_TargetsPluginComesBack_IsToldTheAgentIsHereAgain()
     {
         await RegistryIsEmptyAsync();
         var fileKey = NewFileKey();
@@ -173,7 +173,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>Every server hears every panel; a remark typed for another agent must not light this one's queue.</summary>
     [Fact]
-    public async Task ARemarkTypedInAnotherAgentsFileIsNotQueued()
+    public async Task AgentSlot_RemarkTypedInAnotherAgentsFile_IsNotQueued()
     {
         await RegistryIsEmptyAsync();
         var mine = NewFileKey();
@@ -191,7 +191,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
     }
 
     [Fact]
-    public async Task ThePanelNamesTheOtherAgentsInTheFile()
+    public async Task EditorSocketHub_PeersEvent_NamesTheOtherAgentsInTheFile()
     {
         await RegistryIsEmptyAsync();
         var fileKey = NewFileKey();
@@ -205,7 +205,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>The refusal is data the agent can act on: the files by name and the call that settles it.</summary>
     [Fact]
-    public async Task AWriteWithSeveralFilesAndNoTargetComesBackAsAReadableRefusal()
+    public async Task WriteTools_SeveralFilesAndNoTarget_WriteComesBackAsAReadableRefusal()
     {
         var web = NewFileKey();
         var mobile = NewFileKey();
@@ -223,7 +223,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>A question about the human is answered from where the human is, and the answer says that no target is chosen yet.</summary>
     [Fact]
-    public async Task WithoutATargetTheSelectionComesFromTheFileTheHumanTouchedLast()
+    public async Task WriteTools_NoTarget_SelectionComesFromTheFileTheHumanTouchedLast()
     {
         var web = NewFileKey();
         var mobile = NewFileKey();
@@ -248,7 +248,7 @@ public class TargetBindingTests(BridgeHostFixture bridge) : IClassFixture<Bridge
 
     /// <summary>Two agents in one file are told apart by name, and the name is the folder the server was started in.</summary>
     [Fact]
-    public async Task TheGreetingCarriesTheAgentsName()
+    public async Task EditorSocketHub_PluginConnects_GreetingCarriesTheAgentsName()
     {
         await RegistryIsEmptyAsync();
         var fileKey = NewFileKey();

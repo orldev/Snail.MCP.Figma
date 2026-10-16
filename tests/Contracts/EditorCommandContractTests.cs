@@ -11,7 +11,7 @@ public partial class EditorCommandContractTests
     private static readonly HashSet<string> PluginInternal = ["RESIZE_UI"];
 
     [Fact]
-    public void EveryCommandHasAHandlerInTheBundle()
+    public void EditorCommands_EveryCommand_HasAHandlerInTheBundle()
     {
         var handled = CodeJsHandlers().Concat(UiDispatcherHandlers()).ToHashSet(StringComparer.Ordinal);
         var missing = Commands().Where(command => !handled.Contains(command)).ToList();
@@ -22,7 +22,7 @@ public partial class EditorCommandContractTests
     }
 
     [Fact]
-    public void EveryCodeJsHandlerIsReachableFromTheServer()
+    public void EditorCommands_EveryCodeJsHandler_IsReachableFromTheServer()
     {
         var commands = Commands().ToHashSet(StringComparer.Ordinal);
         var orphans = CodeJsHandlers()

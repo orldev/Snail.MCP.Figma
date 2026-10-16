@@ -60,7 +60,7 @@ public class RestDocumentGatewayTests
         new(HttpStatusCode.OK) { Content = new StringContent(json) };
 
     [Fact]
-    public async Task SuccessAfterOneRetry_HonorsRetryAfterHeaderAndReturnsBody()
+    public async Task RestDocumentGateway_SuccessAfterOneRetry_HonorsRetryAfterAndReturnsBody()
     {
         var (client, handler, delays) = Build(TooManyRequests(retryAfterHeader: "5"), Ok("{\"value\":42}"));
 
@@ -83,7 +83,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task NonNumericRetryAfterHeader_FallsBackToExponentialBackoff()
+    public async Task RestDocumentGateway_NonNumericRetryAfterHeader_FallsBackToExponentialBackoff()
     {
         var (client, handler, delays) = Build(TooManyRequests(retryAfterHeader: "not-a-number"), Ok());
 
@@ -94,7 +94,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task ThirdAttemptStillRateLimited_ThrowsWithoutAFourthCall()
+    public async Task RestDocumentGateway_ThirdAttemptStillRateLimited_ThrowsWithoutAFourthCall()
     {
         var (client, handler, delays) = Build(TooManyRequests(), TooManyRequests(), TooManyRequests());
 
@@ -106,7 +106,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task RetryAfterBeyondCap_StopsImmediatelyWithoutWaiting()
+    public async Task RestDocumentGateway_RetryAfterBeyondCap_StopsImmediatelyWithoutWaiting()
     {
         var (client, handler, delays) = Build(TooManyRequests(retryAfterHeader: "49787"));
 
@@ -119,7 +119,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task RetryAfterExactlyAtCap_StillRetries()
+    public async Task RestDocumentGateway_RetryAfterExactlyAtCap_StillRetries()
     {
         var (client, handler, delays) = Build(TooManyRequests(retryAfterHeader: "30"), Ok());
 
@@ -130,7 +130,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task NonRateLimitError_DoesNotRetry()
+    public async Task RestDocumentGateway_NonRateLimitError_DoesNotRetry()
     {
         var (client, handler, delays) = Build(new HttpResponseMessage(HttpStatusCode.NotFound)
         {
@@ -146,7 +146,7 @@ public class RestDocumentGatewayTests
 
     /// <summary>Serves queued responses one per request; an extra request signals an extra retry.</summary>
     [Fact]
-    public async Task ExhaustedQuotaBlocksTheBucketAndNextCallNeverTouchesTheNetwork()
+    public async Task RestDocumentGateway_QuotaExhausted_BlocksTheBucketAndSparesTheNetwork()
     {
         var gate = new QuotaGate();
         var (client, handler, _, _) = BuildWithGate(gate, TooManyRequests(retryAfterHeader: "49800"));
@@ -164,7 +164,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task BlockedImagesBucketDoesNotStopReadingTheFile()
+    public async Task RestDocumentGateway_ImagesBucketBlocked_StillReadsTheFile()
     {
         var gate = new QuotaGate();
         var (client, handler, _, _) = BuildWithGate(
@@ -181,7 +181,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task ShortRateLimitDoesNotArmTheGate_ItIsCuredByRetries()
+    public async Task RestDocumentGateway_ShortRateLimit_IsCuredByRetriesWithoutArmingTheGate()
     {
         var gate = new QuotaGate();
         var (client, handler, _, _) = BuildWithGate(gate, TooManyRequests(retryAfterHeader: "5"), Ok(), Ok());
@@ -194,7 +194,7 @@ public class RestDocumentGatewayTests
     }
 
     [Fact]
-    public async Task SuccessfulCallReopensThePreviouslyBlockedBucket()
+    public async Task RestDocumentGateway_SuccessfulCall_ReopensThePreviouslyBlockedBucket()
     {
         var gate = new QuotaGate();
         gate.Block("/images/abc", TimeSpan.FromMilliseconds(1));

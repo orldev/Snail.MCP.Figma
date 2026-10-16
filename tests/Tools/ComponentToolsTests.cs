@@ -21,7 +21,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     private static JsonNode Parse(string response) => JsonNode.Parse(response)!;
 
     [Fact]
-    public async Task BatchCreateReportsEachFailureInsteadOfAbortingTheWholePack()
+    public async Task VariableTools_BatchCreateWithInvalidItem_ReportsEachFailureWithoutAborting()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -47,7 +47,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task MalformedJsonParameterComesBackAsAReadableError()
+    public async Task NodeTools_MalformedJsonParameter_ReturnsReadableError()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -61,7 +61,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task VariantPropertyWithoutDefaultIsRejectedBeforeReachingThePlugin()
+    public async Task ComponentTools_VariantPropertyWithoutDefault_IsRejectedBeforePlugin()
     {
         var fileKey = NewFileKey();
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
@@ -76,7 +76,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task DisconnectedBridgeProducesAnActionableHintNotACrash()
+    public async Task WriteTools_BridgeDisconnected_ReturnsActionableHint()
     {
         var response = Parse(await Writes().MoveNodeAsync("1:2", 10, 20));
 
@@ -89,7 +89,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     [InlineData(null, """{"Size":["S","M","L"],"State":["Default","Hover"]}""", 6)]
     [InlineData("""["1:1","1:2","1:3"]""", null, 3)]
     [InlineData(null, null, 1)]
-    public void VariantCountDrivesTheComponentSetTimeout(string? ids, string? properties, int expected)
+    public void ComponentTools_VariantsGiven_CountDrivesComponentSetTimeout(string? ids, string? properties, int expected)
     {
         var count = ComponentTools.CountVariants(
             ids is null ? null : JsonNode.Parse(ids),
@@ -99,7 +99,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public void AffectedNodeIdsFallBackToTheRequestWhenThePluginStaysSilent()
+    public void LiveEditorGateway_PluginReportsNoNodeIds_FallsBackToRequest()
     {
         var affected = LiveEditorGateway.ExtractAffectedNodeIds(
             new JsonObject { ["success"] = true },
@@ -109,7 +109,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public void AffectedNodeIdsPreferWhatThePluginActuallyTouched()
+    public void LiveEditorGateway_PluginReportsNodeIds_PrefersWhatPluginTouched()
     {
         var affected = LiveEditorGateway.ExtractAffectedNodeIds(
             new JsonObject { ["nodeIds"] = new JsonArray("2:1", "2:2") },
@@ -119,7 +119,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public void AncestorsAreCollectedSeparatelyForAutoLayoutReflow()
+    public void LiveEditorGateway_ResultCarriesParentAndAncestors_CollectsThemForReflow()
     {
         var ancestors = LiveEditorGateway.ExtractAncestorIds(new JsonObject
         {

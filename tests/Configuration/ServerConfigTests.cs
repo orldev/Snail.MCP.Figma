@@ -8,7 +8,7 @@ namespace Snail.MCP.Figma.Tests.Configuration;
 public class ServerConfigTests
 {
     [Fact]
-    public void Defaults_MatchPluginManifestPortRange()
+    public void ServerConfig_Defaults_MatchPluginManifestPortRange()
     {
         var config = new ServerConfig();
 
@@ -18,7 +18,7 @@ public class ServerConfigTests
     }
 
     [Fact]
-    public void Defaults_UseHomeDataDirectory()
+    public void ServerConfig_Defaults_UseHomeDataDirectory()
     {
         var config = new ServerConfig();
         var data = ".s3l-mcp-figma";
@@ -31,7 +31,7 @@ public class ServerConfigTests
     }
 
     [Fact]
-    public void Normalize_RepairsInvalidValues()
+    public void Normalize_InvalidValues_AreRepaired()
     {
         var config = new ServerConfig
         {
@@ -53,7 +53,7 @@ public class ServerConfigTests
     }
 
     [Fact]
-    public void Normalize_ExpandsTildeInDataDirectory()
+    public void Normalize_TildeInDataDirectory_ExpandsToHome()
     {
         var config = new ServerConfig { DataDirectory = "~/custom-figma-data" };
 
@@ -69,7 +69,7 @@ public class ServerConfigTests
     [InlineData("SANITIZATION__PROFILE", "Sanitization:Profile")]
     [InlineData("BRIDGE__PREFER_PLUGIN_FOR_READS", "Bridge:PreferPluginForReads")]
     [InlineData("Cache__FreshnessSeconds", "Cache:FreshnessSeconds")]
-    public void EnvironmentName_BecomesConfigurationKey(string variable, string expected) =>
+    public void EnvironmentSettings_VariableName_BecomesConfigurationKey(string variable, string expected) =>
         Assert.Equal(expected, EnvironmentSettings.ToConfigurationKey(variable), ignoreCase: true);
 
     [Fact]
@@ -100,7 +100,7 @@ public class ServerConfigTests
     [Fact]
     public void AccessToken_IsReadFromTheSettingsFile_UnlessTheEnvironmentNamesOne()
     {
-        var file = Path.Combine(Path.GetTempPath(), $"s3l-mcp-figma-{Guid.NewGuid():N}.json");
+        var file = Path.Combine(TemporaryFolder.Create(), "config.json");
         File.WriteAllText(file, """{ "AccessToken": "figd_from-file" }""");
 
         try

@@ -5,7 +5,7 @@ namespace Snail.MCP.Figma.Tests.Application.Documents;
 public class ActiveDocumentTrackerTests
 {
     [Fact]
-    public void RemembersLastDocumentAndRejectsGarbage()
+    public void ActiveDocumentTracker_SequenceOfResolves_RemembersLastDocumentAndRejectsGarbage()
     {
         var tracker = new ActiveDocumentTracker();
 

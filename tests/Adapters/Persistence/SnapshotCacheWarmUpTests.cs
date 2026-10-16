@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Persistence;
 /// <summary>The cache is opened when the server starts, before any call needs it.</summary>
 public sealed class SnapshotCacheWarmUpTests : IDisposable
 {
-    private readonly string _directory = Directory.CreateTempSubdirectory("snail-warmup-").FullName;
+    private readonly string _directory = TemporaryFolder.Create();
 
     public void Dispose()
     {
@@ -15,7 +15,7 @@ public sealed class SnapshotCacheWarmUpTests : IDisposable
     }
 
     [Fact]
-    public async Task TheCacheIsOpenBeforeAnyCall()
+    public async Task SnapshotCacheWarmUp_HostStarts_OpensTheCacheBeforeAnyCall()
     {
         var database = new SqliteSnapshotDatabase(new ServerConfig { DataDirectory = _directory }, NullLogger<SqliteSnapshotDatabase>.Instance);
         using var warmUp = new SnapshotCacheWarmUp(database, NullLogger<SnapshotCacheWarmUp>.Instance);
@@ -27,7 +27,7 @@ public sealed class SnapshotCacheWarmUpTests : IDisposable
     }
 
     [Fact]
-    public async Task ADisabledCacheIsLeftClosed()
+    public async Task SnapshotCacheWarmUp_CacheDisabled_LeavesItClosed()
     {
         var database = new SqliteSnapshotDatabase(new ServerConfig { DataDirectory = _directory, Cache = { Enabled = false } }, NullLogger<SqliteSnapshotDatabase>.Instance);
         using var warmUp = new SnapshotCacheWarmUp(database, NullLogger<SnapshotCacheWarmUp>.Instance);

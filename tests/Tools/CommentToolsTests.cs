@@ -35,7 +35,7 @@ public class CommentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ResolvedThreadsAreHiddenByDefaultButCounted()
+    public async Task CommentTools_ResolvedThreadsByDefault_AreHiddenButCounted()
     {
         var api = CommentApi();
 
@@ -48,7 +48,7 @@ public class CommentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ResolvedThreadsComeBackWhenAskedFor()
+    public async Task CommentTools_ResolvedThreadsAskedFor_ComeBack()
     {
         var api = CommentApi();
 
@@ -59,7 +59,7 @@ public class CommentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CommentPinnedToANodeCarriesClientMeta()
+    public async Task CommentTools_CommentPinnedToNode_CarriesClientMeta()
     {
         var api = CommentApi();
 
@@ -73,7 +73,7 @@ public class CommentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ReplyWinsOverPinning()
+    public async Task CommentTools_ReplyWithNodeId_WinsOverPinning()
     {
         var api = CommentApi();
 
@@ -85,7 +85,7 @@ public class CommentToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task CommentIdIsEscapedIntoTheDeleteUrl()
+    public async Task CommentTools_DeleteWithSlashInId_EscapesIdIntoUrl()
     {
         var api = CommentApi();
 

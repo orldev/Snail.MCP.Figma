@@ -7,7 +7,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 public class EditorExtensionInstallerTests
 {
     [Fact]
-    public void PluginIsCopiedNextToTheAssembly()
+    public void EditorExtensionInstaller_BundledPlugin_LiesNextToTheAssembly()
     {
         var pluginDirectory = EditorExtensionInstaller.FindBundledDirectory();
 
@@ -20,7 +20,7 @@ public class EditorExtensionInstallerTests
     }
 
     [Fact]
-    public void ManifestAllowsTheConfiguredPortRange()
+    public void EditorExtensionInstaller_BundledManifest_AllowsTheConfiguredPortRange()
     {
         var pluginDirectory = EditorExtensionInstaller.FindBundledDirectory()!;
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(pluginDirectory, "manifest.json")));

@@ -55,7 +55,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void Aggressive_CutsGeometryDefaultsAndEmptyArrays()
+    public void NodeSanitizer_AggressiveProfile_CutsGeometryDefaultsAndEmptyArrays()
     {
         var result = Create().Sanitize(SampleTree(), new SanitizationRequest { Profile = SanitizationProfile.Aggressive });
 
@@ -73,7 +73,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void Aggressive_ReachesTheAdvertisedSaving()
+    public void NodeSanitizer_AggressiveProfile_ReachesTheAdvertisedSaving()
     {
         var result = Create().Sanitize(SampleTree(20), new SanitizationRequest { Profile = SanitizationProfile.Aggressive });
 
@@ -82,7 +82,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void Balanced_KeepsAbsoluteBoundsButDropsVectorGeometry()
+    public void NodeSanitizer_BalancedProfile_KeepsAbsoluteBoundsButDropsVectorGeometry()
     {
         var result = Create().Sanitize(SampleTree(), new SanitizationRequest { Profile = SanitizationProfile.Balanced });
 
@@ -93,7 +93,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void Raw_ChangesNothing()
+    public void NodeSanitizer_RawProfile_ChangesNothing()
     {
         var source = SampleTree();
         var result = Create().Sanitize(source, new SanitizationRequest { Profile = SanitizationProfile.Raw });
@@ -104,7 +104,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void MaxDepth_StopsDescentAndReportsWhatWasSkipped()
+    public void NodeSanitizer_MaxDepthReached_StopsDescentAndReportsWhatWasSkipped()
     {
         var result = Create().Sanitize(SampleTree(), new SanitizationRequest
         {
@@ -120,7 +120,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void MaxNodes_CapsThePayload()
+    public void NodeSanitizer_MaxNodesReached_CapsThePayload()
     {
         var result = Create().Sanitize(SampleTree(20), new SanitizationRequest
         {
@@ -133,7 +133,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void RepeatedFills_AreHoistedIntoStyleDictionary()
+    public void NodeSanitizer_RepeatedFills_AreHoistedIntoStyleDictionary()
     {
         var result = Create().Sanitize(SampleTree(6), new SanitizationRequest
         {
@@ -152,7 +152,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void UniqueStyles_AreLeftInPlace()
+    public void NodeSanitizer_UniqueStyles_AreLeftInPlace()
     {
         var tree = new JsonObject
         {
@@ -173,7 +173,7 @@ public class NodeSanitizerTests
     }
 
     [Fact]
-    public void AllZeroCharacterOverrides_AreDropped()
+    public void NodeSanitizer_AllZeroCharacterOverrides_AreDropped()
     {
         var tree = new JsonObject
         {

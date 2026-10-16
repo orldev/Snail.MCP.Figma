@@ -23,7 +23,7 @@ public partial class BridgeProtocolContractTests
     ];
 
     [Fact]
-    public void ThePanelHandlesEveryMessageTheServerSends()
+    public void BridgeProtocol_MessageTheServerSends_IsHandledByThePanel()
     {
         var handled = HandledPattern.Matches(Panel).Select(match => match.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
 
@@ -33,7 +33,7 @@ public partial class BridgeProtocolContractTests
     }
 
     [Fact]
-    public void ThePanelSendsEveryEventTheServerReads()
+    public void BridgeProtocol_EventTheServerReads_IsSentByThePanel()
     {
         var sent = SentPattern.Matches(Panel).Select(match => match.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
         var read = typeof(EditorWireProtocol.Events)
@@ -49,7 +49,7 @@ public partial class BridgeProtocolContractTests
 
     /// <summary>The panel says which protocol it speaks in FILE_INFO, and it is the one the server names agents in.</summary>
     [Fact]
-    public void ThePanelIntroducesItselfInTheProtocolThatNamesAgents()
+    public void BridgeProtocol_PanelSendsFileInfo_DeclaresTheAgentsProtocol()
     {
         var spoken = ProtocolPattern.Match(Panel);
 
@@ -59,7 +59,7 @@ public partial class BridgeProtocolContractTests
 
     /// <summary>A remark and taking remarks back name their agent; sent bare, they would reach every agent of a shared server.</summary>
     [Fact]
-    public void RemarksAndTakingThemBackNameTheirAgent()
+    public void BridgeProtocol_RemarksSentOrCleared_NameTheirAgent()
     {
         Assert.Contains("sendToAgents({ type: 'BUILD_STOP'", Panel, StringComparison.Ordinal);
         Assert.Contains("addressed({ type: 'REMARKS_CLEAR' }", Panel, StringComparison.Ordinal);
@@ -68,7 +68,7 @@ public partial class BridgeProtocolContractTests
 
     /// <summary>The panel reads every field the server describes an agent with.</summary>
     [Fact]
-    public void ThePanelReadsEveryFieldOfAnAgent()
+    public void BridgeProtocol_AgentsRoster_EveryFieldIsReadByThePanel()
     {
         var described = new AgentRosterProbe().Fields();
 

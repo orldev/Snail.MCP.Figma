@@ -41,7 +41,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     private static string NewFileKey() => $"f{Guid.NewGuid().ToString("N")[..10]}";
 
     [Fact]
-    public async Task StickyBatchRejectsSomethingThatIsNotAJsonArray()
+    public async Task FigJamTools_StickyBatchNotJsonArray_IsRejected()
     {
         await using var plugin = await ConnectAsync();
 
@@ -53,7 +53,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task StickyBatchIsCappedBeforeItReachesThePlugin()
+    public async Task FigJamTools_StickyBatchOverLimit_IsCappedBeforePlugin()
     {
         await using var plugin = await ConnectAsync();
 
@@ -70,7 +70,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task StickyBatchGoesThroughAsOneArray()
+    public async Task FigJamTools_ValidStickyBatch_GoesThroughAsOneArray()
     {
         await using var plugin = await ConnectAsync();
 
@@ -83,7 +83,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task ConnectorNormalisesDashedNodeIdsFromUrls()
+    public async Task FigJamTools_ConnectorWithDashedIds_NormalisesThem()
     {
         await using var plugin = await ConnectAsync();
 
@@ -96,7 +96,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AutoArrangeRefusesAnEmptyListOfNodes()
+    public async Task FigJamTools_AutoArrangeWithEmptyList_Refuses()
     {
         await using var plugin = await ConnectAsync();
 
@@ -107,7 +107,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AutoArrangeSendsParametersAsJsonSoIdsCannotInjectCode()
+    public async Task FigJamTools_AutoArrangeWithHostileIds_SendsParametersAsJson()
     {
         await using var plugin = await ConnectAsync();
 
@@ -130,7 +130,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     [InlineData(4, 2)]
     [InlineData(5, 3)]
     [InlineData(9, 3)]
-    public async Task GridColumnsDefaultToTheSquareRootOfTheNodeCount(int nodes, int expectedColumns)
+    public async Task FigJamTools_GridWithoutColumns_DefaultsToSquareRootOfCount(int nodes, int expectedColumns)
     {
         await using var plugin = await ConnectAsync();
 
@@ -140,7 +140,7 @@ public class FigJamToolsTests(BridgeHostFixture bridge)
     }
 
     [Fact]
-    public async Task AutoArrangeStillPassesNodeIdsSoTheCacheCanBeInvalidated()
+    public async Task FigJamTools_AutoArrangeRunsAsCode_StillPassesNodeIdsForInvalidation()
     {
         await using var plugin = await ConnectAsync();
 

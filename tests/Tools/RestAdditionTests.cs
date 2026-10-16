@@ -21,7 +21,7 @@ public class RestAdditionTests
         new(plugin, api, api, NullLogger<LibraryTools>.Instance);
 
     [Fact]
-    public async Task StyleByKeyReturnsTheMetaFields()
+    public async Task LibraryTools_StyleKeyPublished_ReturnsMetaFields()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.Endpoints["/v1/styles/st1"] = new JsonObject
@@ -48,7 +48,7 @@ public class RestAdditionTests
     }
 
     [Fact]
-    public async Task StyleByKeyExplainsTheNotFound()
+    public async Task LibraryTools_StyleKeyNotFound_ExplainsWhy()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.NotFound.Add("/v1/styles/");
@@ -63,20 +63,20 @@ public class RestAdditionTests
     [InlineData("1234567890", "1234567890")]
     [InlineData(" 42 ", "42")]
     [InlineData("https://www.figma.com/files/team/987654321/Keynex", "987654321")]
-    public void TeamIdIsReadFromDigitsOrUrl(string input, string expected)
+    public void LibraryTools_TeamIdAsDigitsOrUrl_IsRead(string input, string expected)
     {
         Assert.True(LibraryTools.TryParseTeamId(input, out var teamId));
         Assert.Equal(expected, teamId);
     }
 
     [Fact]
-    public void ATeamlessUrlIsRejected()
+    public void LibraryTools_UrlWithoutTeam_IsRejected()
     {
         Assert.False(LibraryTools.TryParseTeamId("https://www.figma.com/design/abc/Name", out _));
     }
 
     [Fact]
-    public async Task TeamSearchFiltersBothKindsAndKeepsTheCursor()
+    public async Task LibraryTools_TeamSearchByQuery_FiltersBothKindsAndKeepsCursor()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.Endpoints["/v1/teams/42/components?page_size=100"] = new JsonObject
@@ -117,7 +117,7 @@ public class RestAdditionTests
         api);
 
     [Fact]
-    public async Task TokenProbeReportsTheIdentity()
+    public async Task DiagnosticsTools_TokenProbeAccepted_ReportsIdentity()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.Endpoints["/v1/me"] = new JsonObject { ["handle"] = "Ann", ["email"] = "ann@example.com" };
@@ -131,7 +131,7 @@ public class RestAdditionTests
     }
 
     [Fact]
-    public async Task TokenProbeSurfacesTheRejection()
+    public async Task DiagnosticsTools_TokenProbeRejected_SurfacesRejection()
     {
         var api = new FakePublishedSource(new JsonObject());
         api.NotFound.Add("/v1/me");
@@ -145,7 +145,7 @@ public class RestAdditionTests
     }
 
     [Fact]
-    public async Task WithoutTheProbeTheTokenIsOnlyDescribed()
+    public async Task DiagnosticsTools_WithoutTokenProbe_OnlyDescribesToken()
     {
         var api = new FakePublishedSource(new JsonObject());
         var config = new ServerConfig { AccessToken = "figd_test" };

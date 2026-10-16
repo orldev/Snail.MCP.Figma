@@ -16,7 +16,7 @@ public class StdioContractTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
     [Fact]
-    public async Task ServerAnswersTheHandshakeAndKeepsStdoutCleanOfEverythingButJsonRpc()
+    public async Task StdioServer_HandshakeToolsAndShutdown_StdoutCarriesOnlyJsonRpc()
     {
         using var session = await ServerSession.StartAsync();
 
@@ -68,7 +68,7 @@ public class StdioContractTests
     [Fact]
     public async Task Tools_AsListed_KeepTheGuardRules()
     {
-        var dataDirectory = Path.Combine(Path.GetTempPath(), $"snail-stdio-{Guid.NewGuid().ToString("N")[..8]}");
+        var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
 
         try
         {
@@ -114,7 +114,7 @@ public class StdioContractTests
 
         public static async Task<ServerSession> StartAsync()
         {
-            var dataDirectory = Path.Combine(Path.GetTempPath(), $"snail-stdio-{Guid.NewGuid().ToString("N")[..8]}");
+            var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
             var (command, arguments) = ServerProgram.Command("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER");
             var start = new ProcessStartInfo
             {

@@ -44,7 +44,7 @@ public class TokenFormatterTests
         TokenFormatters.Find(format)!.Write(Sample(), options ?? new FormatOptions()).Files[0].Content;
 
     [Fact]
-    public void CssKeepsAliasesAsVarReferencesSoTheCascadeStillWorks()
+    public void CssVarsFormatter_AliasToken_KeepsAVarReference()
     {
         var css = Render("css-vars");
 
@@ -53,7 +53,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void CssMapsModesOntoConventionalSelectors()
+    public void CssVarsFormatter_SeveralModes_MapOntoConventionalSelectors()
     {
         var css = Render("css-vars");
 
@@ -63,7 +63,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void CssExpandsCompositeTokensIntoPrimitiveProperties()
+    public void CssVarsFormatter_CompositeTokens_ExpandIntoPrimitiveProperties()
     {
         var css = Render("css-vars");
 
@@ -73,7 +73,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void PrefixReachesEveryEmittedName()
+    public void CssVarsFormatter_PrefixGiven_ReachesEveryEmittedName()
     {
         var css = Render("css-vars", new FormatOptions { Prefix = "ds-" });
 
@@ -82,7 +82,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void SplitByModeProducesOneFilePerMode()
+    public void CssVarsFormatter_SplitByMode_ProducesOneFilePerMode()
     {
         var result = TokenFormatters.Find("css-vars")!.Write(Sample(), new FormatOptions { ShouldSplitByMode = true });
 
@@ -92,7 +92,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void DtcgRoundTripsTypesDescriptionsAliasesAndExtraModes()
+    public void DtcgFormatter_MultiModeDocument_KeepsTypesDescriptionsAliasesAndExtraModes()
     {
         var dtcg = Render("dtcg");
         var root = JsonNode.Parse(dtcg)!;
@@ -109,7 +109,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void TailwindV3ResolvesAliasesBecauseTheConfigCannotExpressThem()
+    public void TailwindV3Formatter_AliasToken_IsResolvedToItsLiteral()
     {
         var config = Render("tailwind-v3");
 
@@ -119,7 +119,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void TailwindV4EmitsAThemeBlock()
+    public void TailwindV4Formatter_TokensWritten_EmitAThemeBlock()
     {
         var css = Render("tailwind-v4");
 
@@ -129,14 +129,14 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void ScssAndLessUseTheirOwnVariableSyntax()
+    public void TokenFormatters_ScssAndLess_UseTheirOwnVariableSyntax()
     {
         Assert.Contains("$color-brand: $color-blue;", Render("scss"));
         Assert.Contains("@color-brand: @color-blue;", Render("less"));
     }
 
     [Fact]
-    public void TsModuleProducesValidIdentifiersAndAConstAssertion()
+    public void TsModuleFormatter_TokensWritten_ProduceValidIdentifiersAndAConstAssertion()
     {
         var ts = Render("ts-module");
 
@@ -147,7 +147,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void StyleDictionaryAppendsTheValueSuffixToReferences()
+    public void StyleDictionaryV3Formatter_AliasToken_AppendsTheValueSuffixToReference()
     {
         var json = JsonNode.Parse(Render("style-dictionary-v3"))!;
 
@@ -156,7 +156,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void FlatAndNestedJsonDifferOnlyInShape()
+    public void TokenFormatters_FlatAndNestedJson_DifferOnlyInShape()
     {
         var flat = JsonNode.Parse(Render("json-flat"))!;
         var nested = JsonNode.Parse(Render("json-nested"))!;
@@ -166,7 +166,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void TokensStudioOutputUsesItsOwnTypeNames()
+    public void TokensStudioFormatter_TokenTypes_UseTokensStudioNames()
     {
         var json = JsonNode.Parse(Render("tokens-studio"))!;
 
@@ -175,7 +175,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void ColorAndSizeTransformsApplyAcrossFormats()
+    public void TokenFormatters_ColorAndSizeOptions_TransformTheValues()
     {
         var css = Render("css-vars", new FormatOptions { ColorFormat = "rgba", SizeUnit = "rem" });
 
@@ -184,7 +184,7 @@ public class TokenFormatterTests
     }
 
     [Fact]
-    public void FormatsThatCannotExpressAliasesAreForcedToResolveThem()
+    public void TokenFormatters_FormatCannotExpressAliases_IsForcedToResolveThem()
     {
         Assert.False(TokenFormatters.SupportsAliases("tailwind-v3"));
         Assert.False(TokenFormatters.SupportsAliases("ts-module"));
@@ -225,7 +225,7 @@ public class TokenRoundTripTests
     [InlineData("style-dictionary-v3", "style-dictionary-v3")]
     [InlineData("tokens-studio", "tokens-studio")]
     [InlineData("tailwind-v4", "tailwind-v4")]
-    public void PathsAndAliasesSurviveTheRoundTrip(string formatterName, string parserName)
+    public void TokenFormatters_OutputParsedBack_KeepsPathsAndAliases(string formatterName, string parserName)
     {
         var written = TokenFormatters.Find(formatterName)!.Write(Source(), new FormatOptions()).Files[0];
         var parsed = TokenParsers.Find(parserName)!
@@ -242,7 +242,7 @@ public class TokenRoundTripTests
     }
 
     [Fact]
-    public void DtcgRoundTripAlsoKeepsTypesAndDescriptions()
+    public void DtcgFormatter_OutputParsedBack_KeepsTypesAndDescriptions()
     {
         var written = new DtcgFormatter().Write(Source(), new FormatOptions()).Files[0];
         var parsed = new DtcgParser().Parse(written.Content, new ParseContext("Core", new TokenDocument())).Document;

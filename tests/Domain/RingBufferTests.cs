@@ -4,7 +4,7 @@ namespace Snail.MCP.Figma.Tests.Domain;
 public class RingBufferTests
 {
     [Fact]
-    public void AFullBufferKeepsCountingWhatWasAdded()
+    public void RingBuffer_Full_KeepsCountingWhatWasAdded()
     {
         var buffer = new RingBuffer<int>(3);
 
@@ -19,7 +19,7 @@ public class RingBufferTests
 
     /// <summary>The defect it replaces: a reader that compared counts saw nothing new once the console held its thousand lines.</summary>
     [Fact]
-    public void WhatArrivedAfterAMarkIsSeenEvenWhenTheBufferIsFull()
+    public void RingBuffer_FullWhenMarked_SeesWhatArrivedAfterTheMark()
     {
         var buffer = new RingBuffer<int>(3);
 
@@ -36,7 +36,7 @@ public class RingBufferTests
     }
 
     [Fact]
-    public void WhatFellOutOfTheBufferIsNotPretendedToBeThere()
+    public void RingBuffer_MarkOlderThanItsContents_ReturnsOnlyWhatIsLeft()
     {
         var buffer = new RingBuffer<int>(3);
 
@@ -49,7 +49,7 @@ public class RingBufferTests
     }
 
     [Fact]
-    public void AMarkAheadOfTheBufferSeesNothing()
+    public void RingBuffer_MarkAheadOfTheBuffer_SeesNothing()
     {
         var buffer = new RingBuffer<int>(3);
         buffer.Add(1);

@@ -35,7 +35,7 @@ public class ReconstructionSpecTests
         """)!;
 
     [Fact]
-    public void InstanceBecomesFrameBecauseThePluginCannotCreateInstances()
+    public void ReconstructionSpec_Instance_BecomesFrame()
     {
         var spec = ReconstructionSpec.Extract(Button());
 
@@ -44,7 +44,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void InvisiblePaintsAreDroppedAndOpacityFoldsIntoAlpha()
+    public void ReconstructionSpec_Paints_DropsInvisibleAndFoldsOpacityIntoAlpha()
     {
         var spec = ReconstructionSpec.Extract(Button());
 
@@ -54,7 +54,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void AutoLayoutPropertiesSurviveIntoTheSpec()
+    public void ReconstructionSpec_AutoLayoutProperties_SurviveIntoTheSpec()
     {
         var spec = ReconstructionSpec.Extract(Button());
 
@@ -65,7 +65,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void HugSizedChildGetsNoExplicitDimensions()
+    public void ReconstructionSpec_HugSizedChild_GetsNoExplicitDimensions()
     {
         var child = ReconstructionSpec.Extract(Button())["children"]![0]!;
 
@@ -75,7 +75,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void TextStyleIsReadFromTheRestStyleObject()
+    public void ReconstructionSpec_TextStyle_IsReadFromTheRestStyleObject()
     {
         var child = ReconstructionSpec.Extract(Button())["children"]![0]!;
 
@@ -84,7 +84,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void ValidationPointsAtTheOffendingChild()
+    public void ReconstructionSpec_ChildInvalid_ValidationPointsAtTheChild()
     {
         var spec = JsonNode.Parse("""
             {"name":"Root","type":"FRAME","children":[{"type":"TEXT"}]}
@@ -97,7 +97,7 @@ public class ReconstructionSpecTests
     }
 
     [Fact]
-    public void VariantsAreListedAndExtractableByName()
+    public void ReconstructionSpec_ComponentSet_ListsVariantsAndExtractsThemByName()
     {
         var set = JsonNode.Parse("""
             {"id":"1:1","name":"Button","type":"COMPONENT_SET","children":[
@@ -138,7 +138,7 @@ public class StyleExtractorTests
         """)!;
 
     [Fact]
-    public void IdenticalValuesCollapseIntoOneToken()
+    public void StyleExtractor_IdenticalValues_CollapseIntoOneToken()
     {
         var styles = new StyleExtractor().Extract(Screen());
 
@@ -147,7 +147,7 @@ public class StyleExtractorTests
     }
 
     [Fact]
-    public void ColorCategoryIsInferredFromTheNodeName()
+    public void StyleExtractor_ColorCategory_IsInferredFromTheNodeName()
     {
         var styles = new StyleExtractor().Extract(Screen());
 
@@ -158,7 +158,7 @@ public class StyleExtractorTests
     }
 
     [Fact]
-    public void SpacingNameSnapsToTheFourPixelGrid()
+    public void StyleExtractor_SpacingName_SnapsToTheFourPixelGrid()
     {
         var styles = new StyleExtractor().Extract(Screen());
         var spacing = styles.Single(s => s.Type == "SPACING");
@@ -172,11 +172,11 @@ public class StyleExtractorTests
     [InlineData(2, "xs")]
     [InlineData(8, "md")]
     [InlineData(40, "xxl")]
-    public void RadiusIsBucketedIntoNamedSizes(double value, string expected) =>
+    public void StyleExtractor_Radius_IsBucketedIntoNamedSizes(double value, string expected) =>
         Assert.Equal(expected, StyleExtractor.CategorizeRadius(value));
 
     [Fact]
-    public void FormattedOutputCarriesCountsAndTheEnterpriseCaveat()
+    public void StyleExtractor_FormattedOutput_CarriesCountsAndTheEnterpriseCaveat()
     {
         var formatted = StyleExtractor.Format(new StyleExtractor().Extract(Screen()));
 
@@ -188,7 +188,7 @@ public class StyleExtractorTests
 public class ParityReportTests
 {
     [Fact]
-    public void MatchingFieldsRaiseTheScoreAndMismatchesCarryFixes()
+    public void ParityReport_SomeFieldsMismatch_ScoresMatchesAndSuggestsFixes()
     {
         var design = (JsonObject)JsonNode.Parse("""{"fontSize":14,"paddingLeft":16,"cornerRadius":8}""")!;
         var code = (JsonObject)JsonNode.Parse("""{"fontSize":14,"paddingLeft":12,"cornerRadius":8}""")!;
@@ -204,7 +204,7 @@ public class ParityReportTests
     }
 
     [Fact]
-    public void SubPixelDifferencesAreNotTreatedAsDiscrepancies()
+    public void ParityReport_SubPixelDifferences_AreNotDiscrepancies()
     {
         var design = (JsonObject)JsonNode.Parse("""{"width":120.3}""")!;
         var code = (JsonObject)JsonNode.Parse("""{"width":120}""")!;
@@ -213,7 +213,7 @@ public class ParityReportTests
     }
 
     [Fact]
-    public void HexColourInCodeIsComparedAgainstFigmaChannels()
+    public void ParityReport_HexColourInCode_IsComparedAgainstFigmaChannels()
     {
         var design = (JsonObject)JsonNode.Parse("""{"fills":[{"type":"SOLID","color":{"r":1,"g":1,"b":1,"a":1}}]}""")!;
 
@@ -222,7 +222,7 @@ public class ParityReportTests
     }
 
     [Fact]
-    public void FieldsAbsentFromTheDesignAreReportedSeparatelyNotAsMismatches()
+    public void ParityReport_FieldsAbsentFromDesign_AreReportedSeparatelyFromMismatches()
     {
         var design = (JsonObject)JsonNode.Parse("""{"fontSize":14}""")!;
         var code = (JsonObject)JsonNode.Parse("""{"fontSize":14,"boxShadow":"0 1px 2px"}""")!;
@@ -238,7 +238,7 @@ public class ParityReportTests
 public class ComponentDocTests
 {
     [Fact]
-    public void DocumentCoversAnatomyVariantsPropertiesAndTokens()
+    public void ComponentDoc_ComponentSet_CoversAnatomyVariantsPropertiesAndTokens()
     {
         var node = JsonNode.Parse("""
             {
@@ -266,7 +266,7 @@ public class ComponentDocTests
     }
 
     [Fact]
-    public void CodeInfoBecomesItsOwnSection()
+    public void ComponentDoc_CodeInfoGiven_BecomesItsOwnSection()
     {
         var node = JsonNode.Parse("""{"id":"1:1","name":"Card","type":"COMPONENT"}""")!;
         var codeInfo = (JsonObject)JsonNode.Parse("""{"source":"src/Card.tsx","props":["title","onClick"]}""")!;
