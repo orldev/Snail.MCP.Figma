@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.orldev/snail-mcp-figma",
   "description": "Local MCP server for Figma: 141 tools that read and edit designs through the desktop plugin or REST",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packages": [
     {
       "registryType": "nuget",
       "identifier": "Snail.MCP.Figma",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
@@ -66,7 +66,7 @@
     {
       "registryType": "nuget",
       "identifier": "Snail.MCP.Figma",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "transport": {
         "type": "streamable-http",
         "url": "http://127.0.0.1:9233/mcp"
