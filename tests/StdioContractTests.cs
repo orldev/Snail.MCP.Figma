@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Tools.Prompts;
-using Snail.Sdk.Mcp.Testing;
 
 namespace Snail.MCP.Figma.Tests;
 
@@ -68,7 +67,7 @@ public class StdioContractTests
     [Fact]
     public async Task Tools_AsListed_KeepTheGuardRules()
     {
-        var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
 
         try
         {
@@ -88,7 +87,7 @@ public class StdioContractTests
     [Fact]
     public async Task Tools_CalledWithoutARequiredArgument_AnswerWithTheErrorEnvelope()
     {
-        var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
 
         try
         {
@@ -138,7 +137,7 @@ public class StdioContractTests
 
         public static async Task<ServerSession> StartAsync()
         {
-            var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
+            var dataDirectory = Path.Combine(TestFolder.Create(), "data");
             var (command, arguments) = ServerProgram.Command("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER");
             var start = new ProcessStartInfo
             {

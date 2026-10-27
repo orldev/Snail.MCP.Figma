@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Persistence;
 /// <summary>The cache is opened when the server starts, before any call needs it.</summary>
 public sealed class SnapshotCacheWarmUpTests : IDisposable
 {
-    private readonly string _directory = TemporaryFolder.Create();
+    private readonly string _directory = TestFolder.Create();
 
     public void Dispose()
     {

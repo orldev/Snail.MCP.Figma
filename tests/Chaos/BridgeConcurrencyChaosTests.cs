@@ -24,7 +24,7 @@ public class BridgeConcurrencyChaosTests(BridgeHostFixture bridge)
     public async Task AgentSlot_ReleasedWhileCommandsReadDeparture_NeverThrowsObjectDisposed()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { DataDirectory = TemporaryFolder.Create() }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { DataDirectory = TestFolder.Create() }, NullLogger<AgentRoster>.Instance);
         var agent = roster.Default;
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(1));
 
@@ -54,7 +54,7 @@ public class BridgeConcurrencyChaosTests(BridgeHostFixture bridge)
     public async Task AgentSlot_FirstNamingFaults_LaterCallsAreNotPoisoned()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { DataDirectory = TemporaryFolder.Create() }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { DataDirectory = TestFolder.Create() }, NullLogger<AgentRoster>.Instance);
         var agent = roster.Default;
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -242,7 +242,7 @@ public class BridgeConcurrencyChaosTests(BridgeHostFixture bridge)
 
     private ReadTools ReadTools(HttpMessageHandler handler)
     {
-        var config = new ServerConfig { DataDirectory = TemporaryFolder.Create(), AccessToken = "figd_chaos-token", Cache = { Enabled = false } };
+        var config = new ServerConfig { DataDirectory = TestFolder.Create(), AccessToken = "figd_chaos-token", Cache = { Enabled = false } };
         var api = new RestDocumentGateway(new OneHandlerFactory(handler), config, NullLogger<RestDocumentGateway>.Instance, new QuotaGate(), static (_, _) => Task.CompletedTask);
         var database = new DisabledSnapshotDatabase();
         var nodes = new SqliteNodeSnapshotStore(database, config.Cache, NullLogger<SqliteNodeSnapshotStore>.Instance);

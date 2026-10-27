@@ -100,7 +100,7 @@ public class ServerConfigTests
     [Fact]
     public void AccessToken_IsReadFromTheSettingsFile_UnlessTheEnvironmentNamesOne()
     {
-        var file = Path.Combine(TemporaryFolder.Create(), "config.json");
+        var file = Path.Combine(TestFolder.Create(), "config.json");
         File.WriteAllText(file, """{ "AccessToken": "figd_from-file" }""");
 
         try

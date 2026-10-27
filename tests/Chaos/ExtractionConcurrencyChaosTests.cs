@@ -9,7 +9,7 @@ public class ExtractionConcurrencyChaosTests
     [Fact]
     public async Task DesignSystemExtraction_ParallelProgressReports_KeepsEveryReport()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "design-system");
+        var outDir = Path.Combine(TestFolder.Create(), "design-system");
         var names = Enumerable.Range(1, 24).Select(index => $"Component{index}").ToArray();
         var analysis = new DsAnalysis
         {

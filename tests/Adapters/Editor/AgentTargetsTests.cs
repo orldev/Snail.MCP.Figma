@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 /// <summary>Where each agent of a shared server worked, kept across a restart and believed only while it can still be right.</summary>
 public sealed class AgentTargetsTests : IDisposable
 {
-    private readonly string _directory = TemporaryFolder.Create();
+    private readonly string _directory = TestFolder.Create();
 
     private string File => Path.Combine(_directory, AgentRoster.AgentsFileName);
 

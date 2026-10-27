@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-using Snail.Sdk.Mcp.Testing;
 
 namespace Snail.MCP.Figma.Tests;
 
@@ -19,7 +18,7 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
-    private readonly string _dataDirectory = TemporaryFolder.Create();
+    private readonly string _dataDirectory = TestFolder.Create();
 
     private readonly Uri _endpoint = new($"http://127.0.0.1:{FreePort()}/mcp");
 

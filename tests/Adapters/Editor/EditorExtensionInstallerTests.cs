@@ -44,7 +44,7 @@ public class EditorExtensionInstallerTests
     [Fact]
     public void EditorExtensionInstaller_InstalledBundle_YieldsItsPluginVersion()
     {
-        var directory = TemporaryFolder.Create();
+        var directory = TestFolder.Create();
         var codeJs = Path.Combine(directory, "code.js");
         File.WriteAllText(codeJs, "// header\nvar PLUGIN_VERSION = '1.39.0-snail.1'; // comment\nrest();");
 
@@ -66,7 +66,7 @@ public class EditorExtensionInstallerTests
     public void EditorExtensionInstaller_Provisioned_WritesTheTokenIntoThePanel()
     {
         var token = new BridgeToken(new string('a', 64));
-        var installer = new EditorExtensionInstaller(new ServerConfig { DataDirectory = TemporaryFolder.Create() }, token, NullLogger<EditorExtensionInstaller>.Instance);
+        var installer = new EditorExtensionInstaller(new ServerConfig { DataDirectory = TestFolder.Create() }, token, NullLogger<EditorExtensionInstaller>.Instance);
 
         installer.Provision();
 
@@ -79,7 +79,7 @@ public class EditorExtensionInstallerTests
     [Fact]
     public void EditorExtensionInstaller_TokenMadeAnew_RewritesTheInstalledPanel()
     {
-        var config = new ServerConfig { DataDirectory = TemporaryFolder.Create() };
+        var config = new ServerConfig { DataDirectory = TestFolder.Create() };
         new EditorExtensionInstaller(config, new BridgeToken(new string('a', 64)), NullLogger<EditorExtensionInstaller>.Instance).Provision();
         var renewed = new BridgeToken(new string('b', 64));
 
@@ -92,7 +92,7 @@ public class EditorExtensionInstallerTests
     [Fact]
     public async Task BridgeToken_TwoServersStartTogether_AgreeOnOneToken()
     {
-        var dataDirectory = TemporaryFolder.Create();
+        var dataDirectory = TestFolder.Create();
 
         var tokens = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => BridgeToken.LoadOrCreate(dataDirectory).Value)));
 

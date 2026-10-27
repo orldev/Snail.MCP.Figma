@@ -16,7 +16,7 @@ public class UntrustedInputChaosTests
     [Fact]
     public void CaptureStore_FormatClimbsOutOfTheFolder_RefusesTheReply()
     {
-        var config = new ServerConfig { DataDirectory = TemporaryFolder.Create() };
+        var config = new ServerConfig { DataDirectory = TestFolder.Create() };
         var store = new CaptureStore(config, NullLogger<CaptureStore>.Instance);
         var reply = new JsonObject { ["base64"] = "iVBORw0KGgo=", ["format"] = "png/../../escape" };
 
@@ -33,7 +33,7 @@ public class UntrustedInputChaosTests
     [InlineData("through a link")]
     public async Task DesignSystemExtraction_ManifestPointsOutsideTheRoot_RefusesToReadIt(string route)
     {
-        var workspace = TemporaryFolder.Create();
+        var workspace = TestFolder.Create();
         var root = Directory.CreateDirectory(Path.Combine(workspace, "app")).FullName;
         var outDir = Path.Combine(workspace, "design-system");
         var secret = Path.Combine(workspace, "secret.txt");

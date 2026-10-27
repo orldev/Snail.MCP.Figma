@@ -39,7 +39,7 @@ public class PluginScriptToolsTests(BridgeHostFixture bridge)
         public JsonObject SaveAndReplace(JsonObject image)
         {
             var bytes = Convert.FromBase64String(image["base64"]!.GetValue<string>());
-            var path = Path.Combine(TemporaryFolder.Create(), $"export.{(image["format"]?.GetValue<string>() ?? "bin").ToLowerInvariant()}");
+            var path = Path.Combine(TestFolder.Create(), $"export.{(image["format"]?.GetValue<string>() ?? "bin").ToLowerInvariant()}");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllBytes(path, bytes);
             image.Remove("base64");

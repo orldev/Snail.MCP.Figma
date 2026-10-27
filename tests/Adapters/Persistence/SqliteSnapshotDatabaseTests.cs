@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Persistence;
 /// <summary>The cache file of earlier versions is a cache too: it is removed on first open, not converted.</summary>
 public sealed class SqliteSnapshotDatabaseTests : IDisposable
 {
-    private readonly string _directory = TemporaryFolder.Create();
+    private readonly string _directory = TestFolder.Create();
 
     public void Dispose()
     {

@@ -10,7 +10,7 @@ public sealed class SampleAppFixture : IDisposable
 {
     public SampleAppFixture()
     {
-        Root = Path.Combine(TemporaryFolder.Create(), "app");
+        Root = Path.Combine(TestFolder.Create(), "app");
         OutDir = Path.Combine(Root, "design-system");
 
         Write("package.json", """
@@ -481,7 +481,7 @@ public class ProjectAnalyzerTests(SampleAppFixture app) : IClassFixture<SampleAp
     [Fact]
     public void ProjectAnalyzer_AnalysisWritten_ReadsBackAsAManifest()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "out");
+        var outDir = Path.Combine(TestFolder.Create(), "out");
 
         try
         {
@@ -530,7 +530,7 @@ public partial class ScaffolderTests(SampleAppFixture app) : IClassFixture<Sampl
 
     private (DsAnalysis Analysis, TokenDocument Document, string OutDir) Prepare()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "pkg");
+        var outDir = Path.Combine(TestFolder.Create(), "pkg");
         var analysis = RealExtraction.Analyzer.Analyze([_app.Root], new AnalyzeOptions { OutDir = outDir });
         var tokens = RealExtraction.Tokens.Extract(
             RealExtraction.Sources.Walk(_app.Root).Files,
@@ -633,7 +633,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     [Fact]
     public void ExtractionVerifier_FreshlyScaffoldedPackage_PassesTheGate()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "verify");
+        var outDir = Path.Combine(TestFolder.Create(), "verify");
 
         try
         {
@@ -667,7 +667,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     [Fact]
     public void ExtractionVerifier_TokensFileMissing_FailsWithAnActionableHint()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "empty");
+        var outDir = Path.Combine(TestFolder.Create(), "empty");
         Directory.CreateDirectory(outDir);
 
         try
@@ -687,7 +687,7 @@ public class ExtractionVerifierTests(SampleAppFixture app) : IClassFixture<Sampl
     [Fact]
     public void ExtractionVerifier_DanglingAlias_FailsTheImportReadinessCheck()
     {
-        var outDir = Path.Combine(TemporaryFolder.Create(), "dangling");
+        var outDir = Path.Combine(TestFolder.Create(), "dangling");
         Directory.CreateDirectory(Path.Combine(outDir, "tokens"));
 
         try

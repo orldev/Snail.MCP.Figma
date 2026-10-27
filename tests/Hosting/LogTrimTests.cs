@@ -88,7 +88,7 @@ public class LogTrimTests
         await trim.StopAsync(CancellationToken.None);
     }
 
-    private static string LogFile() => Path.Combine(TemporaryFolder.Create(), "Snail.MCP.Figma.log");
+    private static string LogFile() => Path.Combine(TestFolder.Create(), "Snail.MCP.Figma.log");
 
     private static LogTrim Trim(string path, TimeProvider time) =>
         new(new LogTrimOptions(path, Limit, Cadence), time, NullLogger<LogTrim>.Instance);

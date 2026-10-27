@@ -17,7 +17,7 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
 {
     private readonly BridgeHostFixture _bridge = bridge;
     private readonly string _screenshotDirectory =
-        Path.Combine(TemporaryFolder.Create(), "images");
+        Path.Combine(TestFolder.Create(), "images");
 
     private static string NewFileKey() => $"img{Guid.NewGuid().ToString("N")[..10]}";
 

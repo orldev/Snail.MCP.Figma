@@ -8,7 +8,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 /// <summary>The reader is the only place that touches the disk for a picture, so its refusals are the whole error message the model gets.</summary>
 public class ImageFilesTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(TemporaryFolder.Create(), "images");
+    private readonly string _directory = Path.Combine(TestFolder.Create(), "images");
 
     public ImageFilesTests() => Directory.CreateDirectory(_directory);
 

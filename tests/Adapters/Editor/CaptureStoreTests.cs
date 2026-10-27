@@ -6,7 +6,7 @@ namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 public sealed class CaptureStoreTests : IDisposable
 {
     private readonly string _dataDirectory =
-        Path.Combine(TemporaryFolder.Create(), "data");
+        Path.Combine(TestFolder.Create(), "data");
 
     private CaptureStore CreateStore(int retainCount = 30) =>
         new(

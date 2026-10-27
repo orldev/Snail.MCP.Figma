@@ -73,7 +73,7 @@ public class BridgeHostFixture : IAsyncLifetime
 
         var config = new ServerConfig
         {
-            DataDirectory = TemporaryFolder.Create(),
+            DataDirectory = TestFolder.Create(),
             Cache = { Enabled = false },
             Bridge = { RequestTimeoutSeconds = 5, PortRangeStart = SafePortRangeStart, PortRangeEnd = SafePortRangeEnd, AgentName = "test-agent" },
             Transport = Transport,
