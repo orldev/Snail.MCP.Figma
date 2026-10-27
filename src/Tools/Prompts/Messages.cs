@@ -20,6 +20,9 @@ public static class Messages
     /// <summary>Hint shown when a read tool fails on a bad argument or an unresolved file.</summary>
     public const string PassFileUrlHint = "Pass fileUrl explicitly.";
 
+    /// <summary>Hint shown when a call lacks an argument the tool requires.</summary>
+    public const string PassRequiredArgumentsHint = "Pass every required argument; the tool's input schema names them.";
+
     /// <summary>Hint shown when a command is refused because several files are connected and no target was chosen.</summary>
     public const string HowToChooseTarget =
         "Call figma_navigate with the link of the file you work in; figma_list_open_files shows the connected files. " +

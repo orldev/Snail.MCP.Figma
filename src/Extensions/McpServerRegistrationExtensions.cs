@@ -26,7 +26,7 @@ public static class McpServerRegistrationExtensions
             return builder;
         }
 
-        /// <summary>The one server every agent on the machine shares, over Streamable HTTP on loopback; launchd keeps it running, so it has no idle watchdog.</summary>
+        /// <summary>The one server every agent on the machine shares, over Streamable HTTP on loopback; launchd keeps it running, so it has no idle watchdog, and it keeps the log launchd appends to within a size.</summary>
         /// <remarks>A background helper that fails is logged and left stopped rather than allowed to stop the host, which would cut every agent off from Figma at once.</remarks>
         /// <exception cref="ArgumentException">The configured address is not a loopback one.</exception>
         public WebApplicationBuilder ConfigureSharedMcpServer(ServerConfig config)
@@ -41,6 +41,7 @@ public static class McpServerRegistrationExtensions
             builder
                 .AddFigma(config)
                 .AddSingleton(endpoint)
+                .AddLogTrim(config.LogFile)
                 .AddMcpHttpTransport();
 
             return builder;

@@ -22,6 +22,8 @@
     <dict>
         <key>SNAIL_MCP_FIGMA_TRANSPORT</key>
         <string>Http</string>
+        <key>SNAIL_MCP_FIGMA_LOG_FILE</key>
+        <string>{{HOME}}/Library/Logs/Snail.MCP.Figma.log</string>
     </dict>
     <key>RunAtLoad</key>
     <true/>

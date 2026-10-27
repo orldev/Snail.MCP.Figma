@@ -58,14 +58,20 @@ public static class IntegrationRegistrationExtensions
             services.AddSingleton<IEditorExtensionInstaller>(provider => provider.GetRequiredService<EditorExtensionInstaller>());
             services.AddHostedService(provider => provider.GetRequiredService<EditorExtensionInstaller>());
 
-            services.AddHttpClient(SiblingDiscovery.HttpClientName, client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(1);
-            });
-
+            services.AddSiblingProbe();
             services.AddHostedService<SiblingDiscovery>();
 
             return services;
+        }
+
+        /// <summary>The client that knocks on the other bridge ports: a second to answer, and nothing written about the knock.</summary>
+        /// <remarks>Most ports of the range have no server, so the probe is refused nine times every 45 seconds by design; the SDK's logging handlers wrote each refusal with its stack at Information, 5.2 million stack lines in 11 days on the shared server.</remarks>
+        private void AddSiblingProbe()
+        {
+            services.AddHttpClient(SiblingDiscovery.HttpClientName, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(1);
+            }).RemoveAllLoggers();
         }
     }
 }

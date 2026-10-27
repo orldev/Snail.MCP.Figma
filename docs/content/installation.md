@@ -267,7 +267,8 @@ Measured with four sessions on an Apple Silicon Mac:
 
 The server listens on loopback only and refuses any request that carries an `Origin` header, so no web page can
 reach it. Each client session is an agent of its own, named in the panel after the folder it works in, and a
-session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MCP.Figma.log`. To go back to
+session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MCP.Figma.log`; once it passes 64 MB the
+server moves it to `Snail.MCP.Figma.1.log` and starts it over, so the two together stay under 128 MB. To go back to
 stdio, `launchctl bootout gui/$(id -u)/s3l.mcp.figma` and restore the stdio entry.
 
 ## Updating

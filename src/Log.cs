@@ -27,6 +27,12 @@ internal static partial class Log
     [LoggerMessage(EventId = 406, Level = LogLevel.Warning, Message = "No MCP tool has been called for {IdleFor}; the process looks orphaned, shutting down")]
     internal static partial void IdleShutdown(ILogger logger, TimeSpan idleFor);
 
+    [LoggerMessage(EventId = 407, Level = LogLevel.Information, Message = "Log {Path} passed {Megabytes} MB and starts over; the lines before the cut are in {Previous}")]
+    internal static partial void LogTrimmed(ILogger logger, string path, long megabytes, string previous);
+
+    [LoggerMessage(EventId = 408, Level = LogLevel.Warning, Message = "Log {Path} could not be trimmed: {Message}")]
+    internal static partial void LogNotTrimmed(ILogger logger, string path, string message);
+
     [LoggerMessage(EventId = 601, Level = LogLevel.Information, Message = "The client did not declare roots, so its agent keeps the name it gave")]
     internal static partial void RootsNotDeclared(ILogger logger);
 
@@ -38,4 +44,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 604, Level = LogLevel.Warning, Message = "The client refused roots/list")]
     internal static partial void RootsRefused(ILogger logger, Exception failure);
+
+    [LoggerMessage(EventId = 605, Level = LogLevel.Warning, Message = "{Tool} was called without the required argument(s) {Missing}")]
+    internal static partial void CalledWithoutRequiredArguments(ILogger logger, string tool, string missing);
 }

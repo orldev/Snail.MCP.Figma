@@ -84,6 +84,30 @@ public class StdioContractTests
         }
     }
 
+    /// <summary>A call without a required argument is answered like every other failure, as data with a hint, not as the SDK's "An error occurred invoking".</summary>
+    [Fact]
+    public async Task Tools_CalledWithoutARequiredArgument_AnswerWithTheErrorEnvelope()
+    {
+        var dataDirectory = Path.Combine(TemporaryFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var answer = await client.CallToolAsync("figma_navigate");
+            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
+
+            Assert.True(answer.IsError);
+            Assert.False(envelope.GetProperty("ok").GetBoolean());
+            Assert.Contains("fileUrlOrKey", envelope.GetProperty("error").GetString(), StringComparison.Ordinal);
+            Assert.Equal(Messages.PassRequiredArgumentsHint, envelope.GetProperty("hint").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
     /// <summary>Tools are discovered by the SDK through attributes, so a misconfigured attribute is invisible to reflection-only guards.</summary>
     private static HashSet<string> ToolNamesOfAssembly()
     {

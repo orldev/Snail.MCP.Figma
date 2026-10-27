@@ -101,6 +101,7 @@ public static class PipelineRegistrationExtensions
                 .WithTools<WriteTools>(json)
                 .WithRequestFilters(filters => filters
                     .AddCallToolFilter(TouchActivity)
+                    .AddCallToolFilter(RefuseIncompleteCalls)
                     .AddCallToolFilter(ServeTheAgent));
         }
     }
@@ -154,6 +155,39 @@ public static class PipelineRegistrationExtensions
             }
 
             return await next(context, cancellationToken);
+        };
+
+    /// <summary>Answers a call that lacks a required argument with the error envelope every tool answers with, naming what is missing.</summary>
+    /// <remarks>Without this the SDK's marshaller threw ArgumentException past every tool's guard, and the agent got "An error occurred invoking" with no cause and no hint: five such calls in the shared server's log of 16–27.10.2026, four of them figma_navigate without fileUrlOrKey.</remarks>
+    private static McpRequestHandler<CallToolRequestParams, CallToolResult> RefuseIncompleteCalls(
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next) =>
+        (context, cancellationToken) =>
+        {
+            if (context.MatchedPrimitive is not McpServerTool tool)
+            {
+                return next(context, cancellationToken);
+            }
+
+            var missing = ToolArguments.Missing(tool.ProtocolTool.InputSchema, context.Params?.Arguments);
+
+            if (missing.Count == 0)
+            {
+                return next(context, cancellationToken);
+            }
+
+            var names = string.Join(", ", missing);
+
+            if (context.Services?.GetService<ILoggerFactory>() is { } loggers)
+            {
+                Log.CalledWithoutRequiredArguments(loggers.CreateLogger(typeof(ToolArguments)), tool.ProtocolTool.Name, names);
+            }
+
+            var answer = ToolResponse.Textual(ToolResponse.Error(
+                $"{tool.ProtocolTool.Name} was called without the required argument(s) {names}.",
+                Messages.PassRequiredArgumentsHint));
+            answer.IsError = true;
+
+            return ValueTask.FromResult(answer);
         };
 
     private static McpRequestHandler<CallToolRequestParams, CallToolResult> TouchActivity(

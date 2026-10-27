@@ -74,6 +74,9 @@ public sealed class ServerConfig
     /// <summary>Minutes without a tool call after which the process exits, unless a plugin is connected; 0 disables the watchdog.</summary>
     public int IdleTimeoutMinutes { get; set; } = 60;
 
+    /// <summary>The file launchd appends the shared server's stderr to; when named, the server keeps it within a size. The installed job names it; a server whose stderr goes to its client leaves it empty.</summary>
+    public string? LogFile { get; set; }
+
     /// <summary>Whether a non-blank <see cref="AccessToken"/> is set, which the REST channel needs.</summary>
     public bool HasAccessToken => !string.IsNullOrWhiteSpace(AccessToken);
 
