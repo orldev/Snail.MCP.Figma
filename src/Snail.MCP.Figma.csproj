@@ -18,7 +18,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <PackageVersion>0.2.0</PackageVersion>
+        <Version>0.2.0</Version>
         <Description>Local MCP server that gives AI agents 141 tools for reading and editing Figma. Reads go through the live Figma Desktop plugin — no REST quota spent and unsaved edits visible — or through the REST API behind a SQLite snapshot cache and a sanitizer that keeps the raw Figma JSON out of the model context; writes go through the plugin: nodes, variables, components, FigJam and Slides. Also design tokens in 11 formats, version diffs and Markdown changelogs, and design system extraction from a codebase.</Description>
         <PackageTags>mcp;mcp-server;modelcontextprotocol;ai;claude;figma;figjam;design-tokens;design-system;dotnet-tool</PackageTags>
         <PackageProjectUrl>https://github.com/orldev/Snail.MCP.Figma</PackageProjectUrl>
