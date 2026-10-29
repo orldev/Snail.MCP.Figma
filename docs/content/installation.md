@@ -85,7 +85,9 @@ The scopes worth granting, and what each one buys:
 | File content — read | `/v1/files/…`, `/v1/images/…` | REST reads and renders: `figma_get_file_data`, `figma_get_component`, `figma_get_styles`, `figma_get_component_image` |
 | File versions — read | `/v1/files/{key}/versions` | `figma_get_file_versions`, `figma_get_file_at_version`, `figma_diff_versions`, `figma_blame_node`, `figma_generate_changelog` |
 | Comments — read and write | `/v1/files/{key}/comments` | `figma_get_comments`, `figma_post_comment`, `figma_delete_comment` |
-| Library assets — read | `/v1/components/{key}`, `/v1/styles/{key}`, `/v1/teams/{id}/…` | `figma_get_library_component_by_key`, `figma_get_library_style_by_key`, `figma_search_team_components` |
+| Library assets — read | `/v1/components/{key}`, `/v1/component_sets/{key}`, `/v1/styles/{key}` | `figma_get_library_component_by_key`, `figma_get_library_style_by_key` |
+| Library content — read | `/v1/files/{key}/components`, `/v1/files/{key}/component_sets` | `figma_search_components` with `libraryFileUrl`: the catalog of a library file with its keys; variant keys in `figma_get_library_component_by_key`; `figma_get_design_system_kit` |
+| Team library content — read | `/v1/teams/{id}/components`, `/v1/teams/{id}/component_sets` | `figma_search_team_components` |
 | Variables — read and write | `/v1/files/{key}/variables/…` | REST variables. Figma restricts this API to Enterprise plans; on any other plan read variables through the plugin (`figma_get_token_values`) |
 
 Keep the token in the `env` block of the client configuration or in your shell environment. The server will

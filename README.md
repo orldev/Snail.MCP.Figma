@@ -78,6 +78,8 @@ The token starts with `figd_`; OAuth tokens (`figu_`) work too. Grant the scopes
 | File versions — read | `figma_get_file_versions`, version diffs, `figma_blame_node` |
 | Comments — read/write | `figma_get_comments`, `figma_post_comment`, `figma_delete_comment` |
 | Library assets — read | Components and styles of other teams' libraries by key |
+| Library content — read | The catalog of a library file with its keys, `figma_search_components` with `libraryFileUrl` |
+| Team library content — read | `figma_search_team_components` across a team's libraries |
 | Variables — read/write | REST variables; Figma exposes this on Enterprise plans only — through the plugin variables work on any plan |
 
 Keep the token in the environment of the MCP client (below), not in a file in your repository.

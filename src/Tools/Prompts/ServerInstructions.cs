@@ -15,7 +15,7 @@ public static class ServerInstructions
         Families, by the words to search for:
         - read file, node, styles, variables, render: figma_get_file_data, figma_get_variables, figma_get_component_image
         - edit nodes (move, resize, fills, text, delete): figma_move_node, figma_set_fills; create nodes, SVG, images: figma_create_child, figma_create_node_from_jsx
-        - components, variants, instances: figma_search_components, figma_instantiate_component
+        - components, variants, instances, library keys: figma_search_components, figma_instantiate_component
         - variables, modes, themes: figma_create_variable, figma_setup_design_tokens; tokens in code formats: figma_export_tokens, figma_import_tokens
         - design to code, parity, docs: figma_get_component_for_development, figma_check_design_parity; whole design system: figma_get_design_system_kit; from a codebase: figma_ds_analyze
         - versions, diffs, blame: figma_get_file_versions, figma_diff_versions; comments: figma_get_comments; team libraries: figma_search_team_components

@@ -4,6 +4,7 @@ using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Adapters.Persistence.Sqlite;
 using Snail.MCP.Figma.Adapters.Rest;
 using Snail.MCP.Figma.Application.Documents;
+using Snail.MCP.Figma.Application.Libraries;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools;
@@ -195,7 +196,7 @@ public class BridgeConcurrencyChaosTests(BridgeHostFixture bridge)
     [Fact]
     public async Task EditorToolBase_TargetFileDisconnected_NamesTheFile()
     {
-        var tools = new ComponentTools(_bridge.Gateway, NullLogger<ComponentTools>.Instance);
+        var tools = new ComponentTools(_bridge.Gateway, new PublishedLibrary(new FakePublishedSource(new JsonObject())), NullLogger<ComponentTools>.Instance);
         _bridge.Agent.Return("GONEFILE123", "Checkout flow");
 
         try

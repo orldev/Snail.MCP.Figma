@@ -107,8 +107,10 @@ public sealed class FakePublishedSource(JsonNode file, string version = "v1") : 
     public Task<JsonNode> GetComponentsAsync(string fileKey, CancellationToken cancellationToken = default) =>
         Task.FromResult(ComponentsResponse?.DeepClone() ?? new JsonObject());
 
+    public JsonNode? ComponentSetsResponse { get; set; }
+
     public Task<JsonNode> GetComponentSetsAsync(string fileKey, CancellationToken cancellationToken = default) =>
-        Task.FromResult<JsonNode>(new JsonObject());
+        Task.FromResult(ComponentSetsResponse?.DeepClone() ?? new JsonObject());
 
     /// <summary>How often rendering was requested; shows whether the render cache saves anything.</summary>
     public int ImageCalls { get; private set; }

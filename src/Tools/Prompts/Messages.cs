@@ -20,6 +20,16 @@ public static class Messages
     /// <summary>Hint shown when a read tool fails on a bad argument or an unresolved file.</summary>
     public const string PassFileUrlHint = "Pass fileUrl explicitly.";
 
+    /// <summary>Hint shown when figma_search_components cannot read a file key from the library link it was given.</summary>
+    public const string LibraryFileLinkHint =
+        "Pass the link of the library file, such as https://www.figma.com/design/<key>/Name, or the key alone.";
+
+    /// <summary>Hint shown when a library file publishes no components at all.</summary>
+    public const string NothingPublishedHint =
+        "This file publishes no components. Its components may never have been published (Assets → Publish in Figma), " +
+        "or the link points at a file the token cannot view. Opened in Figma with the plugin, its own components are listed " +
+        "by figma_search_components without libraryFileUrl.";
+
     /// <summary>Hint shown when a call lacks an argument the tool requires.</summary>
     public const string PassRequiredArgumentsHint = "Pass every required argument; the tool's input schema names them.";
 

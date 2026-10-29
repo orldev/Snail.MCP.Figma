@@ -1,5 +1,6 @@
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Libraries;
 using Snail.MCP.Figma.Tools;
 
 namespace Snail.MCP.Figma.Tests.Tools;
@@ -67,7 +68,7 @@ public class ComponentToolsTests(BridgeHostFixture bridge)
         await using var plugin = await _bridge.ConnectPluginAsync(fileKey);
         await _bridge.Agent.TryClaimAsync(fileKey);
 
-        var tools = new ComponentTools(_bridge.Gateway, NullLogger<ComponentTools>.Instance);
+        var tools = new ComponentTools(_bridge.Gateway, new PublishedLibrary(new FakePublishedSource(new JsonObject())), NullLogger<ComponentTools>.Instance);
         var response = Parse(await tools.AddComponentPropertyAsync("1:2", "Size", "VARIANT"));
 
         Assert.False(response["ok"]!.GetValue<bool>());

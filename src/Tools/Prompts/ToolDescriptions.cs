@@ -52,15 +52,22 @@ public static class ToolDescriptions
     {
         /// <summary><c>figma_search_components</c></summary>
         public const string SearchComponents =
-            "Searches components in the open file by a substring of the name. Returns the ids and keys " +
-            "needed by figma_instantiate_component. Ids live only inside the current session — " +
-            "do not reuse them from past conversations. Requires the plugin.";
+            "Finds components and the keys figma_instantiate_component places them by. " +
+            "Without libraryFileUrl it reads the open file through the plugin: the file's own component sets and components, " +
+            "and under library the library components of the instances placed in it, each with its set and instance count. " +
+            "With libraryFileUrl, the link of a library file, it lists what that library publishes through REST, no plugin needed: " +
+            "component sets with their variant count and standalone components; includeVariants adds every variant's key; " +
+            "page on with offset. Figma's Plugin API cannot browse a library, so a component no open file uses is found here " +
+            "by its library's link, or across a team with figma_search_team_components. " +
+            "Node ids hold only in the current session — do not reuse them from past conversations.";
 
         /// <summary><c>figma_instantiate_component</c></summary>
         public const string InstantiateComponent =
             "Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id " +
-            "(nodeId). Take keys and ids from figma_search_components in the same session. " +
-            "overrides is JSON with the instance property values. Requires the plugin.";
+            "(nodeId). A key may be a component's, a variant's or a set's: a set places its default variant, and variant JSON picks another. " +
+            "Keys come from figma_search_components, which also reads a library by its link, or from figma_search_team_components; " +
+            "Figma imports by key only a published component of a library the user can access. Node ids come from " +
+            "figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.";
 
         /// <summary><c>figma_create_component_set</c></summary>
         public const string CreateComponentSet =
@@ -290,10 +297,10 @@ public static class ToolDescriptions
         /// <summary><c>figma_get_library_component_by_key</c></summary>
         public const string GetLibraryComponentByKey =
             "The full property definitions, variants and visual specifications of ONE published library component " +
-            "by its key — the 40-character hexadecimal string from figma_search_components. " +
+            "by its key — the 40-character hexadecimal string from figma_search_components or figma_search_team_components. " +
             "Take it when you already have the key and need to know which properties and variants the component offers before " +
             "inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: " +
-            "for a set you must insert the key of the VARIANT from variants[], not the key of the set itself.";
+            "variants[] carries each variant's key, and figma_instantiate_component takes a variant's key, or the set's key with variant JSON.";
 
         /// <summary><c>figma_get_library_style_by_key</c></summary>
         public const string GetLibraryStyleByKey =
@@ -303,10 +310,10 @@ public static class ToolDescriptions
 
         /// <summary><c>figma_search_team_components</c></summary>
         public const string SearchTeamComponents =
-            "Searches the published components of a whole team library by name or description substring — unlike " +
-            "figma_search_components, which only sees the currently open file. Takes the team id or a figma.com link " +
-            "with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; " +
-            "paginate with nextCursor. Costs REST requests.";
+            "Searches the published components of a whole team library by name or description substring. " +
+            "For one library file, figma_search_components with its link is the cheaper way and needs no team id. " +
+            "Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key " +
+            "and figma_instantiate_component; paginate with nextCursor. Costs REST requests.";
 
         /// <summary><c>figma_get_library_variables</c></summary>
         public const string GetLibraryVariables =

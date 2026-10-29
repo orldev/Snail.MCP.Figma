@@ -682,8 +682,8 @@
     // COMPONENT OPERATIONS
     // ============================================================================
 
-    window.getLocalComponents = () => {
-      return window.sendPluginCommand('GET_LOCAL_COMPONENTS', {}, 300000)
+    window.getLocalComponents = (params) => {
+      return window.sendPluginCommand('GET_LOCAL_COMPONENTS', params || {}, 300000)
         .catch(function(err) { return { success: false, error: err.message || String(err) }; });
     };
 
@@ -999,7 +999,7 @@
         'RENAME_MODE': function(params) { return window.renameMode(params.collectionId, params.modeId, params.newName); },
         'REFRESH_VARIABLES': function() { return window.refreshVariables(); },
         'CREATE_VARIABLE_COLLECTION': function(params) { return window.createVariableCollection(params.name, params); },
-        'GET_LOCAL_COMPONENTS': function() { return window.getLocalComponents(); },
+        'GET_LOCAL_COMPONENTS': function(params) { return window.getLocalComponents(params); },
         'INSTANTIATE_COMPONENT': function(params) { return window.instantiateComponent(params.componentKey, params); },
         // Component set creation — forward params wholesale; result payload rides in msg.data.
         // Timeout scales with variant count (the plugin builds all variants in one

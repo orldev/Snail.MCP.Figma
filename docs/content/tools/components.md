@@ -2,14 +2,17 @@
 
 ## <code>figma_<wbr>search_<wbr>components</code>
 
-Searches components in the open file by a substring of the name. Returns the ids and keys needed by figma_instantiate_component. Ids live only inside the current session — do not reuse them from past conversations. Requires the plugin.
+Finds components and the keys figma_instantiate_component places them by. Without libraryFileUrl it reads the open file through the plugin: the file's own component sets and components, and under library the library components of the instances placed in it, each with its set and instance count. With libraryFileUrl, the link of a library file, it lists what that library publishes through REST, no plugin needed: component sets with their variant count and standalone components; includeVariants adds every variant's key; page on with offset. Figma's Plugin API cannot browse a library, so a component no open file uses is found here by its library's link, or across a team with figma_search_team_components. Node ids hold only in the current session — do not reuse them from past conversations.
 
-*read-only · repeat-safe · the connected file only.*
+*read-only · repeat-safe · may reach the REST API.*
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `query` | `string?` | — | `null` | Substring of the name. Empty returns every component of the file. |
+| `query` | `string?` | — | `null` | Substring of the name or of the set a variant belongs to; in a library also of the description or page. Empty returns everything. |
+| `libraryFileUrl` | `string?` | — | `null` | Link to a library file, or its key. Given, the tool lists what that library publishes, with keys, through REST and without the plugin. Empty: the open file through the plugin. |
+| `includeVariants` | `boolean` | — | `false` | With libraryFileUrl: also list every variant under its set, each with its own key. |
 | `limit` | `integer` | — | `50` | Maximum number of results. |
+| `offset` | `integer` | — | `0` | With libraryFileUrl: how many matches to skip, the nextOffset of the previous answer. |
 
 <details><summary>JSON Schema</summary>
 
@@ -18,17 +21,35 @@ Searches components in the open file by a substring of the name. Returns the ids
   "type": "object",
   "properties": {
     "query": {
-      "description": "Substring of the name. Empty returns every component of the file.",
+      "description": "Substring of the name or of the set a variant belongs to; in a library also of the description or page. Empty returns everything.",
       "type": [
         "string",
         "null"
       ],
       "default": null
     },
+    "libraryFileUrl": {
+      "description": "Link to a library file, or its key. Given, the tool lists what that library publishes, with keys, through REST and without the plugin. Empty: the open file through the plugin.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "includeVariants": {
+      "description": "With libraryFileUrl: also list every variant under its set, each with its own key.",
+      "type": "boolean",
+      "default": false
+    },
     "limit": {
       "description": "Maximum number of results.",
       "type": "integer",
       "default": 50
+    },
+    "offset": {
+      "description": "With libraryFileUrl: how many matches to skip, the nextOffset of the previous answer.",
+      "type": "integer",
+      "default": 0
     }
   }
 }
@@ -38,7 +59,7 @@ Searches components in the open file by a substring of the name. Returns the ids
 
 ## <code>figma_<wbr>instantiate_<wbr>component</code>
 
-Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id (nodeId). Take keys and ids from figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.
+Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id (nodeId). A key may be a component's, a variant's or a set's: a set places its default variant, and variant JSON picks another. Keys come from figma_search_components, which also reads a library by its link, or from figma_search_team_components; Figma imports by key only a published component of a library the user can access. Node ids come from figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.
 
 *only adds · every call adds · the connected file only.*
 

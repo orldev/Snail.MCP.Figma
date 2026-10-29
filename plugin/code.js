@@ -8,7 +8,7 @@
 // files IT ships and asks the UI to show an update banner on mismatch.
 // Stays in the first 2048 characters: EditorExtensionInstaller.ParsePluginVersion
 // reads only that prefix.
-var PLUGIN_VERSION = '0.2.0'; // Bumped on every change to the bundled plugin files.
+var PLUGIN_VERSION = '0.2.2'; // Bumped on every change to the bundled plugin files.
 
 // ============================================================================
 // FILE MAP — search a banner name below to jump to its section
@@ -1702,6 +1702,10 @@ figma.ui.onmessage = async (msg) => {
       // Find all component sets and standalone components in the file
       var components = [];
       var componentSets = [];
+      // With includeLibrary, the instances met on the way: their main components that come from a library are the
+      // library components this file already uses, the only part of a library the Plugin API lets a plugin see.
+      var includeLibrary = msg.includeLibrary === true;
+      var instances = [];
 
       // Helper to extract component data
       function extractComponentData(node, isPartOfSet) {
@@ -1824,6 +1828,11 @@ figma.ui.onmessage = async (msg) => {
           if (!node.parent || node.parent.type !== 'COMPONENT_SET') {
             components.push(extractComponentData(node, false));
           }
+        } else if (node.type === 'INSTANCE') {
+          // An instance holds no component of its own, and the instances nested in it are the inside of its
+          // component: only the instances placed in the file say which library components the file uses.
+          if (includeLibrary) instances.push(node);
+          return;
         }
 
         // Recurse into children — skip unresolvable slot sublayers
@@ -1871,6 +1880,8 @@ figma.ui.onmessage = async (msg) => {
 
       console.log('🐌 [Snail Bridge] Found ' + components.length + ' components and ' + componentSets.length + ' component sets');
 
+      var library = includeLibrary ? await collectLibraryComponents(instances) : null;
+
       figma.ui.postMessage({
         type: 'GET_LOCAL_COMPONENTS_RESULT',
         requestId: msg.requestId,
@@ -1880,6 +1891,9 @@ figma.ui.onmessage = async (msg) => {
           componentSets: componentSets,
           totalComponents: components.length,
           totalComponentSets: componentSets.length,
+          libraryComponents: library ? library.components : undefined,
+          libraryInstancesScanned: library ? library.scanned : undefined,
+          libraryInstancesTotal: library ? library.total : undefined,
           // Include file metadata for context verification
           fileName: figma.root.name,
           fileKey: figma.fileKey || null,
@@ -7238,3 +7252,49 @@ console.log('🐌 [Snail Bridge] Plugin will stay open until manually closed');
 
 // Plugin stays open - no auto-close
 // UI iframe remains accessible so the in-iframe WebSocket bridge client can keep relaying state to the MCP server
+
+// ============================================================================
+// Library components in use: the main components of the instances placed in the file that come from a library. Figma's
+// Plugin API cannot list a library, but every instance knows its main component, and a remote one carries the key a
+// plugin imports it by. Instances nested inside other instances are not asked: they are the inside of a component.
+// Instances are resolved in batches, at most LIBRARY_INSTANCE_LIMIT of them, so a huge file answers instead of hanging.
+// ============================================================================
+var LIBRARY_INSTANCE_LIMIT = 5000;
+var LIBRARY_BATCH_SIZE = 100;
+
+async function collectLibraryComponents(instances) {
+  var byKey = {};
+  var order = [];
+  var scanned = Math.min(instances.length, LIBRARY_INSTANCE_LIMIT);
+
+  for (var start = 0; start < scanned; start += LIBRARY_BATCH_SIZE) {
+    var batch = instances.slice(start, Math.min(start + LIBRARY_BATCH_SIZE, scanned));
+    var mains = await Promise.all(batch.map(function(instance) {
+      return instance.getMainComponentAsync().catch(function() { return null; });
+    }));
+
+    mains.forEach(function(main) {
+      if (!main || main.remote !== true || !main.key) return;
+
+      var entry = byKey[main.key];
+      if (!entry) {
+        entry = { key: main.key, name: main.name, instances: 0 };
+        var parent = main.parent;
+        if (parent && parent.type === 'COMPONENT_SET') {
+          entry.set = { key: parent.key, name: parent.name };
+        }
+        byKey[main.key] = entry;
+        order.push(main.key);
+      }
+      entry.instances++;
+    });
+
+    await new Promise(function(resolve) { setTimeout(resolve, 0); });
+  }
+
+  return {
+    components: order.map(function(key) { return byKey[key]; }),
+    scanned: scanned,
+    total: instances.length
+  };
+}

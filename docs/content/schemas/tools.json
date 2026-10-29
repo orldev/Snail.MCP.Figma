@@ -1256,36 +1256,54 @@
   },
   {
     "name": "figma_search_components",
-    "description": "Searches components in the open file by a substring of the name. Returns the ids and keys needed by figma_instantiate_component. Ids live only inside the current session \u2014 do not reuse them from past conversations. Requires the plugin.",
+    "description": "Finds components and the keys figma_instantiate_component places them by. Without libraryFileUrl it reads the open file through the plugin: the file\u0027s own component sets and components, and under library the library components of the instances placed in it, each with its set and instance count. With libraryFileUrl, the link of a library file, it lists what that library publishes through REST, no plugin needed: component sets with their variant count and standalone components; includeVariants adds every variant\u0027s key; page on with offset. Figma\u0027s Plugin API cannot browse a library, so a component no open file uses is found here by its library\u0027s link, or across a team with figma_search_team_components. Node ids hold only in the current session \u2014 do not reuse them from past conversations.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "query": {
-          "description": "Substring of the name. Empty returns every component of the file.",
+          "description": "Substring of the name or of the set a variant belongs to; in a library also of the description or page. Empty returns everything.",
           "type": [
             "string",
             "null"
           ],
           "default": null
         },
+        "libraryFileUrl": {
+          "description": "Link to a library file, or its key. Given, the tool lists what that library publishes, with keys, through REST and without the plugin. Empty: the open file through the plugin.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "includeVariants": {
+          "description": "With libraryFileUrl: also list every variant under its set, each with its own key.",
+          "type": "boolean",
+          "default": false
+        },
         "limit": {
           "description": "Maximum number of results.",
           "type": "integer",
           "default": 50
+        },
+        "offset": {
+          "description": "With libraryFileUrl: how many matches to skip, the nextOffset of the previous answer.",
+          "type": "integer",
+          "default": 0
         }
       }
     },
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
-      "openWorldHint": false,
+      "openWorldHint": true,
       "readOnlyHint": true
     },
     "skill": null
   },
   {
     "name": "figma_instantiate_component",
-    "description": "Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id (nodeId). Take keys and ids from figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.",
+    "description": "Places a component instance on the canvas. The component is addressed by key (componentKey) or by node id (nodeId). A key may be a component\u0027s, a variant\u0027s or a set\u0027s: a set places its default variant, and variant JSON picks another. Keys come from figma_search_components, which also reads a library by its link, or from figma_search_team_components; Figma imports by key only a published component of a library the user can access. Node ids come from figma_search_components in the same session. overrides is JSON with the instance property values. Requires the plugin.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -3117,7 +3135,7 @@
   },
   {
     "name": "figma_get_library_component_by_key",
-    "description": "The full property definitions, variants and visual specifications of ONE published library component by its key \u2014 the 40-character hexadecimal string from figma_search_components. Take it when you already have the key and need to know which properties and variants the component offers before inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: for a set you must insert the key of the VARIANT from variants[], not the key of the set itself.",
+    "description": "The full property definitions, variants and visual specifications of ONE published library component by its key \u2014 the 40-character hexadecimal string from figma_search_components or figma_search_team_components. Take it when you already have the key and need to know which properties and variants the component offers before inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: variants[] carries each variant\u0027s key, and figma_instantiate_component takes a variant\u0027s key, or the set\u0027s key with variant JSON.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -3236,7 +3254,7 @@
   },
   {
     "name": "figma_search_team_components",
-    "description": "Searches the published components of a whole team library by name or description substring \u2014 unlike figma_search_components, which only sees the currently open file. Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; paginate with nextCursor. Costs REST requests.",
+    "description": "Searches the published components of a whole team library by name or description substring. For one library file, figma_search_components with its link is the cheaper way and needs no team id. Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; paginate with nextCursor. Costs REST requests.",
     "inputSchema": {
       "type": "object",
       "properties": {

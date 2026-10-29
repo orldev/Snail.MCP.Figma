@@ -2,7 +2,7 @@
 
 ## <code>figma_<wbr>get_<wbr>library_<wbr>component_<wbr>by_<wbr>key</code>
 
-The full property definitions, variants and visual specifications of ONE published library component by its key — the 40-character hexadecimal string from figma_search_components. Take it when you already have the key and need to know which properties and variants the component offers before inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: for a set you must insert the key of the VARIANT from variants[], not the key of the set itself.
+The full property definitions, variants and visual specifications of ONE published library component by its key — the 40-character hexadecimal string from figma_search_components or figma_search_team_components. Take it when you already have the key and need to know which properties and variants the component offers before inserting it through figma_instantiate_component. It works for both a COMPONENT_SET and a single COMPONENT: variants[] carries each variant's key, and figma_instantiate_component takes a variant's key, or the set's key with variant JSON.
 
 *read-only · repeat-safe · may reach the REST API.*
 
@@ -149,7 +149,7 @@ Metadata of a published library style by its key: name, type, description and wh
 
 ## <code>figma_<wbr>search_<wbr>team_<wbr>components</code>
 
-Searches the published components of a whole team library by name or description substring — unlike figma_search_components, which only sees the currently open file. Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; paginate with nextCursor. Costs REST requests.
+Searches the published components of a whole team library by name or description substring. For one library file, figma_search_components with its link is the cheaper way and needs no team id. Takes the team id or a figma.com link with /team/{id}/. Returns keys ready for figma_get_library_component_by_key and figma_instantiate_component; paginate with nextCursor. Costs REST requests.
 
 *read-only · repeat-safe · may reach the REST API.*
 

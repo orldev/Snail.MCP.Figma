@@ -41,7 +41,7 @@ Reads go through the Figma Desktop plugin while it runs in the file — unsaved 
 | [`figma_boolean_operation`](nodes.md#figma_boolean_operation) | Nodes | Combines vector shapes: UNION, SUBTRACT, INTERSECT, EXCLUDE make a boolean group, FLATTEN bakes into one vector. |
 | [`figma_group_nodes`](nodes.md#figma_group_nodes) | Nodes | Wraps nodes into a group under the first node's parent. |
 | [`figma_ungroup_node`](nodes.md#figma_ungroup_node) | Nodes | Dissolves a group or frame, releasing its children into the parent; returns the freed ids. |
-| [`figma_search_components`](components.md#figma_search_components) | Components | Searches components in the open file by a substring of the name. |
+| [`figma_search_components`](components.md#figma_search_components) | Components | Finds components and the keys figma_instantiate_component places them by. |
 | [`figma_instantiate_component`](components.md#figma_instantiate_component) | Components | Places a component instance on the canvas. |
 | [`figma_create_component_set`](components.md#figma_create_component_set) | Components | Builds a component set out of existing components or from a property matrix. |
 | [`figma_analyze_component_set`](components.md#figma_analyze_component_set) | Components | Breaks a variant set down: which property axes exist, which combinations are there and which are missing. |
@@ -93,7 +93,7 @@ Reads go through the Figma Desktop plugin while it runs in the file — unsaved 
 | [`figma_get_library_variables`](libraries.md#figma_get_library_variables) | Libraries | Variables from the team libraries the current file subscribes to: which tokens — colors, spacing, sizes, strings, flags — are available at all, without a lin… |
 | [`figma_import_library_variable`](libraries.md#figma_import_library_variable) | Libraries | Imports one variable from a subscribed library into the current file. |
 | [`figma_get_library_style_by_key`](libraries.md#figma_get_library_style_by_key) | Libraries | Metadata of a published library style by its key: name, type, description and where it lives (fileKey plus nodeId). |
-| [`figma_search_team_components`](libraries.md#figma_search_team_components) | Libraries | Searches the published components of a whole team library by name or description substring — unlike figma_search_components, which only sees the currently op… |
+| [`figma_search_team_components`](libraries.md#figma_search_team_components) | Libraries | Searches the published components of a whole team library by name or description substring. |
 | [`figjam_create_sticky`](figjam.md#figjam_create_sticky) | FigJam | Creates a sticky note on a FigJam board. |
 | [`figjam_create_stickies`](figjam.md#figjam_create_stickies) | FigJam | Creates a batch of stickies in one go — this is how a board is filled from structured data (meeting notes, brainstorm ideas). |
 | [`figjam_create_connector`](figjam.md#figjam_create_connector) | FigJam | Connects two nodes with a line: this is how flowcharts, diagrams and relation maps are built. |

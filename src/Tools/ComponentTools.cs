@@ -1,57 +1,59 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
+using Snail.MCP.Figma.Application.Libraries;
 using Snail.MCP.Figma.Tools.Prompts;
 
 namespace Snail.MCP.Figma.Tools;
 
 /// <summary>Components: instances, variant sets and component properties.</summary>
 [McpServerToolType]
-public sealed class ComponentTools(ILiveEditor plugin, ILogger<ComponentTools> logger)
+public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library, ILogger<ComponentTools> logger)
     : EditorToolBase(plugin, logger)
 {
     /// <summary>Building a large variant set is one uninterruptible pass inside the plugin.</summary>
     private static TimeSpan ComponentSetTimeout(int variantCount) =>
         TimeSpan.FromMilliseconds(Math.Clamp(variantCount * 1200, 35_000, 125_000));
 
-    /// <summary>Finds components in the open file by name through the plugin.</summary>
-    [McpServerTool(Name = "figma_search_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+    /// <summary>Finds components by name: in a library file through REST when a link is given, otherwise in the open file through the plugin, together with the library components the file already uses.</summary>
+    [McpServerTool(Name = "figma_search_components", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(ToolDescriptions.Component.SearchComponents)]
     public Task<string> SearchComponentsAsync(
-        [Description("Substring of the name. Empty returns every component of the file.")] string? query = null,
-        [Description("Maximum number of results.")] int limit = 50,
+        [Description("Substring of the name or of the set a variant belongs to; in a library also of the description or page. Empty returns everything.")] string? query = null,
+        [Description("Link to a library file, or its key. Given, the tool lists what that library publishes, with keys, through REST and without the plugin. Empty: the open file through the plugin.")] string? libraryFileUrl = null,
+        [Description("With libraryFileUrl: also list every variant under its set, each with its own key.")] bool includeVariants = false,
+        [Description("Maximum number of results.")] int limit = PublishedLibrary.DefaultLimit,
+        [Description("With libraryFileUrl: how many matches to skip, the nextOffset of the previous answer.")] int offset = 0,
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(async ct =>
         {
-            var result = await Plugin.ReadAsync(EditorCommands.GetLocalComponents, cancellationToken: ct)
-                .ConfigureAwait(false);
-
-            var components = (result?["components"] ?? result) as JsonArray ?? [];
-            var matched = new JsonArray();
-
-            foreach (var component in components)
+            if (string.IsNullOrWhiteSpace(libraryFileUrl))
             {
-                var name = component?["name"]?.GetValue<string>() ?? string.Empty;
+                var answer = await Plugin.ReadAsync(EditorCommands.GetLocalComponents, OpenFileComponents.Request(), timeout: OpenFileComponents.Timeout, cancellationToken: ct)
+                    .ConfigureAwait(false);
 
-                if (!string.IsNullOrWhiteSpace(query) &&
-                    !name.Contains(query, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                matched.Add(component?.DeepClone());
-
-                if (matched.Count >= limit)
-                {
-                    break;
-                }
+                return ToolResponse.Ok(OpenFileComponents.Match(answer, query, Math.Max(1, limit)));
             }
 
-            return ToolResponse.Ok(new JsonObject
+            if (PublishedLibrary.FileKeyOf(libraryFileUrl) is not { } fileKey)
             {
-                ["components"] = matched,
-                ["returned"] = matched.Count,
-                ["totalInFile"] = components.Count,
+                return ToolResponse.Error(
+                    $"Could not read a file key from '{libraryFileUrl}'.",
+                    Messages.LibraryFileLinkHint);
+            }
+
+            var page = await library.ReadAsync(new LibraryQuery(fileKey, query, includeVariants, offset, limit), ct).ConfigureAwait(false);
+
+            return ToolResponse.Ok(page.Describe(), envelope =>
+            {
+                if (page.IsEmptyLibrary)
+                {
+                    envelope["hint"] = Messages.NothingPublishedHint;
+                }
+                else if (page.NextOffset is { } next)
+                {
+                    envelope["hint"] = $"More matches: call again with offset={next}.";
+                }
             });
         }, cancellationToken);
 

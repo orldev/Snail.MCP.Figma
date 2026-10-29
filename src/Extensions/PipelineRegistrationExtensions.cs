@@ -7,6 +7,7 @@ using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Extraction;
+using Snail.MCP.Figma.Application.Libraries;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
@@ -34,6 +35,7 @@ public static class PipelineRegistrationExtensions
             services.AddSingleton<VersionComparison>();
             services.AddSingleton<NodeBlame>();
             services.AddSingleton<KitAssembly>();
+            services.AddSingleton<PublishedLibrary>();
             services.AddSingleton<NodeSanitizer>();
             services.AddSingleton<DocumentReader>();
             services.AddSingleton<DocumentRenderer>();
