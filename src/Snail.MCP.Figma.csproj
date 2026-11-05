@@ -31,6 +31,7 @@
 
     <ItemGroup>
         <PackageReference Include="ModelContextProtocol" />
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="Microsoft.Data.Sqlite" />
     </ItemGroup>
 
