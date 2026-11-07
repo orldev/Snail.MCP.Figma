@@ -102,6 +102,7 @@ public static class PipelineRegistrationExtensions
                 .WithTools<VersionTools>(json)
                 .WithTools<WriteTools>(json)
                 .WithRequestFilters(filters => filters
+                    .AddCallToolFilter(FlagFailures)
                     .AddCallToolFilter(TouchActivity)
                     .AddCallToolFilter(RefuseIncompleteCalls)
                     .AddCallToolFilter(ServeTheAgent));
@@ -157,6 +158,25 @@ public static class PipelineRegistrationExtensions
             }
 
             return await next(context, cancellationToken);
+        };
+
+    /// <summary>Flags an answer that is the failure envelope as an error, so the client and the model tell a failure from a success by the protocol rather than by reading the text.</summary>
+    /// <remarks>
+    /// <para>136 of the 141 tools return a string, and the SDK turns a string into a result without isError: the failures of 105 <see cref="ToolResponse.Error"/> call sites reached the client as successes, and only <see cref="RefuseIncompleteCalls"/> set the flag. The five tools that build a <see cref="CallToolResult"/> themselves wrap the same envelope and never set it either. One filter fixes every tool at once, where rewriting each to return a result would touch all 141.</para>
+    /// <para>Registered first, it is the outermost filter, so it sees the final answer of every tool and of every filter behind it. An answer that already carries the flag, or is not the envelope, passes as it is.</para>
+    /// </remarks>
+    private static McpRequestHandler<CallToolRequestParams, CallToolResult> FlagFailures(
+        McpRequestHandler<CallToolRequestParams, CallToolResult> next) =>
+        async (context, cancellationToken) =>
+        {
+            var answer = await next(context, cancellationToken);
+
+            if (answer.IsError != true && ToolResponse.IsFailure(answer))
+            {
+                answer.IsError = true;
+            }
+
+            return answer;
         };
 
     /// <summary>Answers a call that lacks a required argument with the error envelope every tool answers with, naming what is missing.</summary>

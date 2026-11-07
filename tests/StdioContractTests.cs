@@ -107,6 +107,72 @@ public class StdioContractTests
         }
     }
 
+    /// <summary>A tool that returns the failure envelope as a string reaches the client flagged as an error, not as a success the model has to read the text of to doubt.</summary>
+    [Fact]
+    public async Task Tools_AnsweringTheErrorEnvelope_AreFlaggedIsError()
+    {
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var answer = await client.CallToolAsync("figma_execute_steps", new Dictionary<string, object?> { ["steps"] = "not a list" });
+            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
+
+            Assert.True(answer.IsError);
+            Assert.False(envelope.GetProperty("ok").GetBoolean());
+            Assert.Contains("JSON array", envelope.GetProperty("error").GetString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Tools_AnsweringTheSuccessEnvelope_AreNotFlaggedIsError()
+    {
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var answer = await client.CallToolAsync("figma_get_status");
+            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
+
+            Assert.True(envelope.GetProperty("ok").GetBoolean());
+            Assert.NotEqual(true, answer.IsError);
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
+    /// <summary>csharp_diagnose answers with a report of its own rather than the envelope, and a text that is not the envelope is left as the tool gave it.</summary>
+    [Fact]
+    public async Task Tools_AnsweringTextOtherThanTheEnvelope_AreNotFlaggedIsError()
+    {
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var answer = await client.CallToolAsync("csharp_diagnose");
+            var report = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
+
+            Assert.False(report.TryGetProperty("ok", out _));
+            Assert.NotEqual(true, answer.IsError);
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
     /// <summary>Tools are discovered by the SDK through attributes, so a misconfigured attribute is invisible to reflection-only guards.</summary>
     private static HashSet<string> ToolNamesOfAssembly()
     {

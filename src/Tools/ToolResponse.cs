@@ -65,6 +65,43 @@ public static class ToolResponse
         return envelope.ToJsonString(Options);
     }
 
+    /// <summary>Whether a tool's answer is the failure envelope <see cref="Error"/> writes: a single text block whose top-level <c>ok</c> is false.</summary>
+    /// <remarks>
+    /// <para>The envelope is read, not parsed: only a text that opens with <c>{</c> is looked at, and the reader stops at the first top-level <c>ok</c>, which both envelopes write first, so a success of megabytes costs one property rather than a document tree. The reader is the AOT-safe <see cref="Utf8JsonReader"/>, no reflection.</para>
+    /// <para>Anything else — several blocks, a picture, a text that is not JSON or not the envelope, an <c>ok</c> nested deeper — is not a failure: <c>csharp_diagnose</c> answers with a report of its own that carries no envelope.</para>
+    /// </remarks>
+    public static bool IsFailure(CallToolResult answer) =>
+        answer.Content is [TextContentBlock { Text: var text }] && text.StartsWith('{') && IsRefusal(text);
+
+    private static bool IsRefusal(string envelope)
+    {
+        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(envelope));
+
+        try
+        {
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
+                return false;
+            }
+
+            while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
+            {
+                if (reader.ValueTextEquals("ok"u8))
+                {
+                    return reader.Read() && reader.TokenType == JsonTokenType.False;
+                }
+
+                reader.Skip();
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Serializes any node as compact JSON.</summary>
     public static string Serialize(JsonNode node) => node.ToJsonString(Options);
 
