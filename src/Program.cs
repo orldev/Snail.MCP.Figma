@@ -1,3 +1,15 @@
 using Snail.MCP.Figma.Extensions;
+using Snail.Sdk.Mcp.Hosting;
 
-await ServerHost.RunAsync(args);
+try
+{
+    await ServerHost.RunAsync(args);
+
+    return 0;
+}
+catch (StartRefusedException refused)
+{
+    await Console.Error.WriteLineAsync(refused.Message);
+
+    return 1;
+}

@@ -98,4 +98,18 @@ public class EditorExtensionInstallerTests
 
         Assert.Single(tokens.Distinct(StringComparer.Ordinal));
     }
+
+    /// <summary>A token the plugin was stamped with before the server took Snail.Sdk's secret stays the machine's token: the panel installed then still proves itself.</summary>
+    [Fact]
+    public void BridgeToken_FileWrittenByAnEarlierServer_IsKeptAsItIs()
+    {
+        var dataDirectory = TestFolder.Create();
+        var earlier = new string('c', 64);
+        File.WriteAllText(Path.Combine(dataDirectory, BridgeToken.FileName), earlier);
+
+        var token = BridgeToken.LoadOrCreate(dataDirectory);
+
+        Assert.Equal(earlier, token.Value);
+        Assert.True(token.IsMatchedBy(earlier));
+    }
 }

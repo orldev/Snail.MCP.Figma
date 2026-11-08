@@ -183,7 +183,7 @@ Replace the command with the form matching your choice:
 
 Writes and plugin-first reads need the bundled plugin running in Figma Desktop. On its first start the
 server unpacks it into `~/.s3l-mcp-figma/plugin` — so let the client start the server once before this
-step, and read the exact path from `csharp_diagnose` under `plugin.bundledPath`.
+step, and read the exact path from `csharp_diagnose` under `data.plugin.bundledPath`.
 
 1. **Plugins → Development → Import plugin from manifest…**
 2. Pick `manifest.json` from that folder. This is done once.
@@ -267,7 +267,7 @@ Measured with four sessions on an Apple Silicon Mac:
 4. **Restart the plugin** in each open file once (Plugins → Development → Snail Bridge). The panel learns the new
    protocol from the server; nothing has to be imported again.
 
-The server listens on loopback only and refuses any request that carries an `Origin` header, so no web page can
+The server listens on loopback only and refuses any MCP request that carries an `Origin` header, so no web page can
 reach it. Each client session is an agent of its own, named in the panel after the folder it works in, and a
 session nobody has used for 15 minutes ends. Logs go to `~/Library/Logs/Snail.MCP.Figma.log`; once it passes 64 MB the
 server moves it to `Snail.MCP.Figma.1.log` and starts it over, so the two together stay under 128 MB. To go back to

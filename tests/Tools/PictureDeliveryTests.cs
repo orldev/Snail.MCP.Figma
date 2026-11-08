@@ -41,7 +41,7 @@ public class PictureDeliveryTests
 
         var shown = Assert.NotNull(PictureDelivery.From(picture, inline: true));
 
-        Assert.Equal("aGVsbG8=", shown.Base64);
+        Assert.Equal("hello"u8.ToArray(), shown.Bytes);
         Assert.Equal("image/png", shown.MimeType);
     }
 

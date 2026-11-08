@@ -6,6 +6,7 @@ using Snail.MCP.Figma.Application.Tokens;
 using Snail.MCP.Figma.Application.Tokens.Formatters;
 using Snail.MCP.Figma.Application.Tokens.Parsers;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -44,14 +45,14 @@ public sealed class TokenTools(
 
             if (!TryParseJson(modeMap, out var parsedModeMap, out var modeMapError))
             {
-                return ToolResponse.Error($"modeMap did not parse as JSON: {modeMapError}");
+                return ToolAnswer.FailedText($"modeMap did not parse as JSON: {modeMapError}");
             }
 
             var (variables, source) = await LoadVariablesAsync(fileUrl, ct).ConfigureAwait(false);
 
             if (variables is null)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "The variables could not be fetched.",
                     "Run the Snail Bridge plugin — through it variables are read on any plan.");
             }
@@ -79,7 +80,7 @@ public sealed class TokenTools(
                 })
                 .ToArray());
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["format"] = formatter.Format,
                 ["source"] = source,
@@ -124,7 +125,7 @@ public sealed class TokenTools(
 
             if (parsed.TokenCount == 0)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Not a single token could be read from the contents (format {effectiveFormat}).",
                     string.Join(" ", parsed.Warnings.DefaultIfEmpty("Check the format and the file contents.")));
             }
@@ -133,7 +134,7 @@ public sealed class TokenTools(
 
             if (dryRun)
             {
-                return ToolResponse.Ok(new JsonObject
+                return ToolAnswer.OkText(new JsonObject
                 {
                     ["dryRun"] = true,
                     ["format"] = parser.Format,
@@ -145,7 +146,7 @@ public sealed class TokenTools(
 
             var applied = await ApplyAsync(parsed.Document, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["dryRun"] = false,
                 ["format"] = parser.Format,
@@ -191,7 +192,7 @@ public sealed class TokenTools(
                 SizeUnit = sizeUnit,
             });
 
-            return Task.FromResult(ToolResponse.Ok(new JsonObject
+            return Task.FromResult(ToolAnswer.OkText(new JsonObject
             {
                 ["from"] = parser.Format,
                 ["to"] = formatter.Format,
@@ -345,7 +346,7 @@ public sealed class TokenTools(
     }
 
     private static string UnknownFormat(string requested, IReadOnlyList<string> supported) =>
-        ToolResponse.Error(
+        ToolAnswer.FailedText(
             $"Format '{requested}' is not supported.",
             $"Available: {string.Join(", ", supported)}");
 

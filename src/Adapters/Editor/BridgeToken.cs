@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 
@@ -21,90 +21,11 @@ public sealed class BridgeToken(string value)
     public string Value { get; } = value;
 
     /// <summary>Whether the panel sent this machine's secret, compared in constant time.</summary>
-    public bool IsMatchedBy(string? offered) =>
-        offered is not null &&
-        CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(offered), System.Text.Encoding.UTF8.GetBytes(Value));
+    public bool IsMatchedBy(string? offered) => ServerSecret.Matches(Value, offered);
 
-    /// <summary>The machine's secret from the data folder, made the first time a server starts there.</summary>
-    /// <remarks>Readable by its owner alone. Two servers starting at once may both try to make it: the file is created exclusively, so one of them writes it and the other reads what was written. A move "without overwrite" was tried first and is not atomic on Unix — two servers ended up with two tokens one run in three.</remarks>
-    public static BridgeToken LoadOrCreate(string dataDirectory)
-    {
-        var path = Path.Combine(dataDirectory, FileName);
-
-        if (Read(path) is { } existing)
-        {
-            return new BridgeToken(existing);
-        }
-
-        Directory.CreateDirectory(dataDirectory);
-
-        if (TryCreate(path) is { } created)
-        {
-            return new BridgeToken(created);
-        }
-
-        return new BridgeToken(ReadWhenWritten(path));
-    }
-
-    /// <summary>Creates the file with a new secret, or <c>null</c> when another server created it first.</summary>
-    private static string? TryCreate(string path)
-    {
-        var secret = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
-        var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
-
-        if (!OperatingSystem.IsWindows())
-        {
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        }
-
-        try
-        {
-            using var writer = new StreamWriter(path, System.Text.Encoding.ASCII, options);
-            writer.Write(secret);
-
-            return secret;
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return null;
-        }
-    }
-
-    /// <summary>The secret another server is writing at this very moment, once it is all there.</summary>
-    private static string ReadWhenWritten(string path)
-    {
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            if (Read(path) is { } written)
-            {
-                return written;
-            }
-
-            Thread.Sleep(10);
-        }
-
-        throw new IOException($"The bridge token in {path} is still incomplete after a second.");
-    }
-
-    /// <summary>The secret in the file once it is whole: 32 bytes written as 64 hex digits, never a part of them; <c>null</c> while another server still holds the file to write it.</summary>
-    private static string? Read(string path)
-    {
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            var text = File.ReadAllText(path).Trim();
-
-            return text.Length == SecretLength ? text : null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-    }
-
-    private const int SecretLength = 64;
+    /// <summary>The machine's secret from the data folder, made the first time a server starts there: 32 random bytes as 64 hex digits.</summary>
+    /// <remarks>Snail.Sdk's <see cref="ServerSecret.ReadOrCreateHex(string)"/>: readable by its owner alone, written whole under a lock, so every server starting at once agrees on one, and never replaced — a file the plugin was stamped with stays valid.</remarks>
+    /// <exception cref="ServerSecretRefusedException">The file holds something other than 64 hex digits; it is left as it is.</exception>
+    public static BridgeToken LoadOrCreate(string dataDirectory) =>
+        new(ServerSecret.ReadOrCreateHex(Path.Combine(dataDirectory, FileName)));
 }

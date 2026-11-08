@@ -4,6 +4,7 @@ using Snail.MCP.Figma.Application.Diff;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -32,7 +33,7 @@ public sealed class VersionTools(
         {
             var listing = await log.ListAsync(activeFile.Resolve(fileUrl), includeAutosaves, maxVersions, cursor, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(listing);
+            return ToolAnswer.OkText(listing);
         }, cancellationToken);
 
     /// <summary>Returns the file or chosen nodes as they were at a past version.</summary>
@@ -53,7 +54,7 @@ public sealed class VersionTools(
             {
                 var nodes = await snapshots.NodesAtAsync(fileKey, ids, versionId, depth ?? 2, ct).ConfigureAwait(false);
 
-                return ToolResponse.Ok(new JsonObject
+                return ToolAnswer.OkText(new JsonObject
                 {
                     ["file_key"] = fileKey,
                     ["version_id"] = versionId,
@@ -63,7 +64,7 @@ public sealed class VersionTools(
 
             var document = await snapshots.FileAtAsync(fileKey, versionId, depth, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["file_key"] = fileKey,
                 ["version_id"] = versionId,
@@ -87,7 +88,7 @@ public sealed class VersionTools(
         {
             var diff = await comparison.DiffAsync(Diff(fileUrl, fromVersion, toVersion, componentIds, mode), ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(diff.Payload);
+            return ToolAnswer.OkText(diff.Payload);
         }, cancellationToken);
 
     /// <summary>Compares a past version against the current state of the file.</summary>
@@ -103,7 +104,7 @@ public sealed class VersionTools(
         {
             var diff = await comparison.DiffAsync(Diff(fileUrl, sinceVersion, VersionSnapshots.Current, componentIds, mode), ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(diff.Payload);
+            return ToolAnswer.OkText(diff.Payload);
         }, cancellationToken);
 
     /// <summary>Writes a Markdown changelog with authors and dates between two versions.</summary>
@@ -120,7 +121,7 @@ public sealed class VersionTools(
         {
             var changelog = await comparison.ChangelogAsync(Diff(fileUrl, fromVersion, toVersion, componentIds, mode), ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(changelog);
+            return ToolAnswer.OkText(changelog);
         }, cancellationToken);
 
     /// <summary>Finds by binary search the version in which a property or a child of a node first appeared.</summary>
@@ -151,7 +152,7 @@ public sealed class VersionTools(
 
             var answer = await blame.BlameAsync(request, ct).ConfigureAwait(false);
 
-            return answer.Payload is { } payload ? ToolResponse.Ok(payload) : ToolResponse.Error(answer.Error!, answer.Hint);
+            return answer.Payload is { } payload ? ToolAnswer.OkText(payload) : ToolAnswer.FailedText(answer.Error!, answer.Hint);
         }, cancellationToken);
 
     /// <summary>The comparison the call asks for: the nodes it names, or else the selection, and the plugin's buffer of metadata edits.</summary>
@@ -190,7 +191,7 @@ public sealed class VersionTools(
         {
             if (string.IsNullOrWhiteSpace(title))
             {
-                return ToolResponse.Error("title is empty.", "Name the checkpoint after the finished batch of work.");
+                return ToolAnswer.FailedText("title is empty.", "Name the checkpoint after the finished batch of work.");
             }
 
             var script = $$"""
@@ -209,12 +210,9 @@ public sealed class VersionTools(
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject(), envelope =>
-            {
-                envelope["hint"] = "The id anchors figma_diff_versions and figma_get_changes_since_version.";
-            });
+            return ToolAnswer.OkText(payload ?? new JsonObject(), hint: "The id anchors figma_diff_versions and figma_get_changes_since_version.");
         }, cancellationToken);
 }

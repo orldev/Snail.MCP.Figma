@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Extraction.Codebase;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -85,7 +86,7 @@ public sealed class DesignSystemExtractionTools(DesignSystemExtraction extractio
         RunAsync(() => Answer(extraction.Status(outDir, component, status, notes, storyFile)), cancellationToken);
 
     private static string Answer(ExtractionAnswer answer) =>
-        answer.Payload is { } payload ? ToolResponse.Ok(payload) : ToolResponse.Error(answer.Error!, answer.Hint);
+        answer.Payload is { } payload ? ToolAnswer.OkText(payload) : ToolAnswer.FailedText(answer.Error!, answer.Hint);
 
     /// <summary>File-system errors come back as data so the model can read the cause and fix the call.</summary>
     private Task<string> RunAsync(Func<string> action, CancellationToken cancellationToken)
@@ -100,7 +101,7 @@ public sealed class DesignSystemExtractionTools(DesignSystemExtraction extractio
         {
             Log.ExtractionFileSystemError(logger, ex);
 
-            return Task.FromResult(ToolResponse.Error(
+            return Task.FromResult(ToolAnswer.FailedText(
                 ex.Message,
                 "Check the directory permissions and that the path points at an existing project."));
         }
@@ -108,7 +109,7 @@ public sealed class DesignSystemExtractionTools(DesignSystemExtraction extractio
         {
             Log.ExtractionFailed(logger, ex);
 
-            return Task.FromResult(ToolResponse.Error(ex.Message));
+            return Task.FromResult(ToolAnswer.FailedText(ex.Message));
         }
     }
 

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -36,7 +37,7 @@ public sealed class CommentTools(
                 .Select(comment => comment!.DeepClone())
                 .ToArray());
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["fileKey"] = fileKey,
                 ["comments"] = comments1,
@@ -81,7 +82,7 @@ public sealed class CommentTools(
 
             var response = await comments.PostCommentAsync(fileKey, body, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(response, envelope => envelope["fileKey"] = fileKey);
+            return ToolAnswer.OkText(response, new JsonObject { ["fileKey"] = fileKey });
         }, cancellationToken);
 
     /// <summary>Removes one comment from the file through REST.</summary>
@@ -97,7 +98,7 @@ public sealed class CommentTools(
 
             await comments.DeleteCommentAsync(fileKey, commentId, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["deleted"] = true,
                 ["commentId"] = commentId,

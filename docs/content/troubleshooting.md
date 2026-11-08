@@ -71,7 +71,8 @@ server; give it a stdio server instead.
 
 ## The shared server does not start
 
-Its log is `~/Library/Logs/Snail.MCP.Figma.log`. An address that is not loopback is refused at start; a busy port
+Its log is `~/Library/Logs/Snail.MCP.Figma.log`. An address beyond loopback — `0.0.0.0` and
+`SNAIL_MCP_FIGMA_LISTENS_ON_EVERY_INTERFACE=true` among them — is refused at start, naming the variable that asked for it; a busy port
 9233 needs another one in `SNAIL_MCP_FIGMA_URL`, in the job and in every client registration.
 
 ## Reads return `source: "cache-stale"`
@@ -83,7 +84,7 @@ content may be older than the file. Force a fresh read with `source: "plugin"` w
 
 A daily plan quota, not a burst limit. The endpoint bucket is closed locally until it expires and further
 requests are refused without touching the network; `csharp_diagnose` lists the closed buckets under
-`rateLimit`. Renders live in the same expensive bucket, so during a block take pictures through the plugin —
+`data.rateLimit`. Renders live in the same expensive bucket, so during a block take pictures through the plugin —
 `figma_take_screenshot` or `figma_get_component_image` with a live session.
 
 ## Variables come back as 403

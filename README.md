@@ -148,7 +148,7 @@ Every other setting is optional — see [Configuration](#configuration).
 
 The plugin is what makes writes possible and reads free. On its first run the server unpacks it into
 `~/.s3l-mcp-figma/plugin` (ask the agent for `csharp_diagnose` to see the exact path under
-`plugin.bundledPath`).
+`data.plugin.bundledPath`).
 
 1. Open **Figma Desktop** (the browser cannot run development plugins).
 2. **Plugins → Development → Import plugin from manifest…** and pick `manifest.json` from that folder.
@@ -235,7 +235,7 @@ Nothing has to be configured — the defaults work. Every setting is an environm
 |----------|---------|---------|
 | `SNAIL_MCP_FIGMA_ACCESS_TOKEN` | — | Figma token, for the REST channel |
 | `SNAIL_MCP_FIGMA_DATA_DIRECTORY` | `~/.s3l-mcp-figma` | Snapshot cache, unpacked plugin, screenshots |
-| `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without a tool call before the server exits by itself; `0` disables the watchdog |
+| `SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES` | `60` | Minutes without an MCP message before the server exits by itself; `0` disables the watchdog |
 | `SNAIL_MCP_FIGMA_SANITIZATION__PROFILE` | `Aggressive` | How hard REST responses are trimmed: `Aggressive` / `Balanced` / `Raw` |
 | `SNAIL_MCP_FIGMA_SANITIZATION__DEFAULT_DEPTH` | `3` | Default tree depth of a REST read |
 | `SNAIL_MCP_FIGMA_SANITIZATION__DEFAULT_MAX_NODES` | `500` | Node cap of a REST read |
@@ -280,9 +280,9 @@ Claude ── stdio ─┤
 - **One read costs at most one REST request**, and none while the snapshot is fresh. Invalidation is precise:
   the plugin reports `DOCUMENT_CHANGE` at the moment of the edit.
 - **Quota circuit breaker.** A 429 with a long `Retry-After` closes that endpoint locally until it expires,
-  so a refusal already known costs no network round trip. State: `csharp_diagnose → rateLimit`.
+  so a refusal already known costs no network round trip. State: `csharp_diagnose → data.rateLimit`.
 - **Writes are confirmed by the plugin's answer**, never assumed; the node and its ancestors are invalidated after each one.
-- **Watchdog.** An hour without a tool call and the process exits on its own, so orphaned servers do not pile up.
+- **Watchdog.** An hour without a word from its client and the process exits on its own, so orphaned servers do not pile up.
 - **One server for several agents.** With `SNAIL_MCP_FIGMA_TRANSPORT=Http` one process under launchd serves every
   agent on the machine instead of a process per client: each MCP session is an agent of its own, named after its
   project folder, with its own target file, remarks and console position, and one command per agent in flight per

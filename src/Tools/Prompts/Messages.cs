@@ -30,9 +30,6 @@ public static class Messages
         "or the link points at a file the token cannot view. Opened in Figma with the plugin, its own components are listed " +
         "by figma_search_components without libraryFileUrl.";
 
-    /// <summary>Hint shown when a call lacks an argument the tool requires.</summary>
-    public const string PassRequiredArgumentsHint = "Pass every required argument; the tool's input schema names them.";
-
     /// <summary>Hint shown when a command is refused because several files are connected and no target was chosen.</summary>
     public const string HowToChooseTarget =
         "Call figma_navigate with the link of the file you work in; figma_list_open_files shows the connected files. " +

@@ -4,6 +4,7 @@ using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -18,7 +19,7 @@ public sealed class SessionTools(
 {
     /// <summary>Lists the files the plugin is connected to, the target among them and the agents working in each.</summary>
     [McpServerTool(Name = "figma_list_open_files", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
-        UseStructuredContent = true, OutputSchemaType = typeof(Answer<OpenFiles>))]
+        UseStructuredContent = true, OutputSchemaType = typeof(Envelope<OpenFiles>))]
     [Description(ToolDescriptions.Session.ListOpenFiles)]
     public Task<CallToolResult> ListOpenFilesAsync(CancellationToken cancellationToken = default) =>
         ExecuteStructuredAsync(_ => Task.FromResult<JsonNode>(new JsonObject
@@ -41,7 +42,7 @@ public sealed class SessionTools(
             var bound = await Plugin.Documents.TryClaimAsync(fileKey, ct).ConfigureAwait(false);
             var others = bound ? OthersInTarget() : [];
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["fileKey"] = fileKey,
                 ["pluginConnected"] = bound,
@@ -88,7 +89,7 @@ public sealed class SessionTools(
 
             if (requested.Count == 0 && !allFiles)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "No target files were given.",
                     "Pass comma-separated fileKeys or allFiles=true. figma_list_open_files provides the list of keys; " +
                     "for code that writes it is better to name the files explicitly.");
@@ -111,7 +112,7 @@ public sealed class SessionTools(
 
             if (targets.Count == 0)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "None of the named files is connected.",
                     $"Requested: {string.Join(", ", requested)}. Connected: " +
                     $"{string.Join(", ", addressable.Select(session => session.FileKey))}. " +
@@ -160,11 +161,11 @@ public sealed class SessionTools(
             }
 
             return succeeded == 0
-                ? ToolResponse.Error(
+                ? ToolAnswer.FailedText(
                     "The code did not run in any of the target files.",
                     "The per-file breakdown is in data.results; check that the plugin window is open in each of them.",
-                    payload)
-                : ToolResponse.Ok(payload);
+                    data: payload)
+                : ToolAnswer.OkText(payload);
         }, cancellationToken);
 
     /// <summary>One file of the fan-out; a failure here does not sink the others.</summary>
@@ -219,7 +220,7 @@ public sealed class SessionTools(
     [McpServerTool(Name = "figma_reconnect", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(ToolDescriptions.Session.Reconnect)]
     public Task<string> ReconnectAsync(CancellationToken cancellationToken = default) =>
-        ExecuteAsync(_ => Task.FromResult(ToolResponse.Ok(new JsonObject
+        ExecuteAsync(_ => Task.FromResult(ToolAnswer.OkText(new JsonObject
         {
             ["connected"] = Plugin.IsConnected,
             ["files"] = DescribeFiles(),
@@ -262,7 +263,7 @@ public sealed class SessionTools(
                 logs.Add(entry.DeepClone());
             }
 
-            return Task.FromResult(ToolResponse.Ok(new JsonObject
+            return Task.FromResult(ToolAnswer.OkText(new JsonObject
             {
                 ["logs"] = logs,
                 ["returned"] = logs.Count,
@@ -288,7 +289,7 @@ public sealed class SessionTools(
 
             if (waitMs is < 0 or > ToolLimits.MaxRemarkWaitMs)
             {
-                return ToolResponse.Error($"waitMs must be between 0 and {ToolLimits.MaxRemarkWaitMs}.");
+                return ToolAnswer.FailedText($"waitMs must be between 0 and {ToolLimits.MaxRemarkWaitMs}.");
             }
 
             var remarks = Plugin.Documents.RemarksIn(session);
@@ -302,7 +303,7 @@ public sealed class SessionTools(
 
             await Plugin.Documents.PublishRemarksWaitingAsync(session, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["remarks"] = new JsonArray([.. taken.Select(Describe)]),
                 ["returned"] = taken.Count,
@@ -341,7 +342,7 @@ public sealed class SessionTools(
             {
             }
 
-            return ToolResponse.Ok(new JsonObject { ["cleared"] = true });
+            return ToolAnswer.OkText(new JsonObject { ["cleared"] = true });
         }, cancellationToken);
 
     /// <summary>Waits up to a timeout for new lines in the plugin console.</summary>
@@ -377,7 +378,7 @@ public sealed class SessionTools(
             var added = arrived.Count;
             var logs = new JsonArray([.. arrived.Select(entry => entry.DeepClone())]);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["newEntries"] = added,
                 ["logs"] = logs,
@@ -398,14 +399,14 @@ public sealed class SessionTools(
         {
             if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
             {
-                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+                return ToolAnswer.Failed(deliverError!, PictureDelivery.Hint);
             }
 
             var normalized = format.Trim().ToUpperInvariant();
 
             if (normalized is not ("SVG" or "PDF" or "PNG" or "JPG"))
             {
-                return ToolResponse.Textual(ToolResponse.Error($"Unknown format '{format}'.", "Expected SVG, PDF, PNG or JPG."));
+                return ToolAnswer.Failed($"Unknown format '{format}'.", "Expected SVG, PDF, PNG or JPG.");
             }
 
             var script = $$"""
@@ -435,17 +436,17 @@ public sealed class SessionTools(
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Textual(ToolResponse.Error(error));
+                return ToolAnswer.Failed(error);
             }
 
             if (payload is JsonObject binary && binary["base64"] is not null)
             {
                 var picture = PictureDelivery.From(binary, inline);
 
-                return ToolResponse.Pictured(ToolResponse.Ok(screenshots.SaveAndReplace(binary)), picture);
+                return PictureDelivery.Answer(screenshots.SaveAndReplace(binary), picture);
             }
 
-            return ToolResponse.Textual(ToolResponse.Ok(payload ?? new JsonObject()));
+            return PictureDelivery.Answer(payload ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Lists the users currently in the file with their multiplayer colors.</summary>
@@ -473,10 +474,10 @@ public sealed class SessionTools(
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject());
+            return ToolAnswer.OkText(payload ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Shows a toast message in the Figma window.</summary>
@@ -502,8 +503,8 @@ public sealed class SessionTools(
             var payload = Unwrap(raw);
 
             return payload?["__error"]?.GetValue<string>() is { } error
-                ? ToolResponse.Error(error)
-                : ToolResponse.Ok(payload ?? new JsonObject { ["shown"] = true });
+                ? ToolAnswer.FailedText(error)
+                : ToolAnswer.OkText(payload ?? new JsonObject { ["shown"] = true });
         }, cancellationToken);
 
     /// <summary>Scrolls the viewport to a node, optionally selecting it.</summary>
@@ -541,8 +542,8 @@ public sealed class SessionTools(
             var payload = Unwrap(raw);
 
             return payload?["__error"]?.GetValue<string>() is { } error
-                ? ToolResponse.Error(error, Messages.CheckNodeIdHint)
-                : ToolResponse.Ok(payload ?? new JsonObject());
+                ? ToolAnswer.FailedText(error, Messages.CheckNodeIdHint)
+                : ToolAnswer.OkText(payload ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Sets or resets the frame used as the cover of the file.</summary>
@@ -577,8 +578,8 @@ public sealed class SessionTools(
             var payload = Unwrap(raw);
 
             return payload?["__error"]?.GetValue<string>() is { } error
-                ? ToolResponse.Error(error, "The node must be a frame, component or section on a canvas.")
-                : ToolResponse.Ok(payload ?? new JsonObject());
+                ? ToolAnswer.FailedText(error, "The node must be a frame, component or section on a canvas.")
+                : ToolAnswer.OkText(payload ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Captures a node or the current page as it looks right now through the plugin.</summary>
@@ -594,7 +595,7 @@ public sealed class SessionTools(
         {
             if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
             {
-                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+                return ToolAnswer.Failed(deliverError!, PictureDelivery.Hint);
             }
 
             var result = await Plugin.ReadAsync(
@@ -610,14 +611,14 @@ public sealed class SessionTools(
 
             if (result?["image"] is not JsonObject image)
             {
-                return ToolResponse.Textual(ToolResponse.Ok(result ?? new JsonObject()));
+                return PictureDelivery.Answer(result ?? new JsonObject());
             }
 
             var picture = PictureDelivery.From(image, inline);
 
             result["image"] = screenshots.SaveAndReplace(image);
 
-            return ToolResponse.Pictured(ToolResponse.Ok(result), picture);
+            return PictureDelivery.Answer(result, picture);
         }, cancellationToken);
 
     /// <summary>Returns the text styles of the file read through the plugin.</summary>

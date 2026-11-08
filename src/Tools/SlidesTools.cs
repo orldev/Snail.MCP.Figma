@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -98,14 +99,14 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
         {
             if (!TryParseJson(grid, out var parsed, out var error) || parsed is not JsonArray rows)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"grid did not parse as a JSON array: {error ?? "the value is not an array"}",
                     "An array of grid rows is expected: [[\"1:2\",\"1:3\"],[\"1:4\"]].");
             }
 
             if (rows.Count > MaxGridRows || rows.Any(row => row is JsonArray items && items.Count > MaxGridRow))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"The grid is larger than allowed: at most {MaxGridRows} rows of {MaxGridRow} slides.");
             }
 
@@ -115,7 +116,7 @@ public sealed class SlidesTools(ILiveEditor plugin, ILogger<SlidesTools> logger)
                 timeout: TimeSpan.FromSeconds(30),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Sets the transition style, duration and curve of a slide.</summary>

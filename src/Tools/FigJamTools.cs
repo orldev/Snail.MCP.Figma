@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -40,14 +41,14 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
         {
             if (!TryParseJson(stickies, out var parsed, out var error) || parsed is not JsonArray array)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"stickies did not parse as a JSON array: {error ?? "the value is not an array"}",
                     "Expected [{\"text\":\"Idea\",\"color\":\"BLUE\"}].");
             }
 
             if (array.Count > MaxBatchSize)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"There are {array.Count} stickies, and at most {MaxBatchSize} fit in one call.",
                     "Split it into several calls — otherwise the plugin will not make it in time.");
             }
@@ -58,7 +59,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
                 timeout: TimeSpan.FromSeconds(45),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Draws a connector between two nodes already on the board through the plugin.</summary>
@@ -144,7 +145,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
         {
             if (!TryParseJson(data, out var parsed, out var error))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"data did not parse as JSON: {error}",
                     "An array of arrays of strings is expected: [[\"What\",\"Who\"],[\"Design\",\"Ann\"]].");
             }
@@ -158,7 +159,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
                 ["y"] = y,
             }, timeout: TimeSpan.FromSeconds(45), cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Adds a block with a code snippet to a FigJam board through the plugin.</summary>
@@ -196,12 +197,12 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
 
             if (ids.Count == 0)
             {
-                return ToolResponse.Error("No node id was passed.");
+                return ToolAnswer.FailedText("No node id was passed.");
             }
 
             if (ids.Count > MaxArrangeNodes)
             {
-                return ToolResponse.Error($"There are {ids.Count} nodes, and at most {MaxArrangeNodes} fit in one call.");
+                return ToolAnswer.FailedText($"There are {ids.Count} nodes, and at most {MaxArrangeNodes} fit in one call.");
             }
 
             var gridColumns = columns ?? (int)Math.Ceiling(Math.Sqrt(ids.Count));
@@ -264,7 +265,7 @@ public sealed class FigJamTools(ILiveEditor plugin, ILogger<FigJamTools> logger)
                 timeout: TimeSpan.FromSeconds(30),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Reads the nodes on the board with their text and positions, optionally filtered by type.</summary>

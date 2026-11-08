@@ -123,7 +123,7 @@ public class RestAdditionTests
         api.Endpoints["/v1/me"] = new JsonObject { ["handle"] = "Ann", ["email"] = "ann@example.com" };
         var config = new ServerConfig { AccessToken = "figd_test" };
 
-        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync(probeToken: true))!;
+        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync(probeToken: true))!["data"]!;
         var token = report["config"]!["figmaAccessToken"]!;
 
         Assert.Equal("valid", token["status"]!.GetValue<string>());
@@ -137,7 +137,7 @@ public class RestAdditionTests
         api.NotFound.Add("/v1/me");
         var config = new ServerConfig { AccessToken = "figd_expired" };
 
-        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync(probeToken: true))!;
+        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync(probeToken: true))!["data"]!;
         var token = report["config"]!["figmaAccessToken"]!;
 
         Assert.Equal("REJECTED by Figma", token["status"]!.GetValue<string>());
@@ -150,7 +150,7 @@ public class RestAdditionTests
         var api = new FakePublishedSource(new JsonObject());
         var config = new ServerConfig { AccessToken = "figd_test" };
 
-        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync())!;
+        var report = JsonNode.Parse(await Diagnostics(config, api).DiagnoseAsync())!["data"]!;
 
         Assert.Contains("probeToken=true", report["config"]!["figmaAccessToken"]!.GetValue<string>());
         Assert.Empty(api.RequestedEndpoints);

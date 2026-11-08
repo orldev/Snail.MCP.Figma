@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -57,21 +58,21 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
         {
             if (string.IsNullOrWhiteSpace(slotId) && (string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(slotName)))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "The slot is not addressed.",
                     "Pass slotId or the pair instanceId + slotName. figma_get_slots shows the slot names.");
             }
 
             if (string.IsNullOrWhiteSpace(sourceNodeId) && string.IsNullOrWhiteSpace(nodeType))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "It is not stated what to put into the slot.",
                     "Pass sourceNodeId (clone an existing node) or nodeType (create a new one).");
             }
 
             if (!TryParseJson(properties, out var parsedProperties, out var error))
             {
-                return ToolResponse.Error($"properties did not parse as JSON: {error}");
+                return ToolAnswer.FailedText($"properties did not parse as JSON: {error}");
             }
 
             var result = await Plugin.ApplyAsync(EditorCommands.AppendToSlot, new JsonObject
@@ -86,7 +87,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
                 ["clearExisting"] = clearExisting,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Returns an instance slot to its default contents.</summary>
@@ -101,7 +102,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
         {
             if (string.IsNullOrWhiteSpace(slotId) && (string.IsNullOrWhiteSpace(instanceId) || string.IsNullOrWhiteSpace(slotName)))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "The slot is not addressed.",
                     "Pass slotId or the pair instanceId + slotName.");
             }
@@ -113,7 +114,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
                 ["slotName"] = slotName,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Defines a slot property bound to an existing frame of a component.</summary>
@@ -130,7 +131,7 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
         {
             if (!TryParseJson(preferredValues, out var parsedPreferred, out var error))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"preferredValues did not parse as JSON: {error}",
                     "Expected [{\"type\":\"COMPONENT\",\"key\":\"…\"}].");
             }
@@ -200,6 +201,6 @@ public sealed class SlotTools(ILiveEditor plugin, ILogger<SlotTools> logger)
                 timeout: TimeSpan.FromSeconds(30),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 }

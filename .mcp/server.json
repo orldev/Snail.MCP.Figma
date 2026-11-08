@@ -57,7 +57,7 @@
         },
         {
           "name": "SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES",
-          "description": "Minutes without a tool call after which the process exits on its own; 0 disables the watchdog.",
+          "description": "Minutes without an MCP message after which the process exits on its own, unless a plugin is connected; 0 disables the watchdog.",
           "isRequired": false,
           "default": "60"
         }
@@ -129,7 +129,7 @@
         },
         {
           "name": "SNAIL_MCP_FIGMA_IDLE_TIMEOUT_MINUTES",
-          "description": "Minutes without a tool call after which the process exits on its own; 0 disables the watchdog.",
+          "description": "Minutes without an MCP message after which the process exits on its own, unless a plugin is connected; 0 disables the watchdog.",
           "isRequired": false,
           "default": "60"
         },

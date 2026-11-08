@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using Snail.MCP.Figma.Application.Editor;
-using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Adapters.Editor;
 
@@ -19,7 +19,7 @@ public sealed class ImageFiles(ILogger<ImageFiles> logger) : IImageFiles
             throw new InvalidOperationException("The picture path is empty.");
         }
 
-        var resolved = Resolve(path);
+        var resolved = ServerFolders.FullPath(path);
 
         if (!File.Exists(resolved))
         {
@@ -112,24 +112,5 @@ public sealed class ImageFiles(ILogger<ImageFiles> logger) : IImageFiles
         }
 
         return null;
-    }
-
-    /// <summary>Expands <c>~</c> and makes the path absolute.</summary>
-    /// <remarks>A relative path resolves against the working directory of the server process, not of the caller — which is why the tool asks for an absolute one.</remarks>
-    private static string Resolve(string path)
-    {
-        var trimmed = path.Trim();
-
-        if (trimmed == "~")
-        {
-            return ServerPaths.Home;
-        }
-
-        if (trimmed.StartsWith("~/", StringComparison.Ordinal) || trimmed.StartsWith(@"~\", StringComparison.Ordinal))
-        {
-            return Path.Combine(ServerPaths.Home, trimmed[2..]);
-        }
-
-        return Path.GetFullPath(trimmed);
     }
 }

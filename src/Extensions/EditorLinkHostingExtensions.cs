@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 using Snail.Sdk.Mcp.Http;
 
 namespace Snail.MCP.Figma.Extensions;
@@ -42,8 +43,9 @@ public static class EditorLinkHostingExtensions
         {
             var endpoint = app.Services.GetRequiredService<EditorLinkEndpoint>();
             var hub = app.Services.GetRequiredService<EditorSocketHub>();
+            var version = ServerIdentity.VersionOf(typeof(EditorLinkHostingExtensions).Assembly);
             hub.Port = endpoint.Port ?? 0;
-            hub.ServerVersion = ThisAssembly.InformationalVersion;
+            hub.ServerVersion = version;
             hub.ExpectedPluginVersion = app.Services.GetService<EditorExtensionInstaller>()?.InstalledPluginVersion;
 
             app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = BridgeKeepAlive, KeepAliveTimeout = BridgeKeepAlive });
@@ -62,7 +64,7 @@ public static class EditorLinkHostingExtensions
                 }
 
                 return Results.Json(
-                    new BridgeHealth("ok", ThisAssembly.InformationalVersion, endpoint.Port, registry.Sessions.Count, agents.Default.ActiveFileKey, agents.Slots.Count),
+                    new BridgeHealth("ok", version, endpoint.Port, registry.Sessions.Count, agents.Default.ActiveFileKey, agents.Slots.Count),
                     BridgeHealthJson.Default.BridgeHealth);
             });
 
@@ -90,33 +92,20 @@ public static class EditorLinkHostingExtensions
             }
         }
 
-        /// <summary>Maps the shared server's MCP endpoint on its own port, behind the refusal of every request a browser makes, and writes the agents' files down as the server stops.</summary>
-        /// <remarks>The refusal holds on the MCP port only. The bridge in the same process is called by the plugin from inside Figma, which always sends an <c>Origin</c>; a refusal for the whole host, as the shared servers without a bridge map it, would cut the plugin off.</remarks>
+        /// <summary>Maps the shared server's MCP endpoint and its health check on its own port, the endpoint behind the refusal of every request a browser makes, and writes the agents' files down as the server stops.</summary>
+        /// <remarks>The refusal is Snail.Sdk's (<c>MapLocalMcp</c>): a page in a browser always sends an <c>Origin</c> and an agent's client never does, so no web page can reach the MCP endpoint, not even through a name rebound to 127.0.0.1. It holds on the MCP path alone, so the bridge in the same process, which the plugin calls from inside Figma with an <c>Origin</c> on a port of its own, is not cut off; each route is bound to its port.</remarks>
         public WebApplication UseSharedMcp()
         {
-            var endpoint = app.Services.GetRequiredService<SharedMcpEndpoint>();
+            var port = app.Services.GetRequiredService<McpEndpoint>().Url.Port;
             var agents = app.Services.GetRequiredService<AgentRoster>();
 
             app.Lifetime.ApplicationStopping.Register(agents.RememberAll);
 
-            app.UseWhen(ctx => ctx.Connection.LocalPort == endpoint.Port, branch => branch.Use(RefuseBrowsers));
-            app.MapMcp(McpHttpHost.DefaultPath).RequireHost($"*:{endpoint.Port}");
+            app.MapLocalMcp().RequireHost($"*:{port}");
+            app.MapHealth().RequireHost($"*:{port}");
 
             return app;
         }
-    }
-
-    /// <summary>A page in a browser always sends an <c>Origin</c> and an agent's client never does, so no web page can reach the MCP endpoint, not even through a name rebound to 127.0.0.1.</summary>
-    internal static Task RefuseBrowsers(HttpContext context, RequestDelegate next)
-    {
-        if (!context.Request.Headers.Origin.Any())
-        {
-            return next(context);
-        }
-
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-
-        return Task.CompletedTask;
     }
 }
 

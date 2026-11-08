@@ -1,9 +1,9 @@
 using System.ComponentModel;
-using System.Text.Json;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Hosting;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -32,8 +32,8 @@ public sealed class DiagnosticsTools(
         {
             ["server"] = new JsonObject
             {
-                ["name"] = ThisAssembly.Name,
-                ["version"] = ThisAssembly.InformationalVersion,
+                ["name"] = ServerIdentity.NameOf(typeof(DiagnosticsTools).Assembly),
+                ["version"] = ServerIdentity.VersionOf(typeof(DiagnosticsTools).Assembly),
                 ["mode"] = config.Mode.ToString(),
             },
             ["config"] = new JsonObject
@@ -68,7 +68,7 @@ public sealed class DiagnosticsTools(
             ["rateLimit"] = BuildRateLimitReport(),
         };
 
-        return report.ToJsonString(SerializerOptions);
+        return ToolAnswer.OkText(report);
     }
 
     /// <summary>Without the probe only says whether the variable is set; with it, whether Figma accepts the token.</summary>
@@ -168,10 +168,4 @@ public sealed class DiagnosticsTools(
 
         return cache;
     }
-
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        WriteIndented = true,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
 }

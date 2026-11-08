@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Snail.MCP.Figma.Configuration;
@@ -13,34 +12,30 @@ public static class McpServerRegistrationExtensions
 {
     extension(WebApplicationBuilder builder)
     {
-        /// <summary>The server a client starts for itself and talks to over stdio; it exits when nobody has used it for a while.</summary>
-        public WebApplicationBuilder ConfigureMcpServer(ServerConfig config)
+        /// <summary>The server a client starts for itself and talks to over stdio; it exits when its client has said nothing for a while and no plugin is connected.</summary>
+        /// <remarks>The idle stop is Snail.Sdk's (<c>AddIdleShutdown</c>): any MCP message keeps the server up, and a connected plugin vetoes the stop, since the human may be working in Figma while the agent thinks. The setting goes through as it is: zero or less turns the stop off.</remarks>
+        public WebApplicationBuilder ConfigureMcpServer(McpEndpoint endpoint)
         {
-            builder.Logging.UseStderr();
+            var config = builder.AddServerConfiguration(endpoint);
 
             builder
                 .AddFigma(config)
-                .AddIdleShutdownWatcher(config.IdleTimeoutMinutes)
+                .AddIdleShutdown(TimeSpan.FromMinutes(config.IdleTimeoutMinutes), IsPluginConnected)
                 .AddMcpTransport();
 
             return builder;
         }
 
         /// <summary>The one server every agent on the machine shares, over Streamable HTTP on loopback; launchd keeps it running, so it has no idle watchdog, and it keeps the log launchd appends to within a size.</summary>
-        /// <remarks>A background helper that fails is logged and left stopped rather than allowed to stop the host, which would cut every agent off from Figma at once.</remarks>
-        /// <exception cref="ArgumentException">The configured address is not a loopback one.</exception>
-        public WebApplicationBuilder ConfigureSharedMcpServer(ServerConfig config)
+        /// <remarks>A background helper that fails is logged and left stopped rather than allowed to stop the host, which would cut every agent off from Figma at once. Where it listens is the endpoint's, read with <c>McpReach.LoopbackOnly</c> (<see cref="ServerHost"/>), which refuses an address beyond loopback, every interface and a start inside a container.</remarks>
+        public WebApplicationBuilder ConfigureSharedMcpServer(McpEndpoint endpoint)
         {
-            builder.Logging.UseStderr().AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+            var config = builder.AddServerConfiguration(endpoint);
 
-            var endpoint = SharedMcpEndpoint.From(config.Url ?? ServerConfig.DefaultUrl);
-
-            builder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(endpoint.Address, endpoint.Port));
             builder.Services.Configure<HostOptions>(host => host.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
             builder
                 .AddFigma(config)
-                .AddSingleton(endpoint)
                 .AddLogTrim(config.LogFile)
                 .AddMcpHttpTransport();
 
@@ -60,4 +55,8 @@ public static class McpServerRegistrationExtensions
                 .AddDesignSystemExtraction();
         }
     }
+
+    /// <summary>Whether a plugin is connected to the agent's file: the human may be at work in Figma, so the server stays.</summary>
+    private static bool IsPluginConnected(IServiceProvider services) =>
+        services.GetRequiredService<IOpenDocuments>().HasConnection;
 }

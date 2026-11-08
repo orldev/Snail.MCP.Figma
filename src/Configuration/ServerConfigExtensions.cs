@@ -5,20 +5,32 @@ using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Configuration;
 
-/// <summary>Builds <see cref="ServerConfig"/>: defaults → the settings file → <c>SNAIL_MCP_FIGMA_</c> variables, read through <see cref="ServerSettings"/>.</summary>
+/// <summary>Builds <see cref="ServerConfig"/>: defaults → the settings file → <c>SNAIL_MCP_FIGMA_</c> variables, as <see cref="ServerSettings"/> read them into the host's configuration.</summary>
 public static class ServerConfigExtensions
 {
-    /// <summary>Adds configuration sources and registers the built <see cref="ServerConfig"/> in DI, returning it for host setup.</summary>
-    public static ServerConfig AddServerConfiguration(this IHostApplicationBuilder builder)
+    /// <summary>Binds the host's configuration and registers the built <see cref="ServerConfig"/> and the endpoint in DI, returning the config for host setup.</summary>
+    /// <param name="builder">The host, its configuration the server's settings as the program read them.</param>
+    /// <param name="endpoint">Where the server answers, as Snail.Sdk read it from the same settings: the one word on the transport, a <c>Port</c> included.</param>
+    /// <remarks>The binding runs while the host is registered, before any host could refuse a value of the wrong type, so
+    /// <see cref="ServerSettings.Bind(string, IConfiguration, Action{IConfiguration})"/> says it as a <see cref="StartRefusedException"/> naming
+    /// the variable, where the binder crashed the process with a trace. The Bind calls stay written here, where the binding source generator of
+    /// the native publication replaces them.</remarks>
+    /// <exception cref="StartRefusedException">A setting holds a value its property's type cannot hold.</exception>
+    public static ServerConfig AddServerConfiguration(this IHostApplicationBuilder builder, McpEndpoint endpoint)
     {
-        builder.Configuration.AddServerSettings(ServerPaths.ShortName);
-
         var config = new ServerConfig();
-        builder.Configuration.GetSection(ServerConfig.SectionName).Bind(config);
-        builder.Configuration.Bind(config);
+
+        ServerSettings.Bind(ServerPaths.ShortName, builder.Configuration, settings =>
+        {
+            settings.GetSection(ServerConfig.SectionName).Bind(config);
+            settings.Bind(config);
+        });
+
+        config.Transport = endpoint.Transport;
 
         Normalize(config);
 
+        builder.Services.AddSingleton(endpoint);
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(config.Bridge);
         builder.Services.AddSingleton(config.Cache);
@@ -32,7 +44,7 @@ public static class ServerConfigExtensions
     internal static void Normalize(ServerConfig config)
     {
         config.AccessToken = string.IsNullOrWhiteSpace(config.AccessToken) ? null : config.AccessToken.Trim();
-        config.DataDirectory = ExpandHome(config.DataDirectory);
+        config.DataDirectory = ServerFolders.FullPath(config.DataDirectory, ServerPaths.DefaultDataDirectory);
 
         if (config.Bridge.PortRangeEnd < config.Bridge.PortRangeStart)
         {
@@ -68,27 +80,5 @@ public static class ServerConfigExtensions
         {
             config.Screenshots.RetainCount = 30;
         }
-    }
-
-    private static string ExpandHome(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return ServerPaths.DefaultDataDirectory;
-        }
-
-        path = path.Trim();
-
-        if (path == "~")
-        {
-            return ServerPaths.Home;
-        }
-
-        if (path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith(@"~\", StringComparison.Ordinal))
-        {
-            return Path.Combine(ServerPaths.Home, path[2..]);
-        }
-
-        return Path.GetFullPath(path);
     }
 }

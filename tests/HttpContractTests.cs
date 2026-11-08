@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -20,73 +17,36 @@ public sealed class HttpContractTests : IAsyncLifetime
 
     private readonly string _dataDirectory = TestFolder.Create();
 
-    private readonly Uri _endpoint = new($"http://127.0.0.1:{FreePort()}/mcp");
+    private HttpServerProgram _server = null!;
 
-    private Process _server = null!;
+    private Uri _endpoint = null!;
 
     private int _bridgePort;
 
     public Task InitializeAsync() => StartServerAsync();
 
+    /// <summary>The shared server as launchd starts it, through Snail.Sdk's <see cref="HttpServerProgram"/>: a free loopback port, its own home, no settings file, and ready once <c>/healthz</c> answers.</summary>
     private async Task StartServerAsync()
     {
-        var (command, arguments) = ServerProgram.Command("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER");
-        var start = new ProcessStartInfo(command, arguments)
+        _server = await HttpServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", new Dictionary<string, string?>
         {
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        start.Environment["SNAIL_MCP_FIGMA_TRANSPORT"] = "Http";
-        start.Environment["SNAIL_MCP_FIGMA_URL"] = new Uri(_endpoint, "/").ToString();
-        start.Environment["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = _dataDirectory;
-        start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = BridgeRangeStart.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        start.Environment["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = BridgeRangeEnd.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        start.Environment.Remove("SNAIL_MCP_FIGMA_ACCESS_TOKEN");
-        start.Environment["SNAIL_MCP_FIGMA_CONFIG"] = ServerProgram.NoSettingsFile;
-        start.Environment["HOME"] = ServerProgram.Home;
-        start.Environment["USERPROFILE"] = ServerProgram.Home;
-
-        _server = Process.Start(start)!;
-        _server.OutputDataReceived += (_, _) => { };
-        _server.ErrorDataReceived += (_, _) => { };
-        _server.BeginOutputReadLine();
-        _server.BeginErrorReadLine();
+            ["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = _dataDirectory,
+            ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_START"] = BridgeRangeStart.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["SNAIL_MCP_FIGMA_BRIDGE__PORT_RANGE_END"] = BridgeRangeEnd.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null,
+        });
+        _endpoint = _server.Endpoint;
 
         using var waiting = new CancellationTokenSource(Timeout);
         using var http = new HttpClient();
 
-        while (true)
-        {
-            try
-            {
-                await http.GetAsync(_endpoint, waiting.Token);
-                break;
-            }
-            catch (HttpRequestException) when (!_server.HasExited)
-            {
-                await Task.Delay(100, waiting.Token);
-            }
-        }
-
         _bridgePort = await FindBridgeAsync(http, waiting.Token);
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
-        StopServer();
+        await _server.DisposeAsync();
         Directory.Delete(_dataDirectory, recursive: true);
-
-        return Task.CompletedTask;
-    }
-
-    /// <summary>Kills the process the way a crash would: nothing is written on the way out.</summary>
-    private void StopServer()
-    {
-        _server.Kill(entireProcessTree: true);
-        _server.WaitForExit();
-        _server.Dispose();
     }
 
     /// <summary>A restart drops every session; the agent that comes back from the same folder is in its file again without a navigate.</summary>
@@ -101,7 +61,7 @@ public sealed class HttpContractTests : IAsyncLifetime
             await before.CallToolAsync("figma_navigate", new Dictionary<string, object?> { ["fileUrlOrKey"] = "survivor" }, cancellationToken: cancellation.Token);
         }
 
-        StopServer();
+        await _server.DisposeAsync();
         await StartServerAsync();
         await using var after = await ConnectAsync("Keynex", cancellation.Token);
 
@@ -195,21 +155,10 @@ public sealed class HttpContractTests : IAsyncLifetime
         Assert.Contains("2025-11-25", answer["error"]!["data"]!["supported"]!.AsArray().Select(version => version!.GetValue<string>()));
     }
 
+    /// <summary>A browser's request, with an <c>Origin</c> of a page or <c>null</c>, is refused at the MCP endpoint, and one without it is not.</summary>
     [Fact]
-    public async Task SharedServer_RequestWithBrowserOrigin_IsRefused()
-    {
-        using var http = new HttpClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint)
-        {
-            Content = new StringContent("""{"jsonrpc":"2.0","id":1,"method":"ping"}""", System.Text.Encoding.UTF8, "application/json"),
-        };
-
-        request.Headers.Add("Origin", "https://example.com");
-
-        using var response = await http.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
+    public async Task SharedServer_RequestWithBrowserOrigin_IsRefused() =>
+        Assert.Empty(await HttpGuards.ProblemsAsync(_endpoint));
 
     /// <summary>The names the panel was last told, as it keeps them.</summary>
     private static IReadOnlyList<string> Names(FakeEditorExtension panel) => [.. Agents(panel).Select(agent => agent!["name"]!.GetValue<string>())];
@@ -276,13 +225,5 @@ public sealed class HttpContractTests : IAsyncLifetime
 
             await Task.Delay(100, cancellationToken);
         }
-    }
-
-    private static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 }

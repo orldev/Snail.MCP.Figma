@@ -49,7 +49,7 @@ public class StdioContractTests
         });
 
         var payload = called.GetProperty("result").GetProperty("content")[0].GetProperty("text").GetString()!;
-        var report = JsonDocument.Parse(payload).RootElement;
+        var report = JsonDocument.Parse(payload).RootElement.GetProperty("data");
 
         Assert.True(report.GetProperty("plugin").GetProperty("bundled").GetBoolean(), "the JS plugin did not reach the output directory");
         Assert.Equal("ok", report.GetProperty("cache").GetProperty("probe").GetString());
@@ -94,12 +94,34 @@ public class StdioContractTests
             await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
 
             var answer = await client.CallToolAsync("figma_navigate");
-            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
 
             Assert.True(answer.IsError);
-            Assert.False(envelope.GetProperty("ok").GetBoolean());
-            Assert.Contains("fileUrlOrKey", envelope.GetProperty("error").GetString(), StringComparison.Ordinal);
-            Assert.Equal(Messages.PassRequiredArgumentsHint, envelope.GetProperty("hint").GetString());
+            Assert.False(answer.IsOk());
+            Assert.Equal("arguments", answer.Type());
+            Assert.Contains("fileUrlOrKey", answer.Error(), StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(answer.Hint()));
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
+    /// <summary>An argument the tool does not take is refused with the one it probably meant, where it used to be dropped without a word.</summary>
+    [Fact]
+    public async Task Tools_CalledWithAnArgumentTheyDoNotTake_NameTheOneMeant()
+    {
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+
+            var answer = await client.CallToolAsync("figma_navigate", new Dictionary<string, object?> { ["fileUrlOrKey"] = "abc", ["fileUrlOrKy"] = "abc" });
+
+            Assert.True(answer.IsError);
+            Assert.Equal("arguments", answer.Type());
+            Assert.Contains("fileUrlOrKy", answer.Error(), StringComparison.Ordinal);
         }
         finally
         {
@@ -118,11 +140,10 @@ public class StdioContractTests
             await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
 
             var answer = await client.CallToolAsync("figma_execute_steps", new Dictionary<string, object?> { ["steps"] = "not a list" });
-            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
 
             Assert.True(answer.IsError);
-            Assert.False(envelope.GetProperty("ok").GetBoolean());
-            Assert.Contains("JSON array", envelope.GetProperty("error").GetString(), StringComparison.Ordinal);
+            Assert.False(answer.IsOk());
+            Assert.Contains("JSON array", answer.Error(), StringComparison.Ordinal);
         }
         finally
         {
@@ -140,9 +161,8 @@ public class StdioContractTests
             await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
 
             var answer = await client.CallToolAsync("figma_get_status");
-            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
 
-            Assert.True(envelope.GetProperty("ok").GetBoolean());
+            Assert.True(answer.IsOk());
             Assert.NotEqual(true, answer.IsError);
         }
         finally
@@ -151,9 +171,9 @@ public class StdioContractTests
         }
     }
 
-    /// <summary>csharp_diagnose answers with a report of its own rather than the envelope, and a text that is not the envelope is left as the tool gave it.</summary>
+    /// <summary>csharp_diagnose answers its report in the envelope every tool answers, as S3L0011 asks: <c>{"ok":true,"data":{…}}</c>, not flagged isError.</summary>
     [Fact]
-    public async Task Tools_AnsweringTextOtherThanTheEnvelope_AreNotFlaggedIsError()
+    public async Task Diagnose_AnswersItsReportInTheEnvelope()
     {
         var dataDirectory = Path.Combine(TestFolder.Create(), "data");
 
@@ -162,9 +182,10 @@ public class StdioContractTests
             await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
 
             var answer = await client.CallToolAsync("csharp_diagnose");
-            var report = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
+            var envelope = JsonDocument.Parse(ServerProgram.Text(answer)).RootElement;
 
-            Assert.False(report.TryGetProperty("ok", out _));
+            Assert.True(envelope.GetProperty("ok").GetBoolean());
+            Assert.Equal(JsonValueKind.Object, envelope.GetProperty("data").GetProperty("server").ValueKind);
             Assert.NotEqual(true, answer.IsError);
         }
         finally

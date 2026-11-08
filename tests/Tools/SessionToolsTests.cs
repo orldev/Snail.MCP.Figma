@@ -356,18 +356,22 @@ public class SessionToolsTests(BridgeHostFixture bridge)
         McpServerTool.Create(typeof(SessionTools).GetMethod(method)!, _ => throw new NotSupportedException(), new McpServerToolCreateOptions { SerializerOptions = ToolJson.Options(ToolJsonContext.Default) })
             .ProtocolTool.OutputSchema!.Value;
 
-    /// <summary>Every object in the answer carries exactly the properties its schema lists; arrays are checked through their first element.</summary>
+    /// <summary>The fields of Snail.Sdk's envelope a success leaves out: they are in its schema for the refusal, which goes as text alone.</summary>
+    private static readonly HashSet<string> FailureOnly = new(StringComparer.Ordinal) { "error", "hint", "type" };
+
+    /// <summary>Every object in the answer carries the properties its schema lists and no other, a field of a failure left out of a success; arrays are checked through their first element.</summary>
     private static void AssertShapedLike(JsonElement schema, JsonElement instance)
     {
         if (schema.TryGetProperty("properties", out var properties))
         {
-            var expected = properties.EnumerateObject().Select(property => property.Name).Order().ToList();
+            var listed = properties.EnumerateObject().Select(property => property.Name).ToList();
+            var expected = listed.Where(name => !FailureOnly.Contains(name)).Order().ToList();
 
             Assert.Equal(expected, [.. instance.EnumerateObject().Select(property => property.Name).Order()]);
 
-            foreach (var property in properties.EnumerateObject())
+            foreach (var name in expected)
             {
-                AssertShapedLike(property.Value, instance.GetProperty(property.Name));
+                AssertShapedLike(properties.GetProperty(name), instance.GetProperty(name));
             }
 
             return;

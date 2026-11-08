@@ -3,6 +3,7 @@ using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Libraries;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -32,29 +33,26 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
                 var answer = await Plugin.ReadAsync(EditorCommands.GetLocalComponents, OpenFileComponents.Request(), timeout: OpenFileComponents.Timeout, cancellationToken: ct)
                     .ConfigureAwait(false);
 
-                return ToolResponse.Ok(OpenFileComponents.Match(answer, query, Math.Max(1, limit)));
+                return ToolAnswer.OkText(OpenFileComponents.Match(answer, query, Math.Max(1, limit)));
             }
 
             if (PublishedLibrary.FileKeyOf(libraryFileUrl) is not { } fileKey)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Could not read a file key from '{libraryFileUrl}'.",
                     Messages.LibraryFileLinkHint);
             }
 
             var page = await library.ReadAsync(new LibraryQuery(fileKey, query, includeVariants, offset, limit), ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(page.Describe(), envelope =>
+            var hint = page switch
             {
-                if (page.IsEmptyLibrary)
-                {
-                    envelope["hint"] = Messages.NothingPublishedHint;
-                }
-                else if (page.NextOffset is { } next)
-                {
-                    envelope["hint"] = $"More matches: call again with offset={next}.";
-                }
-            });
+                { IsEmptyLibrary: true } => Messages.NothingPublishedHint,
+                { NextOffset: { } next } => $"More matches: call again with offset={next}.",
+                _ => null,
+            };
+
+            return ToolAnswer.OkText(page.Describe(), hint: hint);
         }, cancellationToken);
 
     /// <summary>Places an instance of a component, addressed by key or node id, through the plugin.</summary>
@@ -72,7 +70,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
         {
             if (string.IsNullOrWhiteSpace(componentKey) && string.IsNullOrWhiteSpace(nodeId))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "Either componentKey or nodeId is required.",
                     "Find the component through figma_search_components and take its key or id from there.");
             }
@@ -83,7 +81,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
 
             if (!okPosition || !okOverrides || !okVariant)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"A JSON parameter did not parse: {positionError ?? overridesError ?? variantError}");
             }
 
@@ -97,7 +95,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
                 ["variant"] = parsedVariant,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Builds a variant set from existing components or from a property matrix through the plugin.</summary>
@@ -115,7 +113,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
 
             if (!okIds || !okProperties)
             {
-                return ToolResponse.Error($"A JSON parameter did not parse: {idsError ?? propertiesError}");
+                return ToolAnswer.FailedText($"A JSON parameter did not parse: {idsError ?? propertiesError}");
             }
 
             var variantCount = CountVariants(parsedIds, parsedProperties);
@@ -131,7 +129,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
                 timeout: ComponentSetTimeout(variantCount),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Reports the property axes of a variant set and which combinations are present or missing.</summary>
@@ -194,7 +192,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
                 timeout: TimeSpan.FromSeconds(30),
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Adds a text, boolean, instance-swap, variant or slot property to a component through the plugin.</summary>
@@ -213,7 +211,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
 
             if (normalizedType != "SLOT" && string.IsNullOrWhiteSpace(defaultValue) && normalizedType != "BOOLEAN")
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"A property of type {normalizedType} needs a default value.",
                     normalizedType switch
                     {
@@ -247,7 +245,7 @@ public sealed class ComponentTools(ILiveEditor plugin, PublishedLibrary library,
             var result = await Plugin.ApplyAsync(EditorCommands.AddComponentProperty, parameters,
                 cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Changes the default value of a component property through the plugin.</summary>

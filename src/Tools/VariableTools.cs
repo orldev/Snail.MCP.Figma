@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -48,7 +49,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         {
             if (!TryParseJson(valuesByMode, out var values, out var error))
             {
-                return ToolResponse.Error($"valuesByMode did not parse as JSON: {error}",
+                return ToolAnswer.FailedText($"valuesByMode did not parse as JSON: {error}",
                     "An object of the form {\"1:0\":\"#FF0000\"} is expected.");
             }
 
@@ -61,7 +62,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
                 ["description"] = description,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Sets the value of a variable in one mode through the plugin.</summary>
@@ -149,7 +150,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             var result = await Plugin.ReadAsync(EditorCommands.GetVariablesData, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject());
+            return ToolAnswer.OkText(result ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Creates many variables in one collection in a single plugin command.</summary>
@@ -163,7 +164,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         {
             if (!TryParseJson(variables, out var parsed, out var error) || parsed is not JsonArray items)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"variables did not parse as a JSON array: {error ?? "the value is not an array"}",
                     "Expected [{\"name\":\"color/bg\",\"resolvedType\":\"COLOR\",\"valuesByMode\":{\"1:0\":\"#FFF\"}}].");
             }
@@ -200,7 +201,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
                 }
             }
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["created"] = created,
                 ["failed"] = failed,
@@ -218,7 +219,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
         {
             if (!TryParseJson(updates, out var parsed, out var error) || parsed is not JsonArray items)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"updates did not parse as a JSON array: {error ?? "the value is not an array"}",
                     "Expected [{\"variableId\":\"…\",\"modeId\":\"1:0\",\"value\":\"#FF0000\"}].");
             }
@@ -245,7 +246,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
                 }
             }
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["updated"] = updated,
                 ["failed"] = failed,
@@ -276,7 +277,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
 
             if (collectionId is null)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "The plugin returned no id for the created collection.",
                     "Create the collection with figma_create_variable_collection and pass its id to figma_batch_create_variables.");
             }
@@ -284,7 +285,7 @@ public sealed class VariableTools(ILiveEditor plugin, ILogger<VariableTools> log
             var batch = await BatchCreateVariablesAsync(collectionId, tokens, ct).ConfigureAwait(false);
             var batchNode = JsonNode.Parse(batch);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["collection"] = collection?.DeepClone(),
                 ["collectionId"] = collectionId,

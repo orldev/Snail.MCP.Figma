@@ -8,6 +8,7 @@ using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Ports;
 using Snail.MCP.Figma.Application.Snapshots;
 using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 using Snail.MCP.Figma.Extensions;
 
 namespace Snail.MCP.Figma.Tests.Support;
@@ -33,7 +34,7 @@ public class BridgeHostFixture : IAsyncLifetime
     public BridgeToken Token { get; } = new(Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
 
     /// <summary>stdio here: one agent, the one that started the process.</summary>
-    protected virtual Transport Transport => Transport.Stdio;
+    protected virtual McpTransport Transport => McpTransport.Stdio;
 
     /// <summary>Every agent of this host.</summary>
     public AgentRoster Roster { get; private set; } = null!;
@@ -169,5 +170,5 @@ public sealed class BridgeCollection : ICollectionFixture<BridgeHostFixture>;
 /// <summary>The same host as a shared server: an agent per MCP session, and none of its own.</summary>
 public sealed class SharedBridgeHostFixture : BridgeHostFixture
 {
-    protected override Transport Transport => Transport.Http;
+    protected override McpTransport Transport => McpTransport.Http;
 }

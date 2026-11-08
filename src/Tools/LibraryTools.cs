@@ -4,6 +4,7 @@ using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -44,7 +45,7 @@ public sealed partial class LibraryTools(
                 }
                 catch (PublishedSourceException inner) when (inner.Failure == SourceFailure.NotFound)
                 {
-                    return ToolResponse.Error(
+                    return ToolAnswer.FailedText(
                         $"No component with key {componentKey} was found.",
                         "Check that the key came from figma_search_components and that the component is published: " +
                         "draft and unpublished components are not readable through this endpoint.");
@@ -56,7 +57,7 @@ public sealed partial class LibraryTools(
 
             if (fileKey is null || nodeId is null)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "Figma returned a component description without file_key or node_id.",
                     "Check the key with figma_search_components.");
             }
@@ -171,7 +172,7 @@ public sealed partial class LibraryTools(
                     "Take a single variant through figma_get_component when you need its exact values."));
             }
 
-            return ToolResponse.Ok(payload);
+            return ToolAnswer.OkText(payload);
         }, cancellationToken);
 
     /// <summary>Lists the variables of the libraries the current file subscribes to, read through the plugin.</summary>
@@ -229,7 +230,7 @@ public sealed partial class LibraryTools(
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     error,
                     "A recent Figma Desktop build with the teamLibrary API and at least one connected library is required.");
             }
@@ -264,7 +265,7 @@ public sealed partial class LibraryTools(
                 });
             }
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["collections"] = collections,
                 ["summary"] = new JsonObject
@@ -323,17 +324,17 @@ public sealed partial class LibraryTools(
                     ? "The library holding this variable is not connected to the current file. Connect it in Figma: Assets → Libraries, and retry."
                     : "Check that the key came from figma_get_library_variables and that the library is connected to the file.";
 
-                return ToolResponse.Error(error, hint);
+                return ToolAnswer.FailedText(error, hint);
             }
 
             if (imported?["id"]?.GetValue<string>() is not { Length: > 0 })
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     "The plugin returned an import result without a variable id.",
                     "Retry the call; if it keeps happening, check the key with figma_get_library_variables.");
             }
 
-            return ToolResponse.Ok(imported.DeepClone());
+            return ToolAnswer.OkText(imported.DeepClone());
         }, cancellationToken);
 
     /// <summary>Unwraps the plugin envelope <c>{ success, result }</c> around code execution.</summary>
@@ -352,17 +353,17 @@ public sealed partial class LibraryTools(
             }
             catch (PublishedSourceException ex) when (ex.Failure is SourceFailure.NotFound or SourceFailure.Forbidden)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Figma did not return a style for key {styleKey} ({ex.Failure}).",
                     "Either the key is wrong, the style is not published, or the token has no access to its library. The key of a published style comes from figma_get_styles (the key field).");
             }
 
             if (meta is null)
             {
-                return ToolResponse.Error("Figma returned a style without the meta block.");
+                return ToolAnswer.FailedText("Figma returned a style without the meta block.");
             }
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["key"] = meta["key"]?.DeepClone(),
                 ["name"] = meta["name"]?.DeepClone(),
@@ -389,7 +390,7 @@ public sealed partial class LibraryTools(
         {
             if (!TryParseTeamId(teamIdOrUrl, out var teamId))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Could not read a team id from '{teamIdOrUrl}'.",
                     "Pass the digits or a link like https://www.figma.com/files/team/1234567890/Name. " +
                     "The id is in the address bar when the team page is open.");
@@ -438,19 +439,13 @@ public sealed partial class LibraryTools(
                 await Collect(catalog.GetTeamComponentSetsPageAsync(teamId, size, after, ct), "component_sets").ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["teamId"] = teamId,
                 ["matched"] = items.Count,
                 ["items"] = items,
                 ["nextCursor"] = nextCursor,
-            }, envelope =>
-            {
-                if (items.Count == 0)
-                {
-                    envelope["hint"] = "Nothing matched on this page. Widen the query, or continue with the nextCursor value.";
-                }
-            });
+            }, hint: items.Count == 0 ? "Nothing matched on this page. Widen the query, or continue with the nextCursor value." : null);
         }, cancellationToken);
 
     [GeneratedRegex(@"/team/(\d+)")]

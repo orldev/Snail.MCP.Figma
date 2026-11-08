@@ -26,14 +26,36 @@ Takes no parameters.
   "type": "object",
   "properties": {
     "ok": {
-      "description": "true on success; a failure comes as text with ok false, error and hint.",
+      "description": "true: the call did what was asked. A refusal is an error result with ok false, error, hint and type in its text alone.",
       "type": "boolean"
     },
-    "data": {
+    "error": {
+      "description": "Why the call did not go through; present only on a refusal, which is an error result.",
       "type": [
-        "object",
+        "string",
         "null"
       ],
+      "default": null
+    },
+    "hint": {
+      "description": "What to do about a refusal; present only on one.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "type": {
+      "description": "The kind of refusal, a word a program can branch on; present only on one.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "data": {
+      "description": "What the tool answers.",
+      "type": "object",
       "properties": {
         "files": {
           "type": "array",

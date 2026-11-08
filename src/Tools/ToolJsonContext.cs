@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -11,6 +12,6 @@ namespace Snail.MCP.Figma.Tools;
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(double?))]
 [JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(Answer<BridgeStatus>))]
-[JsonSerializable(typeof(Answer<OpenFiles>))]
+[JsonSerializable(typeof(Envelope<BridgeStatus>))]
+[JsonSerializable(typeof(Envelope<OpenFiles>))]
 internal sealed partial class ToolJsonContext : JsonSerializerContext;

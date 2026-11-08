@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Configuration;
 
@@ -22,16 +23,6 @@ public enum SanitizationProfile
     Raw,
 }
 
-/// <summary>How clients reach the server.</summary>
-public enum Transport
-{
-    /// <summary>One process per client, started by it, over stdin and stdout.</summary>
-    Stdio,
-
-    /// <summary>One process for every client on this machine, kept by launchd, over Streamable HTTP on loopback.</summary>
-    Http,
-}
-
 /// <summary>Root server configuration, bound from a JSON file and environment variables.</summary>
 public sealed class ServerConfig
 {
@@ -44,17 +35,14 @@ public sealed class ServerConfig
     /// <summary>Server mode, reported by diagnostics; <see cref="ServerMode.Local"/> by default and the only value (<c>SNAIL_MCP_FIGMA_MODE</c>).</summary>
     public ServerMode Mode { get; set; } = ServerMode.Local;
 
-    /// <summary>The address of the MCP endpoint when <see cref="Transport"/> is <see cref="Transport.Http"/>; outside the bridge's port range.</summary>
-    public const string DefaultUrl = "http://127.0.0.1:9233";
+    /// <summary>The address of the MCP endpoint when the server is shared over HTTP, unless <c>SNAIL_MCP_FIGMA_URL</c> or <c>SNAIL_MCP_FIGMA_PORT</c> names another; outside the bridge's port range.</summary>
+    public static readonly Uri DefaultUrl = new("http://127.0.0.1:9233/");
 
-    /// <summary>stdio by default; <c>SNAIL_MCP_FIGMA_TRANSPORT=Http</c> makes this the one server every agent on the machine shares.</summary>
-    public Transport Transport { get; set; } = Transport.Stdio;
+    /// <summary>How clients reach the server, as Snail.Sdk's <see cref="McpEndpoint"/> read it from the settings: stdio by default; <c>SNAIL_MCP_FIGMA_TRANSPORT=Http</c>, or a <c>SNAIL_MCP_FIGMA_PORT</c>, makes this the one server every agent on the machine shares.</summary>
+    public McpTransport Transport { get; set; } = McpTransport.Stdio;
 
-    /// <summary>Where the shared server listens for MCP; <see cref="DefaultUrl"/> when not set.</summary>
-    public string? Url { get; set; }
-
-    /// <summary>Whether this is the one shared server of the machine, which <see cref="Transport.Http"/> makes it.</summary>
-    public bool IsShared => Transport is Transport.Http;
+    /// <summary>Whether this is the one shared server of the machine, which <see cref="McpTransport.Http"/> makes it.</summary>
+    public bool IsShared => Transport is McpTransport.Http;
 
     /// <summary>Data root: database, installed plugin, logs; defaults to <c>~/.s3l-mcp-figma</c>.</summary>
     public string DataDirectory { get; set; } = ServerPaths.DefaultDataDirectory;
@@ -71,7 +59,7 @@ public sealed class ServerConfig
     /// <summary>Settings of the screenshot store, the <c>Screenshots</c> section (<c>SNAIL_MCP_FIGMA_SCREENSHOTS__…</c>).</summary>
     public ScreenshotOptions Screenshots { get; set; } = new();
 
-    /// <summary>Minutes without a tool call after which the process exits, unless a plugin is connected; 0 disables the watchdog.</summary>
+    /// <summary>Minutes without an MCP message after which a stdio server exits, unless a plugin is connected; 0 disables the watchdog.</summary>
     public int IdleTimeoutMinutes { get; set; } = 60;
 
     /// <summary>The file launchd appends the shared server's stderr to; when named, the server keeps it within a size. The installed job names it; a server whose stderr goes to its client leaves it empty.</summary>

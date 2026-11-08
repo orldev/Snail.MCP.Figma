@@ -4,6 +4,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -28,18 +29,16 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 return Task.FromResult(NotConnected());
             }
 
-            return Task.FromResult(ToolResponse.Ok(
+            return Task.FromResult(ToolAnswer.OkText(
                 session.Selection?.DeepClone() ?? new JsonObject { ["nodes"] = new JsonArray(), ["count"] = 0 },
-                envelope =>
+                new JsonObject
                 {
-                    envelope["fileKey"] = session.FileKey;
-                    envelope["fileName"] = session.FileName;
-                    envelope["currentPage"] = session.CurrentPage;
-
-                    if (target is null)
-                    {
-                        envelope["note"] = "No target is chosen yet, so this is the file the human touched last; figma_navigate makes it the target.";
-                    }
+                    ["fileKey"] = session.FileKey,
+                    ["fileName"] = session.FileName,
+                    ["currentPage"] = session.CurrentPage,
+                    ["note"] = target is null
+                        ? "No target is chosen yet, so this is the file the human touched last; figma_navigate makes it the target."
+                        : null,
                 }));
         }, cancellationToken);
 
@@ -86,7 +85,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
         {
             if (!TryParseJson(fills, out var parsed, out var error) || parsed is null)
             {
-                return ToolResponse.Error($"fills did not parse as JSON: {error}",
+                return ToolAnswer.FailedText($"fills did not parse as JSON: {error}",
                     "An array is expected, for example [{\"type\":\"SOLID\",\"color\":{\"r\":1,\"g\":0,\"b\":0}}].");
             }
 
@@ -96,7 +95,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 ["fills"] = parsed,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject());
+            return ToolAnswer.OkText(result ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Replaces the characters of a text node through the plugin.</summary>
@@ -135,7 +134,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(result ?? new JsonObject());
+            return ToolAnswer.OkText(result ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Runs a sequence of short scripts one by one, stopping when the human leaves a remark.</summary>
@@ -155,19 +154,19 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
         {
             if (!TryParseSteps(steps, out var scripts, out var stepsError))
             {
-                return ToolResponse.Error(stepsError!, """Expected ["first step", "second step"].""");
+                return ToolAnswer.FailedText(stepsError!, """Expected ["first step", "second step"].""");
             }
 
             if (scripts.Count > ToolLimits.MaxSteps)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"{scripts.Count} steps were passed and one call runs up to {ToolLimits.MaxSteps}.",
                     "Send the rest in the next call — globals survive between calls.");
             }
 
             if (delayMs is < 0 or > ToolLimits.MaxStepDelayMs)
             {
-                return ToolResponse.Error($"delayMs must be between 0 and {ToolLimits.MaxStepDelayMs}.");
+                return ToolAnswer.FailedText($"delayMs must be between 0 and {ToolLimits.MaxStepDelayMs}.");
             }
 
             var startedAt = DateTimeOffset.UtcNow;
@@ -262,11 +261,11 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             }
 
             return failure is null
-                ? ToolResponse.Ok(data)
-                : ToolResponse.Error(
+                ? ToolAnswer.OkText(data)
+                : ToolAnswer.FailedText(
                     $"Step {failedStep} of {scripts.Count} failed: {failure}",
                     "Everything before it is already on the canvas: fix that step and send the remaining ones.",
-                    data);
+                    data: data);
         }, cancellationToken);
 
     /// <summary>Lists the colors used in the current selection with the styles behind them.</summary>
@@ -292,8 +291,8 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
             var payload = Unwrap(raw);
 
             return payload?["__error"]?.GetValue<string>() is { } error
-                ? ToolResponse.Error(error)
-                : ToolResponse.Ok(payload ?? new JsonObject());
+                ? ToolAnswer.FailedText(error)
+                : ToolAnswer.OkText(payload ?? new JsonObject());
         }, cancellationToken);
 
     /// <summary>Reorders the local styles of one type, alphabetically or by a given id list.</summary>
@@ -309,7 +308,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
 
             if (type is not ("PAINT" or "TEXT" or "EFFECT" or "GRID"))
             {
-                return ToolResponse.Error($"Unknown styleType '{styleType}'.", "Expected PAINT, TEXT, EFFECT or GRID.");
+                return ToolAnswer.FailedText($"Unknown styleType '{styleType}'.", "Expected PAINT, TEXT, EFFECT or GRID.");
             }
 
             var explicitOrder = order?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
@@ -365,10 +364,10 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error, "Style ids come from figma_get_styles (the id field).");
+                return ToolAnswer.FailedText(error, "Style ids come from figma_get_styles (the id field).");
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Closes the current undo group so everything since the last commit undoes in one step.</summary>
@@ -386,10 +385,10 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["committed"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["committed"] = true });
         }, cancellationToken);
 
     /// <summary>Creates a local paint, text, effect or grid style through the plugin.</summary>
@@ -407,14 +406,14 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
 
             if (type is not ("PAINT" or "TEXT" or "EFFECT" or "GRID"))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Unknown styleType '{styleType}'.",
                     "Expected PAINT, TEXT, EFFECT or GRID.");
             }
 
             if (!TryParseJson(properties, out var parsed, out var parseError))
             {
-                return ToolResponse.Error($"properties did not parse as JSON: {parseError}",
+                return ToolAnswer.FailedText($"properties did not parse as JSON: {parseError}",
                     """For PAINT: {"paints":[{"type":"SOLID","color":{"r":1,"g":0,"b":0}}]}.""");
             }
 
@@ -454,7 +453,7 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error,
+                return ToolAnswer.FailedText(error,
                     """Check the properties shape: paints/effects/layoutGrids are arrays, fontName is {"family":"...","style":"..."}.""");
             }
 
@@ -463,12 +462,12 @@ public sealed class WriteTools(ILiveEditor plugin, ILogger<WriteTools> logger)
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Reports whether the plugin is connected, which files it sees and which of them is the target.</summary>
     [McpServerTool(Name = "figma_get_status", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
-        UseStructuredContent = true, OutputSchemaType = typeof(Answer<BridgeStatus>))]
+        UseStructuredContent = true, OutputSchemaType = typeof(Envelope<BridgeStatus>))]
     [Description(ToolDescriptions.Write.GetStatus)]
     public Task<CallToolResult> GetStatusAsync(CancellationToken cancellationToken = default) =>
         ExecuteStructuredAsync(_ => Task.FromResult<JsonNode>(new JsonObject

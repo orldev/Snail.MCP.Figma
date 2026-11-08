@@ -3,6 +3,7 @@ using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Documents;
 using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -30,7 +31,7 @@ public sealed class DesignSystemKitTools(
             var request = new KitRequest(activeFile.Resolve(fileUrl), ParseSections(include), ParseIds(componentIds), includeImages, format);
             var kit = await kits.AssembleAsync(request, ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(kit);
+            return ToolAnswer.OkText(kit);
         }, cancellationToken);
 
     private static HashSet<string> ParseSections(string? include)

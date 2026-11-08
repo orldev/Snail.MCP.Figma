@@ -117,10 +117,11 @@ themselves, and a client opens a new session on the 404 for the old one. The age
 same folder gets its file again without a navigate, while the record is less than an hour old or the file is
 connected. A command that was in flight when the process fell is lost and has to be repeated.
 
-**The two ports stay apart.** MCP answers on `127.0.0.1:9233` and refuses any request with an `Origin` header: a
-browser always sends one, an agent's client never does. The bridge keeps its own port in 9223–9232 and its own
-origin check, which admits Figma. Each route is bound to its port. A refusal for the whole host, as the shared
-servers without a bridge map it, would have cut off the plugin, which always sends `Origin`.
+**The two ports stay apart.** MCP answers on `127.0.0.1:9233`, beside its health check `/healthz`, and refuses any request to `/mcp` with an `Origin` header: a
+browser always sends one, an agent's client never does. The server has no key, so it keeps to loopback: an address
+beyond it, every interface or a start inside a container is refused at start. The bridge keeps its own port in
+9223–9232 and its own origin check, which admits Figma. Each route is bound to its port, and the refusal holds on the
+MCP path alone, so the plugin, which always sends `Origin`, reaches the bridge.
 
 A session nobody has used for 15 minutes ends, and its agent leaves the panel: a VS Code window that was killed
 never says goodbye.
@@ -130,7 +131,7 @@ never says goodbye.
 Figma runs a plugin's window with Origin `null`, and any web page can take that origin in a sandboxed iframe, so the
 origin check cannot tell the plugin from a page posing as it. What a page cannot do is read a file on disk. The first
 server that starts on the machine writes a secret into the data folder (`bridge.token`, readable by its owner alone,
-created exclusively so two servers starting together agree on one), and the installer writes it into the panel it
+made under a lock so two servers starting together agree on one, and never replaced — Snail.Sdk's `ServerSecret`), and the installer writes it into the panel it
 copies into `plugin/`. The panel sends it back in `FILE_INFO`; a panel without it — an older bundle, or a page — is told
 an update is waiting, which is what the human sees, and the connection is closed. A reply to a command is taken only
 from the connection the command was sent on: request ids are a counter and a clock, easy to guess.
@@ -176,7 +177,7 @@ When Figma answers 429 with a long `Retry-After` (a daily plan quota), the endpo
 until it expires and further requests to it are refused without a network round trip — a refusal that is
 already known is not worth a request, and failed requests appear to count against the limit as well. Buckets
 are per endpoint (`files`, `files/nodes`, `images`), so a 429 on one does not silence the others. A successful
-response reopens a bucket immediately. The state is visible in `csharp_diagnose` under `rateLimit`.
+response reopens a bucket immediately. The state is visible in `csharp_diagnose` under `data.rateLimit`.
 
 ## Images
 
@@ -205,14 +206,23 @@ from a sandbox. The server meets that in three places.
   destructive, and on a `_delete_` tool that is not.
 - **An output schema where the answer is stable.** `figma_get_status` and `figma_list_open_files` advertise
   `outputSchema` and answer with `structuredContent` next to the usual text, so a host generating typed stubs
-  gets a return type instead of `any`. The other tools keep the text envelope: their answers are Figma trees,
-  and a schema of those would be wrong more often than useful.
+  gets a return type instead of `any` (Snail.Sdk's `Envelope<T>`, the whole envelope as the structured content). The
+  other tools keep the text envelope: their answers are Figma trees, and a schema of those would be wrong more often
+  than useful.
+- **One envelope, every failure flagged.** Every answer is Snail.Sdk's envelope, `{"ok":true,"data":…}` or
+  `{"ok":false,"error":…,"hint":…}`, a hint without a value left out; a success that says what to do next —
+  `figma_save_version`, `figma_search_components`, `figma_search_team_components` — carries it before the data,
+  `{"ok":true,"hint":…,"data":…}`; a failure is also flagged `isError`, whether the
+  tool returned it as text or threw (`ExplainFailures`, type `internal`). A call that leaves out a required argument
+  or sends one the tool does not take is refused before the tool runs, with `type` `arguments` and the parameter it
+  probably meant (`WithArgumentCheck`).
 
 ## Process lifetime
 
 Over stdio the server talks JSON-RPC on stdin and stdout, so every log line goes to stderr — a single stray write to
 stdout would break the client. A shared server has no idle exit and logs to the file launchd gives it; the rest of
-this section is about stdio. An hour without a tool call and the process exits on its own
-(`IdleTimeoutMinutes`, `0` disables it) so that orphaned servers do not pile up. A connected plugin holds the
+this section is about stdio. An hour without an MCP message from its client — a call, a list, a ping — and the
+process exits on its own (`IdleTimeoutMinutes`, `0` disables it; Snail.Sdk's idle stop) so that orphaned servers do not
+pile up. A connected plugin holds the
 countdown: while the WebSocket session is open the server is in use, and the full timeout starts over once the
 last session drops.

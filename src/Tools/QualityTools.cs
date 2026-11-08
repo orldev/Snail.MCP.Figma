@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -62,7 +63,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
         {
             if (!TryParseJson(annotations, out var parsed, out var error) || parsed is null)
             {
-                return ToolResponse.Error($"annotations did not parse as JSON: {error}",
+                return ToolAnswer.FailedText($"annotations did not parse as JSON: {error}",
                     "An array is expected, for example [{\"label\":\"Spacing 16\"}].");
             }
 
@@ -72,7 +73,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
                 ["annotations"] = parsed,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Lists the annotation categories of the file through the plugin.</summary>
@@ -94,7 +95,7 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
 
             if (normalized is not ("yellow" or "orange" or "red" or "pink" or "violet" or "blue" or "teal" or "green"))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Unknown color '{color}'.",
                     "Figma accepts yellow, orange, red, pink, violet, blue, teal or green.");
             }
@@ -119,10 +120,10 @@ public sealed class QualityTools(ILiveEditor plugin, ILogger<QualityTools> logge
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     private static JsonArray? SplitRules(string? rules)

@@ -1,4 +1,6 @@
+using ModelContextProtocol.Protocol;
 using Snail.MCP.Figma.Application.Editor;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -27,6 +29,19 @@ internal static class PictureDelivery
         return error is null;
     }
 
+    /// <summary>A success of a picture tool: the data in the envelope, and the picture after it in a block of its own when there is one.</summary>
+    internal static CallToolResult Answer(JsonNode data, Picture? picture = null) =>
+        Attach(ToolAnswer.Ok(data, AnswerShape.None), picture);
+
+    /// <summary>A failure the read tools share, written already as their string answer (<see cref="ToolAnswer.FailedText"/>), as the answer of a picture tool.</summary>
+    /// <remarks>The text is the envelope; <c>ExplainFailures</c> flags it isError on its way out.</remarks>
+    internal static CallToolResult Answer(string envelope) =>
+        new() { Content = [new TextContentBlock { Text = envelope }] };
+
+    /// <summary>A result of a picture tool — a render with its file and source beside the data (<see cref="ToolAnswer.Ok(JsonNode, AnswerShape, JsonObject, string)"/>) — with the picture after it when there is one.</summary>
+    internal static CallToolResult Attach(CallToolResult answer, Picture? picture) =>
+        picture is { } shown ? answer.WithImage(shown.Bytes, shown.MimeType) : answer;
+
     /// <summary>The picture to attach, or nothing when the caller did not ask, the format is not one a client renders, or it is too big to carry.</summary>
     /// <remarks>Must be called BEFORE the capture store replaces the base64 with a path — that is the moment the bytes are still in hand.</remarks>
     internal static Picture? From(JsonObject? picture, bool inline)
@@ -36,10 +51,17 @@ internal static class PictureDelivery
             return null;
         }
 
-        var bytes = base64.Length / 4L * 3L;
+        var size = base64.Length / 4L * 3L;
 
-        return ImageLimits.MimeFor(picture["format"]?.GetValue<string>()) is { } mime && bytes <= ImageLimits.MaxInlineBytes
-            ? new Picture(base64, mime)
+        if (ImageLimits.MimeFor(picture["format"]?.GetValue<string>()) is not { } mime || size > ImageLimits.MaxInlineBytes)
+        {
+            return null;
+        }
+
+        var bytes = new byte[size];
+
+        return Convert.TryFromBase64String(base64, bytes, out var written) && written > 0
+            ? new Picture(bytes[..written], mime)
             : null;
     }
 }

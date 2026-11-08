@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -62,7 +63,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (!TryParseJson(strokes, out var parsed, out var error) || parsed is null)
             {
-                return ToolResponse.Error($"strokes did not parse as JSON: {error}",
+                return ToolAnswer.FailedText($"strokes did not parse as JSON: {error}",
                     "Expected [{\"type\":\"SOLID\",\"color\":{\"r\":0,\"g\":0,\"b\":0}}].");
             }
 
@@ -73,7 +74,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 ["strokeWeight"] = strokeWeight,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Fills a node with an image read from a file on disk or passed as base64 bytes.</summary>
@@ -89,7 +90,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (string.IsNullOrWhiteSpace(imageData) == string.IsNullOrWhiteSpace(filePath))
             {
-                return ToolResponse.Error("Pass exactly one of imageData or filePath.");
+                return ToolAnswer.FailedText("Pass exactly one of imageData or filePath.");
             }
 
             var bytes = filePath is { Length: > 0 } ? images.ReadAsBase64(filePath) : imageData!;
@@ -105,8 +106,8 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
             }, timeout: ImageTransferTimeout, cancellationToken: ct).ConfigureAwait(false);
 
             return BridgeRefusal(result) is { } refusal
-                ? ToolResponse.Error(refusal, ImageRefusalHint)
-                : ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+                ? ToolAnswer.FailedText(refusal, ImageRefusalHint)
+                : ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Creates a node of a given type under a parent through the plugin.</summary>
@@ -121,7 +122,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (!TryParseJson(properties, out var parsed, out var error))
             {
-                return ToolResponse.Error($"properties did not parse as JSON: {error}",
+                return ToolAnswer.FailedText($"properties did not parse as JSON: {error}",
                     "An object is expected, for example {\"name\":\"Button\",\"width\":120}.");
             }
 
@@ -132,7 +133,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 ["properties"] = parsed,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Sets the description of a component or a style through the plugin.</summary>
@@ -161,7 +162,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (!TryParseJson(properties, out var parsed, out var error) || parsed is not JsonObject values)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"properties did not parse as a JSON object: {error ?? "the value is not an object"}",
                     "Expected {\"Label\":\"Buy\",\"Show Icon\":true}.");
             }
@@ -172,7 +173,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 ["properties"] = values,
             }, cancellationToken: ct).ConfigureAwait(false);
 
-            return ToolResponse.Ok(result ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(result ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Adds a page to the document, optionally switching the editor to it.</summary>
@@ -200,10 +201,10 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Turns SVG markup into a frame of vectors under a parent or on the current page.</summary>
@@ -220,7 +221,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (string.IsNullOrWhiteSpace(svg))
             {
-                return ToolResponse.Error("svg is empty.", "Pass the full <svg>...</svg> markup.");
+                return ToolAnswer.FailedText("svg is empty.", "Pass the full <svg>...</svg> markup.");
             }
 
             var script = $$"""
@@ -258,7 +259,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error);
+                return ToolAnswer.FailedText(error);
             }
 
             if (Plugin.Documents.Resolve()?.FileKey is { } fileKey)
@@ -266,7 +267,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Places a raster image as a rectangle sized to the source, taken from disk, base64 or a URL.</summary>
@@ -287,7 +288,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (sources != 1)
             {
-                return ToolResponse.Error("Pass exactly one of url, base64 or filePath.");
+                return ToolAnswer.FailedText("Pass exactly one of url, base64 or filePath.");
             }
 
             if (filePath is { Length: > 0 })
@@ -336,7 +337,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error,
+                return ToolAnswer.FailedText(error,
                     "Figma accepts PNG, JPG, GIF and WebP up to 4096x4096; the URL must be reachable from the desktop app.");
             }
 
@@ -345,7 +346,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Builds a whole node tree from one declarative spec through the plugin.</summary>
@@ -360,7 +361,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
         {
             if (!TryParseJson(spec, out var parsed, out var parseError) || parsed is null)
             {
-                return ToolResponse.Error($"spec did not parse as JSON: {parseError ?? "empty"}",
+                return ToolAnswer.FailedText($"spec did not parse as JSON: {parseError ?? "empty"}",
                     """Expected {"type":"AutoLayout","props":{...},"children":[...]}.""");
             }
 
@@ -403,7 +404,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error,
+                return ToolAnswer.FailedText(error,
                     "JSX supports a subset of node features — style ids and instances cannot be rendered; " +
                     "create the node and set the rest through figma_set_fills or figma_execute.");
             }
@@ -413,7 +414,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Applies a boolean operation or a flatten to vector nodes through the plugin.</summary>
@@ -430,7 +431,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (op is not ("UNION" or "SUBTRACT" or "INTERSECT" or "EXCLUDE" or "FLATTEN"))
             {
-                return ToolResponse.Error($"Unknown operation '{operation}'.",
+                return ToolAnswer.FailedText($"Unknown operation '{operation}'.",
                     "Expected UNION, SUBTRACT, INTERSECT, EXCLUDE or FLATTEN.");
             }
 
@@ -440,7 +441,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (ids.Length < (op == "FLATTEN" ? 1 : 2))
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"{op} needs at least {(op == "FLATTEN" ? 1 : 2)} node ids, got {ids.Length}.");
             }
 
@@ -479,7 +480,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error, "Boolean operations need vector-compatible nodes on the same page.");
+                return ToolAnswer.FailedText(error, "Boolean operations need vector-compatible nodes on the same page.");
             }
 
             if (Plugin.Documents.Resolve()?.FileKey is { } fileKey)
@@ -487,7 +488,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Groups nodes under the parent of the first one through the plugin.</summary>
@@ -505,7 +506,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (ids.Length == 0)
             {
-                return ToolResponse.Error("nodeIds is empty.");
+                return ToolAnswer.FailedText("nodeIds is empty.");
             }
 
             var script = $$"""
@@ -536,7 +537,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error, "The nodes must share a page; locked or removed nodes cannot be grouped.");
+                return ToolAnswer.FailedText(error, "The nodes must share a page; locked or removed nodes cannot be grouped.");
             }
 
             if (Plugin.Documents.Resolve()?.FileKey is { } fileKey)
@@ -544,7 +545,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Dissolves a group or frame into its parent and returns the ids of the released children.</summary>
@@ -576,7 +577,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (payload?["__error"]?.GetValue<string>() is { } error)
             {
-                return ToolResponse.Error(error, Messages.CheckNodeIdHint);
+                return ToolAnswer.FailedText(error, Messages.CheckNodeIdHint);
             }
 
             if (Plugin.Documents.Resolve()?.FileKey is { } fileKey)
@@ -584,7 +585,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, ct).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(payload ?? new JsonObject { ["success"] = true });
+            return ToolAnswer.OkText(payload ?? new JsonObject { ["success"] = true });
         }, cancellationToken);
 
     /// <summary>Places a picture read from disk in three hops: the rectangle first, then the bytes as a command parameter, then the natural size.</summary>
@@ -627,12 +628,12 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
         if (created?["__error"]?.GetValue<string>() is { } createError)
         {
-            return ToolResponse.Error(createError);
+            return ToolAnswer.FailedText(createError);
         }
 
         if (created?["id"]?.GetValue<string>() is not { } nodeId)
         {
-            return ToolResponse.Error("The plugin created no rectangle to put the picture in.");
+            return ToolAnswer.FailedText("The plugin created no rectangle to put the picture in.");
         }
 
         try
@@ -680,7 +681,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
                 await Plugin.InvalidateWholeFileAsync(fileKey, cancellationToken).ConfigureAwait(false);
             }
 
-            return ToolResponse.Ok(sized ?? new JsonObject { ["id"] = nodeId });
+            return ToolAnswer.OkText(sized ?? new JsonObject { ["id"] = nodeId });
         }
         catch (Exception ex)
         {
@@ -688,7 +689,7 @@ public sealed class NodeTools(ILiveEditor plugin, IImageFiles images, ILogger<No
 
             if (ex is InvalidOperationException or EditorCommandException)
             {
-                return ToolResponse.Error(ex.Message, ImageRefusalHint);
+                return ToolAnswer.FailedText(ex.Message, ImageRefusalHint);
             }
 
             throw;

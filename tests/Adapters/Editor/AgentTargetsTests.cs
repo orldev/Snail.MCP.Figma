@@ -1,5 +1,6 @@
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 
@@ -64,7 +65,7 @@ public sealed class AgentTargetsTests : IDisposable
     {
         Targets().Remember("Keynex", "web", "Web", DateTimeOffset.UtcNow);
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = McpTransport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
         var returning = roster.Open("after-restart", "claude-code");
 
         await roster.NameAsync(returning, "Keynex");
@@ -78,7 +79,7 @@ public sealed class AgentTargetsTests : IDisposable
     {
         Targets().Remember("Keynex", "web", "Web", DateTimeOffset.UtcNow);
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = McpTransport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
         var lingering = roster.Open("old-session", "claude-code");
         await roster.NameAsync(lingering, "Keynex");
         var reconnected = roster.Open("new-session", "claude-code");
@@ -94,7 +95,7 @@ public sealed class AgentTargetsTests : IDisposable
     public async Task AgentSlot_FirstCallsAtOnce_ShareOneNaming()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = McpTransport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
         var agent = roster.Open("session", "claude-code");
         var answer = new TaskCompletionSource();
         var asked = 0;
@@ -122,7 +123,7 @@ public sealed class AgentTargetsTests : IDisposable
     public async Task AgentRoster_FileChosenBeforeTheName_IsWrittenDownWithIt()
     {
         var registry = new OpenDocumentRegistry(NullLogger<OpenDocumentRegistry>.Instance);
-        var roster = new AgentRoster(registry, new ServerConfig { Transport = Transport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
+        var roster = new AgentRoster(registry, new ServerConfig { Transport = McpTransport.Http, DataDirectory = _directory }, NullLogger<AgentRoster>.Instance);
         var agent = roster.Open("session", "claude-code");
         agent.Return("web", "Web");
 

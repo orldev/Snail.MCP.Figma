@@ -59,7 +59,7 @@ public class ServerConfigTests
 
         ServerConfigExtensions.Normalize(config);
 
-        Assert.Equal(Path.Combine(ServerPaths.Home, "custom-figma-data"), config.DataDirectory);
+        Assert.Equal(Path.Combine(ServerFolders.Home, "custom-figma-data"), config.DataDirectory);
     }
 
     [Theory]
@@ -107,10 +107,10 @@ public class ServerConfigTests
         {
             var fromFile = RunWithEnvironment(
                 new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null },
-                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+                ConfigurationOfTheServer);
             var fromEnvironment = RunWithEnvironment(
                 new Dictionary<string, string?> { ["SNAIL_MCP_FIGMA_CONFIG"] = file, ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = "figd_from-env" },
-                () => Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings()).AddServerConfiguration());
+                ConfigurationOfTheServer);
 
             Assert.Equal("figd_from-file", fromFile.AccessToken);
             Assert.Equal("figd_from-env", fromEnvironment.AccessToken);
@@ -119,6 +119,15 @@ public class ServerConfigTests
         {
             File.Delete(file);
         }
+    }
+
+    /// <summary>The configuration the program builds: its settings read once, as the host is built over them.</summary>
+    private static ServerConfig ConfigurationOfTheServer()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Configuration.AddConfiguration(ServerSettings.Read(ServerPaths.ShortName));
+
+        return builder.AddServerConfiguration(new McpEndpoint(McpTransport.Stdio, ServerConfig.DefaultUrl, false));
     }
 
     private static void RunWithEnvironment(Dictionary<string, string?> values, Action action) =>

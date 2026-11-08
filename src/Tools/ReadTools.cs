@@ -6,6 +6,7 @@ using Snail.MCP.Figma.Application.Editor;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -56,10 +57,10 @@ public sealed class ReadTools(
     }
 
     private static string UnknownSource(string? source) =>
-        ToolResponse.Error(Messages.UnknownSource(source), Messages.AllowedSources);
+        ToolAnswer.FailedText(Messages.UnknownSource(source), Messages.AllowedSources);
 
     private static string PluginUnavailable(string fileKey) =>
-        ToolResponse.Error(Messages.PluginUnavailable(fileKey), Messages.PluginUnavailableHint);
+        ToolAnswer.FailedText(Messages.PluginUnavailable(fileKey), Messages.PluginUnavailableHint);
 
     /// <summary>Returns the cleaned document tree of the file to a given depth, from the plugin or from REST.</summary>
     [McpServerTool(Name = "figma_get_file_data", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -96,11 +97,11 @@ public sealed class ReadTools(
 
                     if (payload?["node"] is { } node)
                     {
-                        return ToolResponse.Ok(node.DeepClone(), envelope =>
+                        return ToolAnswer.OkText(node.DeepClone(), new JsonObject
                         {
-                            envelope["fileKey"] = fileKey;
-                            envelope["source"] = "plugin";
-                            envelope["nodeCount"] = payload["nodeCount"]?.DeepClone();
+                            ["fileKey"] = fileKey,
+                            ["source"] = "plugin",
+                            ["nodeCount"] = payload["nodeCount"]?.DeepClone(),
                         });
                     }
                 }
@@ -123,7 +124,7 @@ public sealed class ReadTools(
                 request,
                 ct).ConfigureAwait(false);
 
-            return ToolResponse.FromRead(read, fileKey);
+            return ToolAnswer.OkText(read.Node, AnswerFields.Of(read, fileKey));
         }, cancellationToken);
 
     /// <summary>Returns the metadata and children of one node, from the plugin or from REST.</summary>
@@ -161,18 +162,18 @@ public sealed class ReadTools(
 
                     if (payload?["found"]?.GetValue<bool>() == false)
                     {
-                        return ToolResponse.Error(
+                        return ToolAnswer.FailedText(
                             $"Node {normalized} was not found in the file.",
                             "Check the id. The last saved state can be asked for with source=\"rest\".");
                     }
 
                     if (payload?["node"] is { } node)
                     {
-                        return ToolResponse.Ok(node.DeepClone(), envelope =>
+                        return ToolAnswer.OkText(node.DeepClone(), new JsonObject
                         {
-                            envelope["fileKey"] = fileKey;
-                            envelope["nodeId"] = normalized;
-                            envelope["source"] = "plugin";
+                            ["fileKey"] = fileKey,
+                            ["nodeId"] = normalized,
+                            ["source"] = "plugin",
                         });
                     }
                 }
@@ -196,7 +197,10 @@ public sealed class ReadTools(
                 request,
                 ct).ConfigureAwait(false);
 
-            return ToolResponse.FromRead(read, fileKey, envelope => envelope["nodeId"] = normalized);
+            var beside = AnswerFields.Of(read, fileKey);
+            beside["nodeId"] = normalized;
+
+            return ToolAnswer.OkText(read.Node, beside);
         }, cancellationToken);
 
     /// <summary>Returns the variables of the file with a summary per collection, from the plugin or from REST.</summary>
@@ -271,10 +275,10 @@ public sealed class ReadTools(
                 formatted.Remove("published");
             }
 
-            return ToolResponse.Ok(formatted, envelope =>
+            return ToolAnswer.OkText(formatted, new JsonObject
             {
-                envelope["fileKey"] = fileKey;
-                envelope["source"] = localSource;
+                ["fileKey"] = fileKey,
+                ["source"] = localSource,
             });
         }, cancellationToken);
 
@@ -291,7 +295,7 @@ public sealed class ReadTools(
             var response = await api.GetFileMetaAsync(fileKey, ct).ConfigureAwait(false);
             var meta = response["file"] ?? response["meta"] ?? response;
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["fileKey"] = fileKey,
                 ["name"] = meta?["name"]?.DeepClone(),
@@ -360,12 +364,12 @@ public sealed class ReadTools(
                 }
             }
 
-            return ToolResponse.Ok(
+            return ToolAnswer.OkText(
                 new JsonObject { ["styles"] = styles.DeepClone(), ["countByType"] = byType },
-                envelope =>
+                new JsonObject
                 {
-                    envelope["fileKey"] = fileKey;
-                    envelope["source"] = stylesSource;
+                    ["fileKey"] = fileKey,
+                    ["source"] = stylesSource,
                 });
         }, cancellationToken);
 
@@ -390,12 +394,12 @@ public sealed class ReadTools(
         {
             if (!PictureDelivery.TryParse(deliver, out var inline, out var deliverError))
             {
-                return ToolResponse.Textual(ToolResponse.Error(deliverError!, PictureDelivery.Hint));
+                return ToolAnswer.Failed(deliverError!, PictureDelivery.Hint);
             }
 
             if (!TryParseSource(source, out var mode))
             {
-                return ToolResponse.Textual(UnknownSource(source));
+                return PictureDelivery.Answer(UnknownSource(source));
             }
 
             var fileKey = activeFile.Resolve(fileUrl);
@@ -414,14 +418,14 @@ public sealed class ReadTools(
 
                 if (mode == "plugin")
                 {
-                    return ToolResponse.Textual(ToolResponse.Error(
+                    return ToolAnswer.Failed(
                         $"The plugin returned no picture for node {normalized}.",
-                        "Check the node id or retry with source=\"rest\"."));
+                        "Check the node id or retry with source=\"rest\".");
                 }
             }
             else if (mode == "plugin")
             {
-                return ToolResponse.Textual(PluginUnavailable(fileKey));
+                return PictureDelivery.Answer(PluginUnavailable(fileKey));
             }
 
             if (mode != "plugin")
@@ -432,8 +436,8 @@ public sealed class ReadTools(
 
                 if (cachedUrl is not null)
                 {
-                    return ToolResponse.Textual(ImageResponse(fileKey, normalized, format, effectiveScale, "cache",
-                        data => data["url"] = cachedUrl));
+                    return ImageResponse(fileKey, normalized, format, effectiveScale, "cache",
+                        data => data["url"] = cachedUrl);
                 }
             }
 
@@ -443,12 +447,12 @@ public sealed class ReadTools(
                     .RenderAsync(fileKey, [normalized], format, effectiveScale, ct)
                     .ConfigureAwait(false);
 
-                return ToolResponse.Textual(render.Urls.TryGetValue(normalized, out var url)
+                return render.Urls.TryGetValue(normalized, out var url)
                     ? ImageResponse(fileKey, normalized, format, effectiveScale, "figma-api",
                         data => data["url"] = url)
-                    : ToolResponse.Error(
+                    : ToolAnswer.Failed(
                         $"Figma did not render node {normalized}.",
-                        "Check that the node exists and that it is a visual node, not a page."));
+                        "Check that the node exists and that it is a visual node, not a page.");
             }
             catch (PublishedSourceException ex) when (ex.Failure == SourceFailure.RateLimited)
             {
@@ -463,9 +467,9 @@ public sealed class ReadTools(
                     return shot;
                 }
 
-                return ToolResponse.Textual(ToolResponse.Error(
+                return ToolAnswer.Failed(
                     ex.Message,
-                    $"{ex.Hint} The picture can be taken without quota: open the file in Figma Desktop, run the Snail Bridge plugin and repeat the call (or capture the whole page with figma_take_screenshot)."));
+                    $"{ex.Hint} The picture can be taken without quota: open the file in Figma Desktop, run the Snail Bridge plugin and repeat the call (or capture the whole page with figma_take_screenshot).");
             }
         }, cancellationToken);
 
@@ -506,7 +510,7 @@ public sealed class ReadTools(
             var picture = PictureDelivery.From(image, inline);
             var saved = screenshots.SaveAndReplace(image);
 
-            return ToolResponse.Pictured(
+            return PictureDelivery.Attach(
                 ImageResponse(fileKey, nodeId, format, scale, "plugin", data => data["image"] = saved.DeepClone()),
                 picture);
         }
@@ -519,7 +523,7 @@ public sealed class ReadTools(
     }
 
     /// <summary>Uniform render response: the source in the envelope, the payload in data.</summary>
-    private static string ImageResponse(
+    private static CallToolResult ImageResponse(
         string fileKey,
         string nodeId,
         string format,
@@ -536,10 +540,10 @@ public sealed class ReadTools(
 
         fill(data);
 
-        return ToolResponse.Ok(data, envelope =>
+        return ToolAnswer.Ok(data, AnswerShape.None, new JsonObject
         {
-            envelope["fileKey"] = fileKey;
-            envelope["source"] = source;
+            ["fileKey"] = fileKey,
+            ["source"] = source,
         });
     }
 
@@ -571,15 +575,10 @@ public sealed class ReadTools(
                 },
                 $"{fileKey}/plugin-view");
 
-            return ToolResponse.Ok(sanitized.Node, envelope =>
+            return ToolAnswer.OkText(sanitized.Node, new JsonObject
             {
-                envelope["fileKey"] = fileKey;
-                envelope["metrics"] = new JsonObject
-                {
-                    ["bytesIn"] = sanitized.BytesIn,
-                    ["bytesOut"] = sanitized.BytesOut,
-                    ["savedRatio"] = Math.Round(sanitized.Ratio, 4),
-                };
+                ["fileKey"] = fileKey,
+                ["metrics"] = AnswerFields.Of(sanitized),
             });
         }, cancellationToken);
 

@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using Snail.MCP.Figma.Adapters.Editor;
 using Snail.MCP.Figma.Application.Editor;
-using Snail.MCP.Figma.Configuration;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tests.Adapters.Editor;
 
@@ -131,7 +131,7 @@ public class ImageFilesTests : IDisposable
         var error = Assert.Throws<InvalidOperationException>(
             () => Reader().ReadAsBase64("~/snail-picture-that-is-not-there.png"));
 
-        Assert.Contains(ServerPaths.Home, error.Message, StringComparison.Ordinal);
+        Assert.Contains(ServerFolders.Home, error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("~", error.Message, StringComparison.Ordinal);
     }
 }

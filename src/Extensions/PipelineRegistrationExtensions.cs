@@ -15,6 +15,7 @@ using Snail.MCP.Figma.Hosting;
 using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Hosting;
+using Snail.Sdk.Mcp.Hosting.Discovery;
 using Snail.Sdk.Mcp.Http;
 
 namespace Snail.MCP.Figma.Extensions;
@@ -72,7 +73,10 @@ public static class PipelineRegistrationExtensions
         }
 
         /// <summary>The one server both transports carry: its name, the instructions on the handshake, every tool, and the filters every call passes.</summary>
-        /// <remarks>Each tool class is named here rather than found by scanning the assembly, which Native AOT cannot do; the stdio contract fails when a class is left out, because it compares tools/list with every tool of the assembly.</remarks>
+        /// <remarks>
+        /// <para>Each tool class is named here rather than found by scanning the assembly, which Native AOT cannot do; the stdio contract fails when a class is left out, because it compares tools/list with every tool of the assembly.</para>
+        /// <para>Snail.Sdk's <c>ExplainFailures</c> flags an answer that is the failure envelope as an error: 136 of the 141 tools return the envelope as a string, which the MCP SDK turns into a result without isError. <c>WithArgumentCheck</c> answers a call that leaves out a required argument, or sends one the tool does not take, with the envelope of type <c>arguments</c> before the tool runs — five calls of the shared server's log of 16–27.10.2026 reached the SDK's marshaller without a required argument and got "An error occurred invoking" with no cause.</para>
+        /// </remarks>
         private IMcpServerBuilder AddMcpServerWithTools()
         {
             var json = ToolJson.Options(ToolJsonContext.Default);
@@ -80,7 +84,7 @@ public static class PipelineRegistrationExtensions
             return services
                 .AddMcpServer(options =>
                 {
-                    options.ServerInfo = ServerIdentity.Of(typeof(ThisAssembly).Assembly);
+                    options.ServerInfo = ServerIdentity.Of(typeof(PipelineRegistrationExtensions).Assembly);
                     options.ServerInstructions = ServerInstructions.Text;
                 })
                 .WithTools<CommentTools>(json)
@@ -101,11 +105,9 @@ public static class PipelineRegistrationExtensions
                 .WithTools<VariableTools>(json)
                 .WithTools<VersionTools>(json)
                 .WithTools<WriteTools>(json)
-                .WithRequestFilters(filters => filters
-                    .AddCallToolFilter(FlagFailures)
-                    .AddCallToolFilter(TouchActivity)
-                    .AddCallToolFilter(RefuseIncompleteCalls)
-                    .AddCallToolFilter(ServeTheAgent));
+                .ExplainFailures()
+                .WithArgumentCheck()
+                .WithRequestFilters(filters => filters.AddCallToolFilter(ServeTheAgent));
         }
     }
 
@@ -158,66 +160,5 @@ public static class PipelineRegistrationExtensions
             }
 
             return await next(context, cancellationToken);
-        };
-
-    /// <summary>Flags an answer that is the failure envelope as an error, so the client and the model tell a failure from a success by the protocol rather than by reading the text.</summary>
-    /// <remarks>
-    /// <para>136 of the 141 tools return a string, and the SDK turns a string into a result without isError: the failures of 105 <see cref="ToolResponse.Error"/> call sites reached the client as successes, and only <see cref="RefuseIncompleteCalls"/> set the flag. The five tools that build a <see cref="CallToolResult"/> themselves wrap the same envelope and never set it either. One filter fixes every tool at once, where rewriting each to return a result would touch all 141.</para>
-    /// <para>Registered first, it is the outermost filter, so it sees the final answer of every tool and of every filter behind it. An answer that already carries the flag, or is not the envelope, passes as it is.</para>
-    /// </remarks>
-    private static McpRequestHandler<CallToolRequestParams, CallToolResult> FlagFailures(
-        McpRequestHandler<CallToolRequestParams, CallToolResult> next) =>
-        async (context, cancellationToken) =>
-        {
-            var answer = await next(context, cancellationToken);
-
-            if (answer.IsError != true && ToolResponse.IsFailure(answer))
-            {
-                answer.IsError = true;
-            }
-
-            return answer;
-        };
-
-    /// <summary>Answers a call that lacks a required argument with the error envelope every tool answers with, naming what is missing.</summary>
-    /// <remarks>Without this the SDK's marshaller threw ArgumentException past every tool's guard, and the agent got "An error occurred invoking" with no cause and no hint: five such calls in the shared server's log of 16–27.10.2026, four of them figma_navigate without fileUrlOrKey.</remarks>
-    private static McpRequestHandler<CallToolRequestParams, CallToolResult> RefuseIncompleteCalls(
-        McpRequestHandler<CallToolRequestParams, CallToolResult> next) =>
-        (context, cancellationToken) =>
-        {
-            if (context.MatchedPrimitive is not McpServerTool tool)
-            {
-                return next(context, cancellationToken);
-            }
-
-            var missing = ToolArguments.Missing(tool.ProtocolTool.InputSchema, context.Params?.Arguments);
-
-            if (missing.Count == 0)
-            {
-                return next(context, cancellationToken);
-            }
-
-            var names = string.Join(", ", missing);
-
-            if (context.Services?.GetService<ILoggerFactory>() is { } loggers)
-            {
-                Log.CalledWithoutRequiredArguments(loggers.CreateLogger(typeof(ToolArguments)), tool.ProtocolTool.Name, names);
-            }
-
-            var answer = ToolResponse.Textual(ToolResponse.Error(
-                $"{tool.ProtocolTool.Name} was called without the required argument(s) {names}.",
-                Messages.PassRequiredArgumentsHint));
-            answer.IsError = true;
-
-            return ValueTask.FromResult(answer);
-        };
-
-    private static McpRequestHandler<CallToolRequestParams, CallToolResult> TouchActivity(
-        McpRequestHandler<CallToolRequestParams, CallToolResult> next) =>
-        (context, cancellationToken) =>
-        {
-            context.Services?.GetService<IActivityTracker>()?.Touch();
-
-            return next(context, cancellationToken);
         };
 }

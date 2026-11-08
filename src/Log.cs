@@ -2,7 +2,7 @@ using Snail.MCP.Figma.Configuration;
 
 namespace Snail.MCP.Figma;
 
-/// <summary>What reading, rendering, sanitizing and the idle watch say.</summary>
+/// <summary>What reading, rendering, sanitizing and the log trim say.</summary>
 /// <remarks>
 /// Generated rather than written through the logging extensions: a line below the level in force costs nothing, where the
 /// extensions boxed and formatted their arguments first. The messages are the ones the server has always written.
@@ -24,9 +24,6 @@ internal static partial class Log
     [LoggerMessage(EventId = 405, Level = LogLevel.Debug, Message = "DOCUMENT_CHANGE {FileKey}: {Changed} nodes, {Removed} documents removed")]
     internal static partial void DocumentChanged(ILogger logger, string? fileKey, int changed, int removed);
 
-    [LoggerMessage(EventId = 406, Level = LogLevel.Warning, Message = "No MCP tool has been called for {IdleFor}; the process looks orphaned, shutting down")]
-    internal static partial void IdleShutdown(ILogger logger, TimeSpan idleFor);
-
     [LoggerMessage(EventId = 407, Level = LogLevel.Information, Message = "Log {Path} passed {Megabytes} MB and starts over; the lines before the cut are in {Previous}")]
     internal static partial void LogTrimmed(ILogger logger, string path, long megabytes, string previous);
 
@@ -44,7 +41,4 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 604, Level = LogLevel.Warning, Message = "The client refused roots/list")]
     internal static partial void RootsRefused(ILogger logger, Exception failure);
-
-    [LoggerMessage(EventId = 605, Level = LogLevel.Warning, Message = "{Tool} was called without the required argument(s) {Missing}")]
-    internal static partial void CalledWithoutRequiredArguments(ILogger logger, string tool, string missing);
 }

@@ -6,6 +6,7 @@ using Snail.MCP.Figma.Application.Extraction;
 using Snail.MCP.Figma.Application.Sanitization;
 using Snail.MCP.Figma.Configuration;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting.Answers;
 
 namespace Snail.MCP.Figma.Tools;
 
@@ -35,7 +36,7 @@ public sealed class DesignCodeTools(
 
             if (node is null)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"Node {normalized} was not found.",
                     "Check the id with figma_get_selection or figma_search_components.");
             }
@@ -44,14 +45,14 @@ public sealed class DesignCodeTools(
             var (valid, errors) = ReconstructionSpec.Validate(spec);
             var styles = new StyleExtractor().Extract(node, depth + 2);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["node"] = node.DeepClone(),
                 ["reconstructionSpec"] = spec,
                 ["specValid"] = valid,
                 ["specErrors"] = new JsonArray(errors.Select(e => (JsonNode)JsonValue.Create(e)!).ToArray()),
                 ["styles"] = StyleExtractor.Format(styles),
-            }, envelope => envelope["nodeId"] = normalized);
+            }, new JsonObject { ["nodeId"] = normalized });
         }, cancellationToken);
 
     /// <summary>Adds states, reactions, slots and annotations read through the plugin to the development breakdown of a node.</summary>
@@ -72,18 +73,18 @@ public sealed class DesignCodeTools(
 
             if (node is null)
             {
-                return ToolResponse.Error($"The plugin returned no data for node {normalized}.");
+                return ToolAnswer.FailedText($"The plugin returned no data for node {normalized}.");
             }
 
             var payload = node["node"] ?? node;
             var spec = ReconstructionSpec.Extract(payload);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["node"] = node.DeepClone(),
                 ["reconstructionSpec"] = spec,
                 ["styles"] = StyleExtractor.Format(new StyleExtractor().Extract(payload)),
-            }, envelope => envelope["nodeId"] = normalized);
+            }, new JsonObject { ["nodeId"] = normalized });
         }, cancellationToken);
 
     /// <summary>Collects the deduplicated colors, typography, spacing and radii used in the design itself.</summary>
@@ -129,7 +130,7 @@ public sealed class DesignCodeTools(
 
             var styles = new StyleExtractor().Extract(source, depth + 2);
 
-            return ToolResponse.Ok(StyleExtractor.Format(styles), envelope => envelope["fileKey"] = fileKey);
+            return ToolAnswer.OkText(StyleExtractor.Format(styles), new JsonObject { ["fileKey"] = fileKey });
         }, cancellationToken);
 
     /// <summary>Scores how closely a Figma component matches a code-side spec and lists the mismatches.</summary>
@@ -144,7 +145,7 @@ public sealed class DesignCodeTools(
         {
             if (!TryParseJson(codeSpec, out var parsed, out var error) || parsed is not JsonObject code)
             {
-                return ToolResponse.Error(
+                return ToolAnswer.FailedText(
                     $"codeSpec did not parse as a JSON object: {error ?? "the value is not an object"}",
                     "An object of the form {\"fontSize\":14,\"paddingLeft\":16} is expected.");
             }
@@ -154,13 +155,13 @@ public sealed class DesignCodeTools(
 
             if (node is null)
             {
-                return ToolResponse.Error($"Node {normalized} was not found.");
+                return ToolAnswer.FailedText($"Node {normalized} was not found.");
             }
 
             var design = ReconstructionSpec.Extract(node);
             var report = ParityReport.Compare(design, code);
 
-            return ToolResponse.Ok(report, envelope => envelope["nodeId"] = normalized);
+            return ToolAnswer.OkText(report, new JsonObject { ["nodeId"] = normalized });
         }, cancellationToken);
 
     /// <summary>Writes Markdown documentation for a component, merging in optional data taken from its source code.</summary>
@@ -175,7 +176,7 @@ public sealed class DesignCodeTools(
         {
             if (!TryParseJson(codeInfo, out var parsedCode, out var error))
             {
-                return ToolResponse.Error($"codeInfo did not parse as JSON: {error}");
+                return ToolAnswer.FailedText($"codeInfo did not parse as JSON: {error}");
             }
 
             var normalized = NodeId.Normalize(nodeId);
@@ -183,12 +184,12 @@ public sealed class DesignCodeTools(
 
             if (node is null)
             {
-                return ToolResponse.Error($"Node {normalized} was not found.");
+                return ToolAnswer.FailedText($"Node {normalized} was not found.");
             }
 
             var markdown = ComponentDoc.Render(node, new StyleExtractor().Extract(node), parsedCode as JsonObject);
 
-            return ToolResponse.Ok(new JsonObject
+            return ToolAnswer.OkText(new JsonObject
             {
                 ["markdown"] = markdown,
                 ["nodeId"] = normalized,

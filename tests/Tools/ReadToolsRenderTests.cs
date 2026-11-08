@@ -92,6 +92,9 @@ public class ReadToolsRenderTests(BridgeHostFixture bridge) : IDisposable
         Assert.Equal("image/png", picture.MimeType);
         Assert.Equal(SamplePng, Encoding.UTF8.GetString(picture.Data.Span));
         Assert.True(File.Exists(Parse(result)["data"]!["image"]!["path"]!.GetValue<string>()));
+        Assert.Equal(fileKey, result.Field("fileKey")!.GetValue<string>());
+        Assert.Equal("plugin", result.Field("source")!.GetValue<string>());
+        Assert.Null(result.StructuredContent);
     }
 
     [Fact]
