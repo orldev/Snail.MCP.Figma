@@ -1,0 +1,28 @@
+{
+  "stryker-config": {
+    "project": "Snail.MCP.Figma.csproj",
+    "test-projects": ["tests/Snail.MCP.Figma.Tests.csproj"],
+    "test-case-filter": "FullyQualifiedName!~StdioContract&FullyQualifiedName!~HttpContract&FullyQualifiedName!~StartRefusal&FullyQualifiedName!~CodeStyleConvention",
+    "mutation-level": "Standard",
+    "coverage-analysis": "perTest",
+    "ignore-mutations": ["string"],
+    "ignore-methods": ["*Log*", "ConfigureAwait", "Task.Delay"],
+    "additional-timeout": 5000,
+    "concurrency": 4,
+    "mutate": [
+      "**/*.cs",
+      "!**/obj/**",
+      "!**/Program.cs",
+      "!**/GlobalUsings.cs",
+      "!**/Log.cs",
+      "!**/*JsonContext.cs",
+      "!**/*Json.cs",
+      "!**/Extensions/**",
+      "!**/Hosting/**",
+      "!**/Tools/Prompts/**",
+      "!**/Application/Extraction/Codebase/ShowcaseMdx.cs",
+      "!**/Application/Extraction/Codebase/StorybookPreset.cs",
+      "!**/Adapters/Editor/EditorLinkEndpoint.cs"
+    ]
+  }
+}

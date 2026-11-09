@@ -1,8 +1,9 @@
 name: build and tests
 
 # The shared server CI of Snail.Sdk: the tests, the conformance check, the reference the build writes, and the server
-# built native for every platform it ships to and asked over stdio (the stdio contract tests only). Once a month, and by
-# hand, the contract guards run against the latest Figma REST and Plugin API artifacts: this server's own job.
+# built native for every platform it ships to and asked over stdio and HTTP (the stdio, HTTP and start refusal contract
+# tests, each of which starts the program SNAIL_FIGMA_SERVER names). Once a month, and by hand, the contract guards run
+# against the latest Figma REST and Plugin API artifacts: this server's own job.
 
 on:
   push:
@@ -20,7 +21,7 @@ jobs:
     uses: orldev/Snail.Sdk/.github/workflows/mcp-ci.yml@v1
     with:
       contract-variable: SNAIL_FIGMA_SERVER
-      contract-filter: FullyQualifiedName~StdioContract
+      contract-filter: FullyQualifiedName~StdioContract|FullyQualifiedName~HttpContract|FullyQualifiedName~StartRefusal
 
   contracts:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

@@ -1,7 +1,7 @@
 name: release to NuGet
 
 # The shared server release of Snail.Sdk: a native tool package for each platform with a framework-dependent one for the
-# rest, asked over stdio before they are pushed; .mcp/server.json takes the version. A version tag (v1.2.0,
+# rest, asked over stdio and HTTP before they are pushed; .mcp/server.json takes the version. A version tag (v1.2.0,
 # v1.2.0-preview.1) releases; run by hand, it builds and checks the packages and pushes only when asked to. The push is
 # a job of this file because nuget.org gives a trusted publishing key only to a job of the workflow file its policy
 # names in this repository: this publish.yml, with the secret NUGET_USER. The site is docs.yml's.
@@ -27,7 +27,7 @@ jobs:
     uses: orldev/Snail.Sdk/.github/workflows/mcp-publish.yml@v1
     with:
       contract-variable: SNAIL_FIGMA_SERVER
-      contract-filter: FullyQualifiedName~StdioContract
+      contract-filter: FullyQualifiedName~StdioContract|FullyQualifiedName~HttpContract|FullyQualifiedName~StartRefusal
       version: ${{ inputs.version }}
       push: ${{ github.event_name == 'push' || inputs.push }}
 
