@@ -214,10 +214,12 @@ from a sandbox. The server meets that in three places.
   other tools keep the text envelope: their answers are Figma trees, and a schema of those would be wrong more often
   than useful.
 - **One envelope, every failure flagged.** Every answer is Snail.Sdk's envelope, `{"ok":true,"data":…}` or
-  `{"ok":false,"error":…,"hint":…}`, a hint without a value left out; a success that says what to do next —
-  `figma_save_version`, `figma_search_components`, `figma_search_team_components` — carries it before the data,
-  `{"ok":true,"hint":…,"data":…}`; a failure is also flagged `isError`, whether the
-  tool returned it as text or threw (`ExplainFailures`, type `internal`). A call that leaves out a required argument
+  `{"ok":false,"error":…,"hint":…,"type":…}`, a field without a value left out; `type` names the failure where the
+  server names one — `internal`, `arguments`, `notGranted`. A read that knows where its answer came from writes it
+  beside the data, at the top level: `fileKey`, `nodeId`, `source`, `fileVersion`, `staleReason`, `metrics`. A
+  success that says what to do next — `figma_save_version`, `figma_search_components`,
+  `figma_search_team_components` — carries it before the data, `{"ok":true,"hint":…,"data":…}`; a failure is text
+  alone and also flagged `isError`, whether the tool returned it as text or threw (`ExplainFailures`, type `internal`). A call that leaves out a required argument
   or sends one the tool does not take is refused before the tool runs, with `type` `arguments` and the parameter it
   probably meant (`WithArgumentCheck`).
 

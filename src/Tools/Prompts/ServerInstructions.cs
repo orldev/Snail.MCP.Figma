@@ -6,11 +6,13 @@ public static class ServerInstructions
 {
     /// <summary>The instructions text the server registers for the MCP handshake.</summary>
     public const string Text = """
-        Snail.MCP.Figma: 141 tools for reading and editing Figma. Reads go through the Figma Desktop plugin while it runs in the file (unsaved edits visible, no quota) and fall back to REST; every write needs the plugin.
+        Snail.MCP.Figma: 141 tools for reading and editing Figma. Reads go through the Figma Desktop plugin in the open file (unsaved edits visible, no quota), else REST; every write needs the plugin.
 
-        Start with figma_navigate and the link of the file you work in: it binds the target, and with several files open a write is refused until you do. figma_get_status shows the bridge.
+        Start with figma_navigate and the link of your file: it binds the target, and with several files open a write is refused until you do. figma_get_status shows the bridge.
 
-        A build of many steps is one script, not a chain of calls: figma_execute runs JavaScript against the Plugin API inside Figma, figma_execute_steps runs a sequence the human can watch; only the return value comes back. A failed script explains itself in figma_get_console_logs. Check the result with figma_take_screenshot: a script answers success even when the picture is wrong. The human can type a remark into the plugin panel while you work: read it with figma_get_remarks between steps.
+        A build of many steps is one script, not a chain of calls: figma_execute runs Plugin API JavaScript inside Figma, figma_execute_steps a sequence the human can watch; only the return value comes back. A failed script explains itself in figma_get_console_logs. Check the result with figma_take_screenshot: a script succeeds even when the picture is wrong. Read the human's remarks from the plugin panel with figma_get_remarks between steps.
+
+        A failure answers ok false and isError: read error, hint and type, and fix the call rather than repeat it.
 
         Families, by the words to search for:
         - read file, node, styles, variables, render: figma_get_file_data, figma_get_variables, figma_get_component_image

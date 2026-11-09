@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using ModelContextProtocol.Server;
 using Snail.MCP.Figma.Tools.Prompts;
+using Snail.Sdk.Mcp.Hosting;
 
 namespace Snail.MCP.Figma.Tests;
 
@@ -97,7 +98,7 @@ public class StdioContractTests
 
             Assert.True(answer.IsError);
             Assert.False(answer.IsOk());
-            Assert.Equal("arguments", answer.Type());
+            Assert.Equal(ToolFailures.Arguments, answer.Type());
             Assert.Contains("fileUrlOrKey", answer.Error(), StringComparison.Ordinal);
             Assert.False(string.IsNullOrWhiteSpace(answer.Hint()));
         }
@@ -120,7 +121,7 @@ public class StdioContractTests
             var answer = await client.CallToolAsync("figma_navigate", new Dictionary<string, object?> { ["fileUrlOrKey"] = "abc", ["fileUrlOrKy"] = "abc" });
 
             Assert.True(answer.IsError);
-            Assert.Equal("arguments", answer.Type());
+            Assert.Equal(ToolFailures.Arguments, answer.Type());
             Assert.Contains("fileUrlOrKy", answer.Error(), StringComparison.Ordinal);
         }
         finally

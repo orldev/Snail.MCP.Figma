@@ -34,9 +34,9 @@ internal static class PictureDelivery
         Attach(ToolAnswer.Ok(data, AnswerShape.None), picture);
 
     /// <summary>A failure the read tools share, written already as their string answer (<see cref="ToolAnswer.FailedText"/>), as the answer of a picture tool.</summary>
-    /// <remarks>The text is the envelope; <c>ExplainFailures</c> flags it isError on its way out.</remarks>
+    /// <remarks>Answered again by the envelope's own rules (<see cref="ToolAnswer.Of(JsonObject, AnswerShape)"/>): text alone, flagged isError.</remarks>
     internal static CallToolResult Answer(string envelope) =>
-        new() { Content = [new TextContentBlock { Text = envelope }] };
+        ToolAnswer.Of(JsonNode.Parse(envelope)!.AsObject());
 
     /// <summary>A result of a picture tool — a render with its file and source beside the data (<see cref="ToolAnswer.Ok(JsonNode, AnswerShape, JsonObject, string)"/>) — with the picture after it when there is one.</summary>
     internal static CallToolResult Attach(CallToolResult answer, Picture? picture) =>
