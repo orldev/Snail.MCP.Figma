@@ -126,6 +126,10 @@ MCP path alone, so the plugin, which always sends `Origin`, reaches the bridge.
 A session nobody has used for 15 minutes ends, and its agent leaves the panel: a VS Code window that was killed
 never says goodbye.
 
+A session opened at `/mcp?tool=<name>&tool=…` — an address a platform writes when it opens the server for a role — is
+given those tools alone: the others are left out of its list and a call to one of them is refused with type
+`notGranted`. An address that names no tool is given all of them.
+
 ## Who the bridge trusts
 
 Figma runs a plugin's window with Origin `null`, and any web page can take that origin in a sandboxed iframe, so the

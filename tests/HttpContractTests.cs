@@ -160,6 +160,23 @@ public sealed class HttpContractTests : IAsyncLifetime
     public async Task SharedServer_RequestWithBrowserOrigin_IsRefused() =>
         Assert.Empty(await HttpGuards.ProblemsAsync(_endpoint));
 
+    /// <summary>A session opened at an address that names its tools (<c>?tool=</c>, written by the platform that opens it for a role) is given
+    /// those alone: the rest are left out of its list, and a call to one of them is refused in the envelope before it reaches Figma.</summary>
+    /// <remarks>The grant was not registered, so the address was ignored and a role opened for reading could run <c>figma_execute</c>.</remarks>
+    [Fact]
+    public async Task SharedServer_SessionWhoseAddressNamesItsTools_IsGrantedThoseAlone()
+    {
+        using var cancellation = new CancellationTokenSource(Timeout);
+        await using var reader = await ConnectAsync("Granted", cancellation.Token, "tool=figma_get_status");
+
+        var listed = (await reader.ListToolsAsync(cancellationToken: cancellation.Token)).Select(tool => tool.Name);
+        var refused = await reader.CallToolAsync("figma_execute", new Dictionary<string, object?> { ["code"] = "return 1;" }, cancellationToken: cancellation.Token);
+
+        Assert.Equal(["figma_get_status"], listed);
+        Assert.True(refused.IsError);
+        Assert.Equal(Snail.Sdk.Mcp.Hosting.Sessions.GrantOptions.NotGranted, refused.Type());
+    }
+
     /// <summary>The names the panel was last told, as it keeps them.</summary>
     private static IReadOnlyList<string> Names(FakeEditorExtension panel) => [.. Agents(panel).Select(agent => agent!["name"]!.GetValue<string>())];
 
@@ -181,9 +198,9 @@ public sealed class HttpContractTests : IAsyncLifetime
         return panel;
     }
 
-    /// <summary>A client of the shared server working in the folder <paramref name="project"/>.</summary>
+    /// <summary>A client of the shared server working in the folder <paramref name="project"/>, at the endpoint with <paramref name="query"/> when one is given.</summary>
     /// <remarks>Speaks the 2025-06-18 revision: a session is opened by initialize, which is where roots live; clients of today still do.</remarks>
-    private Task<McpClient> ConnectAsync(string project, CancellationToken cancellationToken)
+    private Task<McpClient> ConnectAsync(string project, CancellationToken cancellationToken, string? query = null)
     {
         var folder = new Uri(Path.Combine(_dataDirectory, project)).AbsoluteUri;
         var options = new McpClientOptions
@@ -197,7 +214,7 @@ public sealed class HttpContractTests : IAsyncLifetime
         };
 
         return McpClient.CreateAsync(
-            new HttpClientTransport(new HttpClientTransportOptions { Endpoint = _endpoint }),
+            new HttpClientTransport(new HttpClientTransportOptions { Endpoint = query is null ? _endpoint : new UriBuilder(_endpoint) { Query = query }.Uri }),
             options,
             cancellationToken: cancellationToken);
     }

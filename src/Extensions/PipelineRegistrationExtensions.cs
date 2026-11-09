@@ -16,6 +16,7 @@ using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Hosting;
 using Snail.Sdk.Mcp.Hosting.Discovery;
+using Snail.Sdk.Mcp.Hosting.Sessions;
 using Snail.Sdk.Mcp.Http;
 
 namespace Snail.MCP.Figma.Extensions;
@@ -75,6 +76,7 @@ public static class PipelineRegistrationExtensions
         /// <summary>The one server both transports carry: its name, the instructions on the handshake, every tool, and the filters every call passes.</summary>
         /// <remarks>
         /// <para>Each tool class is named here rather than found by scanning the assembly, which Native AOT cannot do; the stdio contract fails when a class is left out, because it compares tools/list with every tool of the assembly.</para>
+        /// <para>Snail.Sdk's <c>WithSessionGrant</c> holds a session to the tools its address names (<c>?tool=</c>, written by the platform that opens the server for a role): the others are left out of its list and refused in the envelope, type <c>notGranted</c>. An address that names none, and stdio, which has no address, are granted every tool, so a Claude Code window on the shared server sees all 141.</para>
         /// <para>Snail.Sdk's <c>ExplainFailures</c> flags an answer that is the failure envelope as an error: 136 of the 141 tools return the envelope as a string, which the MCP SDK turns into a result without isError. <c>WithArgumentCheck</c> answers a call that leaves out a required argument, or sends one the tool does not take, with the envelope of type <c>arguments</c> before the tool runs — five calls of the shared server's log of 16–27.10.2026 reached the SDK's marshaller without a required argument and got "An error occurred invoking" with no cause.</para>
         /// </remarks>
         private IMcpServerBuilder AddMcpServerWithTools()
@@ -106,6 +108,7 @@ public static class PipelineRegistrationExtensions
                 .WithTools<VersionTools>(json)
                 .WithTools<WriteTools>(json)
                 .ExplainFailures()
+                .WithSessionGrant()
                 .WithArgumentCheck()
                 .WithRequestFilters(filters => filters.AddCallToolFilter(ServeTheAgent));
         }
