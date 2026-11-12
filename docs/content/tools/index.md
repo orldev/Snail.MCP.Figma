@@ -1,6 +1,6 @@
 # Tools
 
-141 tools in 18 families.
+144 tools in 19 families.
 The names, descriptions and schemas are generated from the server itself, so they are exactly what the model receives in `tools/list`.
 
 Reads go through the Figma Desktop plugin while it runs in the file — unsaved edits visible, no API quota spent — and fall back to the REST API behind a snapshot cache; every write needs the plugin. The line under each tool says whether it may reach the REST API or works on the connected file only.
@@ -148,3 +148,6 @@ Reads go through the Figma Desktop plugin while it runs in the file — unsaved 
 | [`figma_take_screenshot`](session.md#figma_take_screenshot) | Session and console | Captures a node or the current page straight from the plugin. |
 | [`figma_get_text_styles`](session.md#figma_get_text_styles) | Session and console | The text styles of a file read through the plugin: name, size, weight, line height. |
 | [`csharp_diagnose`](diagnostics.md#csharp_diagnose) | Diagnostics | Self-check of the Snail.MCP.Figma server: the active configuration, the presence of the Snail Bridge JS plugin and the state of the cache. |
+| [`find_tool`](discovery.md#find_tool) | Finding and running tools | Finds tools of this server for a task in words, best first, with the parameters of each. |
+| [`run_tools`](discovery.md#run_tools) | Finding and running tools | Runs tools of this server in order in one call, stopping at the first failure; no step sees an earlier answer. |
+| [`run_program`](discovery.md#run_program) | Finding and running tools | Run a JavaScript program whose functions are this server's commands, figma.&lt;command&gt;({ … }), with loops, conditions and the results in hand. |

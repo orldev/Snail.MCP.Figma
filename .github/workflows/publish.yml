@@ -27,6 +27,7 @@ jobs:
     uses: orldev/Snail.Sdk/.github/workflows/mcp-publish.yml@v1
     with:
       contract-variable: SNAIL_FIGMA_SERVER
+      forgiven-native-warnings: 'Jint\.dll|: Jint\.'
       contract-filter: FullyQualifiedName~StdioContract|FullyQualifiedName~HttpContract|FullyQualifiedName~StartRefusal
       version: ${{ inputs.version }}
       push: ${{ github.event_name == 'push' || inputs.push }}

@@ -22,6 +22,7 @@
     { "type": "SlotTools", "slug": "slots", "title": "Slots" },
     { "type": "QualityTools", "slug": "quality", "title": "Quality and annotations" },
     { "type": "SessionTools", "slug": "session", "title": "Session and console" },
-    { "type": "DiagnosticsTools", "slug": "diagnostics", "title": "Diagnostics" }
+    { "type": "DiagnosticsTools", "slug": "diagnostics", "title": "Diagnostics" },
+    { "tools": ["find_tool", "run_tools", "run_program"], "slug": "discovery", "title": "Finding and running tools" }
   ]
 }

@@ -6,15 +6,17 @@ public static class ServerInstructions
 {
     /// <summary>The instructions text the server registers for the MCP handshake.</summary>
     public const string Text = """
-        Snail.MCP.Figma: 141 tools for reading and editing Figma. Reads go through the Figma Desktop plugin in the open file (unsaved edits visible, no quota), else REST; every write needs the plugin.
+        Snail.MCP.Figma: 141 tools for reading and editing Figma. Reads go through the Desktop plugin in the open file (unsaved edits visible, no quota), else REST; every write needs the plugin.
 
-        Start with figma_navigate and the link of your file: it binds the target, and with several files open a write is refused until you do. figma_get_status shows the bridge.
+        Start with figma_navigate and the link of your file: it binds the target; with several files open a write is refused until you do. figma_get_status shows the bridge.
 
-        A build of many steps is one script, not a chain of calls: figma_execute runs Plugin API JavaScript inside Figma, figma_execute_steps a sequence the human can watch; only the return value comes back. A failed script explains itself in figma_get_console_logs. Check the result with figma_take_screenshot: a script succeeds even when the picture is wrong. Read the human's remarks from the plugin panel with figma_get_remarks between steps.
+        A build of many steps is one script, not a chain of calls: figma_execute runs Plugin API JavaScript inside Figma, figma_execute_steps a sequence the human can watch; only the return value comes back. A failed script explains itself in figma_get_console_logs. Check the picture with figma_take_screenshot: a script succeeds when it is wrong. The human's remarks: figma_get_remarks.
 
-        A failure answers ok false and isError: read error, hint and type, and fix the call rather than repeat it.
+        find_tool names the tool for a task; run_tools runs several in one call, run_program a JavaScript program over them.
 
-        Families, by the words to search for:
+        A failure answers ok false: read error, hint and type and fix the call.
+
+        Families, by search words:
         - read file, node, styles, variables, render: figma_get_file_data, figma_get_variables, figma_get_component_image
         - edit nodes (move, resize, fills, text, delete): figma_move_node, figma_set_fills; create nodes, SVG, images: figma_create_child, figma_create_node_from_jsx
         - components, variants, instances, library keys: figma_search_components, figma_instantiate_component

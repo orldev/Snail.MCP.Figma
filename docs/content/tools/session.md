@@ -34,24 +34,21 @@ Takes no parameters.
       "type": [
         "string",
         "null"
-      ],
-      "default": null
+      ]
     },
     "hint": {
-      "description": "What to do about a refusal; present only on one.",
+      "description": "What to do next: about a refusal, or with the data of a success that carries one; absent otherwise.",
       "type": [
         "string",
         "null"
-      ],
-      "default": null
+      ]
     },
     "type": {
       "description": "The kind of refusal, a word a program can branch on; present only on one.",
       "type": [
         "string",
         "null"
-      ],
-      "default": null
+      ]
     },
     "data": {
       "description": "What the tool answers.",

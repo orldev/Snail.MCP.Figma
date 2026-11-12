@@ -6,10 +6,16 @@
         the rest. Over stdio by default, or shared by every agent of the machine over Streamable HTTP with
         SNAIL_MCP_FIGMA_TRANSPORT=Http (launchd keeps that one running). Installed into ~/.s3l-mcp with
         -p:SnailMcpInstall=true.
+        run_program is Snail.Sdk.Mcp.Programs, which runs JavaScript on Jint. Jint warns about its bridge to .NET types —
+        delegates built from expressions, CLR namespaces, values converted by reflection — and programs never cross it:
+        the engine is made without the host's types and every value goes over as JSON text. So the native compiler's
+        warnings are not errors here; the server's own code is still held to none by the analyzers at build time, CI
+        fails on any native warning that is not Jint's, and the stdio contract runs a program on every native build.
     -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <SnailMcpTransport>Both</SnailMcpTransport>
+        <IlcTreatWarningsAsErrors>false</IlcTreatWarningsAsErrors>
     </PropertyGroup>
 
     <!-- The tool reference goes into the MkDocs site (docs/mkdocs.yml reads docs/content): tools/ and schemas/ there. -->
@@ -30,6 +36,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Snail.Sdk.Mcp.Programs" />
         <PackageReference Include="ModelContextProtocol" />
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="Microsoft.Data.Sqlite" />

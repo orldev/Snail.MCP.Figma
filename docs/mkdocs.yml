@@ -64,3 +64,4 @@ nav:
       - Quality and annotations: tools/quality.md
       - Session and console: tools/session.md
       - Diagnostics: tools/diagnostics.md
+      - Finding and running tools: tools/discovery.md

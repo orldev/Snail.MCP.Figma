@@ -15,9 +15,11 @@ using Snail.MCP.Figma.Hosting;
 using Snail.MCP.Figma.Tools;
 using Snail.MCP.Figma.Tools.Prompts;
 using Snail.Sdk.Mcp.Hosting;
+using Snail.Sdk.Mcp.Hosting.Answers;
 using Snail.Sdk.Mcp.Hosting.Discovery;
 using Snail.Sdk.Mcp.Hosting.Sessions;
 using Snail.Sdk.Mcp.Http;
+using Snail.Sdk.Mcp.Programs;
 
 namespace Snail.MCP.Figma.Extensions;
 
@@ -76,6 +78,7 @@ public static class PipelineRegistrationExtensions
         /// <summary>The one server both transports carry: its name, the instructions on the handshake, every tool, and the filters every call passes.</summary>
         /// <remarks>
         /// <para>Each tool class is named here rather than found by scanning the assembly, which Native AOT cannot do; the stdio contract fails when a class is left out, because it compares tools/list with every tool of the assembly.</para>
+        /// <para>The ways into a server the fleet spells alike are Snail.Sdk's, over the tools registered here: <c>find_tool</c> names the tool for a task with its parameters, <c>run_tools</c> runs several as steps of one call, and <c>run_program</c> a JavaScript program whose global <c>figma</c> holds every tool as a command. A step and a command pass the session's grant and the argument check as a direct call does.</para>
         /// <para>Snail.Sdk's <c>WithSessionGrant</c> holds a session to the tools its address names (<c>?tool=</c>, written by the platform that opens the server for a role): the others are left out of its list and refused in the envelope, type <c>notGranted</c>. An address that names none, and stdio, which has no address, are granted every tool, so a Claude Code window on the shared server sees all 141.</para>
         /// <para>Snail.Sdk's <c>ExplainFailures</c> flags an answer that is the failure envelope as an error: 136 of the 141 tools return the envelope as a string, which the MCP SDK turns into a result without isError. <c>WithArgumentCheck</c> answers a call that leaves out a required argument, or sends one the tool does not take, with the envelope of type <c>arguments</c> before the tool runs — five calls of the shared server's log of 16–27.10.2026 reached the SDK's marshaller without a required argument and got "An error occurred invoking" with no cause.</para>
         /// </remarks>
@@ -107,12 +110,42 @@ public static class PipelineRegistrationExtensions
                 .WithTools<VariableTools>(json)
                 .WithTools<VersionTools>(json)
                 .WithTools<WriteTools>(json)
+                .WithToolDiscovery(Discovery)
+                .WithToolSequences(sequences => sequences.Shape = AnswerShape.Envelope)
+                .WithPrograms<ToolCommands>(programs => programs.Global = ProgramGlobal)
                 .ExplainFailures()
                 .WithSessionGrant()
                 .WithArgumentCheck()
                 .WithRequestFilters(filters => filters.AddCallToolFilter(ServeTheAgent));
         }
     }
+
+    /// <summary>The global object of a program of <c>run_program</c>: <c>figma.get_status()</c> calls <c>figma_get_status</c>.</summary>
+    internal const string ProgramGlobal = "figma";
+
+    /// <summary>The command a program sends for a tool, or null for a tool that is no command — the two that forward to the others.</summary>
+    /// <remarks>As Snail.Sdk's <c>ToolCommands</c> names them: a tool named after the global and an underscore is the command without them, any other keeps its name (<c>figjam_create_sticky</c>, <c>csharp_diagnose</c>).</remarks>
+    internal static string? CommandOf(string tool) =>
+        tool switch
+        {
+            "run_tools" or "run_program" => null,
+            _ when tool.StartsWith(ProgramPrefix, StringComparison.Ordinal) => tool[ProgramPrefix.Length..],
+            _ => tool,
+        };
+
+    /// <summary>How <c>find_tool</c> reads this server: the prefix most of its tools share, their commands, tasks in its own words, and the envelope the tools with an output schema state.</summary>
+    internal static void Discovery(DiscoveryOptions options)
+    {
+        options.Prefix = ProgramPrefix;
+        options.CommandOf = CommandOf;
+        options.Shape = AnswerShape.Envelope;
+
+        options.Examples.Add("rename a layer");
+        options.Examples.Add("export design tokens");
+        options.Examples.Add("compare two versions");
+    }
+
+    private const string ProgramPrefix = $"{ProgramGlobal}_";
 
     /// <summary>How long a session may go without a request before it ends.</summary>
     public static readonly TimeSpan SessionIdleTimeout = TimeSpan.FromMinutes(15);

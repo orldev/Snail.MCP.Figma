@@ -15,6 +15,9 @@ public class StdioContractTests
 
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
+    /// <summary>The ways into a server the fleet spells alike, which Snail.Sdk registers over this server's tools.</summary>
+    private static readonly string[] Machinery = ["find_tool", "run_tools", "run_program"];
+
     [Fact]
     public async Task StdioServer_HandshakeToolsAndShutdown_StdoutCarriesOnlyJsonRpc()
     {
@@ -41,7 +44,7 @@ public class StdioContractTests
             .Select(tool => tool.GetProperty("name").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(ToolNamesOfAssembly(), names);
+        Assert.Equal(ToolNamesOfAssembly().Union(Machinery).ToHashSet(StringComparer.Ordinal), names);
 
         var called = await session.CallAsync(3, "tools/call", new
         {
@@ -165,6 +168,43 @@ public class StdioContractTests
 
             Assert.True(answer.IsOk());
             Assert.NotEqual(true, answer.IsError);
+        }
+        finally
+        {
+            if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
+    /// <summary>The fleet's machinery over this server's tools: <c>find_tool</c> names a tool with the command a program sends for it,
+    /// <c>run_tools</c> runs tools as steps, and <c>run_program</c> calls them as commands of <c>figma</c>; the two that state an output schema fit it.</summary>
+    /// <remarks>Run against the native publication, this is the program the project file promises for every native build: Jint is the one
+    /// dependency whose native warnings are forgiven.</remarks>
+    [Fact]
+    public async Task Machinery_FindsATool_RunsItAsAStep_AndAsACommandOfAProgram()
+    {
+        var dataDirectory = Path.Combine(TestFolder.Create(), "data");
+
+        try
+        {
+            await using var client = await ServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", ServerSession.Environment(dataDirectory));
+            var listed = await client.ListToolsAsync();
+
+            var found = await client.CallToolAsync("find_tool", new Dictionary<string, object?> { ["task"] = "status of the bridge to the plugin" });
+            var ran = await client.CallToolAsync("run_tools", new Dictionary<string, object?>
+            {
+                ["steps"] = JsonDocument.Parse("""[{ "tool": "figma_get_status" }, { "tool": "csharp_diagnose", "arguments": {} }]""").RootElement,
+            });
+            var programmed = await client.CallToolAsync("run_program", new Dictionary<string, object?>
+            {
+                ["code"] = "const status = figma.get_status(); log('asked'); return { status, files: figma.list_open_files() };",
+            });
+
+            Assert.True(found.IsOk(), found.Text());
+            Assert.Contains("\"name\":\"figma_get_status\",\"command\":\"get_status\"", found.Text(), StringComparison.Ordinal);
+            Assert.True(ran.IsOk(), ran.Text());
+            Assert.True(programmed.IsOk(), programmed.Text());
+            Assert.Empty(OutputSchemas.Problems(listed.Single(tool => tool.Name == "find_tool").ProtocolTool, found));
+            Assert.Empty(OutputSchemas.Problems(listed.Single(tool => tool.Name == "run_tools").ProtocolTool, ran));
         }
         finally
         {

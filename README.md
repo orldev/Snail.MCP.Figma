@@ -218,6 +218,8 @@ remembers it. Typical requests:
 - **[Session and console](https://orldev.github.io/Snail.MCP.Figma/tools/session/)** (16) — `figma_list_open_files`, `figma_navigate`, `figma_execute_across_files`, `figma_reconnect`, `figma_reload_plugin`, `figma_get_console_logs`, `figma_get_remarks`, `figma_clear_console`, `figma_watch_console`, `figma_export_node`, `figma_get_active_users`, `figma_notify`, `figma_scroll_to_node`, `figma_set_file_thumbnail`, `figma_take_screenshot`, `figma_get_text_styles`
 - **[Diagnostics](https://orldev.github.io/Snail.MCP.Figma/tools/diagnostics/)** (1) — `csharp_diagnose`
 
+Three more are the ones every Snail server answers to, **[finding and running tools](https://orldev.github.io/Snail.MCP.Figma/tools/discovery/)**: `find_tool` names the tool for a task with its parameters, `run_tools` runs several as the steps of one call, and `run_program` runs a small JavaScript program whose global `figma` holds every tool as a command — `figma.get_selection()` for `figma_get_selection` — so work that decides as it goes costs one call. `figma_execute` is a different thing: its script runs inside Figma against the Plugin API, a program runs beside the server and calls the tools.
+
 Which tools need what:
 
 | | Works without a token | Works without the plugin |
