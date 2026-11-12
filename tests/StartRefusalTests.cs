@@ -30,6 +30,33 @@ public sealed class StartRefusalTests
         }
     }
 
+    /// <summary>Inside a container the port is opened on every interface, and an endpoint without a key may not be: the start is refused in one line.</summary>
+    [Fact]
+    public async Task Start_InsideAContainer_IsRefusedInOneLine()
+    {
+        var dataDirectory = TestFolder.Create();
+        var environment = new Dictionary<string, string?>
+        {
+            ["SNAIL_MCP_FIGMA_DATA_DIRECTORY"] = dataDirectory,
+            ["SNAIL_MCP_FIGMA_ACCESS_TOKEN"] = null,
+            [OutsideAContainer.Variable] = "true",
+        };
+
+        try
+        {
+            var refused = await Assert.ThrowsAsync<ServerExitedException>(() => HttpServerProgram.StartAsync("Snail.MCP.Figma", "SNAIL_FIGMA_SERVER", environment));
+            var line = Assert.Single(refused.Stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+            Assert.Equal(1, refused.ExitCode);
+            Assert.StartsWith("DOTNET_RUNNING_IN_CONTAINER is 'true'", line, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", refused.Stderr, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
     /// <summary>The settings are bound while the host is registered, before any host could refuse them: a word where the bridge's first port
     /// belongs crashed the process with a trace and exit code 134, and is refused in one line that names the variable. Run against the native
     /// publication, this is the binding source generator's message the refusal reads.</summary>
