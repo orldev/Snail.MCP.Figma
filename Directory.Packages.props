@@ -5,8 +5,8 @@
   </PropertyGroup>
   <ItemGroup Label="Runtime">
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
-    <PackageVersion Include="ModelContextProtocol" Version="2.3.1" />
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.3.1" />
+    <PackageVersion Include="ModelContextProtocol" Version="2.4.0" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup Label="Benchmarks">
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
